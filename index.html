@@ -99,6 +99,8 @@
     <div class="note" id="pushStatus" style="margin-top:0;">Push not enabled yet.</div>
     <button class="btn btn-primary" id="enableBtn">Enable JARVIS Push</button>
     <button class="btn btn-ghost" id="testBtn" style="display:none;">Send me a test push</button>
+    <textarea id="subText" readonly style="display:none;width:100%;height:120px;margin-top:12px;background:#0c0c0c;color:#00E5FF;border:1px solid #1f1f1f;border-radius:12px;padding:12px;font-size:11px;font-family:ui-monospace,monospace;"></textarea>
+    <button class="btn btn-ghost" id="copyBtn" style="display:none;">Copy subscription (send to Jarvis)</button>
   </div>
 
   <div class="spacer"></div>
@@ -181,13 +183,26 @@ async function enablePush() {
         applicationServerKey: urlB64ToUint8(VAPID_PUBLIC)
       });
     }
-    // Send subscription to backend via ntfy (no server/tunnel needed)
-    await fetch(`${NTFY}/${SUB_TOPIC}`, {
-      method: 'POST',
-      headers: { 'Title': 'jarvis-subscription', 'Tags': 'pushpin' },
-      body: JSON.stringify(sub)
-    });
+    // Primary path: send subscription to backend via ntfy (no server/tunnel needed)
+    const subJson = JSON.stringify(sub);
+    let delivered = false;
+    try {
+      const resp = await fetch(`${NTFY}/${SUB_TOPIC}`, {
+        method: 'POST',
+        headers: { 'Title': 'jarvis-subscription', 'Tags': 'pushpin' },
+        body: subJson
+      });
+      delivered = resp.ok;
+    } catch (e) { delivered = false; }
+    // Fallback path: always expose the sub so it can be delivered manually if ntfy is throttled
+    $('subText').value = subJson;
+    if (!delivered) {
+      $('subText').style.display = 'block';
+      $('copyBtn').style.display = 'block';
+      toast('Subscribed. Tap "Copy subscription" and send it to Jarvis.', false);
+    }
     localStorage.setItem('jarvisSub', '1');
+    localStorage.setItem('jarvisSubJson', subJson);
     $('pushStatus').textContent = 'Push enabled. JARVIS can reach you.';
     $('enableBtn').textContent = 'Push Enabled ✓'; $('testBtn').style.display = 'block';
     $('dot').classList.add('live');
@@ -208,6 +223,11 @@ async function sendTest() {
 
 $('enableBtn').addEventListener('click', enablePush);
 $('testBtn').addEventListener('click', sendTest);
+$('copyBtn').addEventListener('click', async () => {
+  const v = $('subText').value || localStorage.getItem('jarvisSubJson') || '';
+  try { await navigator.clipboard.writeText(v); toast('Copied. Paste it to Jarvis on Telegram.'); }
+  catch (e) { $('subText').style.display = 'block'; $('subText').select(); toast('Select all & copy the text above.', true); }
+});
 
 if (localStorage.getItem('jarvisSub')) {
   registerSW();
