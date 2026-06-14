@@ -1,5 +1,5 @@
 // AETHER service worker — handles Web Push + notification taps
-const VERSION = 'aether-v33';
+const VERSION = 'aether-v34';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
