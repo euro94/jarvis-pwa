@@ -12,7 +12,7 @@ import json, os, subprocess, sys, urllib.request, datetime
 HERE = os.path.dirname(os.path.abspath(__file__))
 SCRIPTS = os.path.join(os.path.expanduser("~"), ".hermes", "scripts")
 STATE_TOPIC = "hermes-yaro-jarvis-state-85ec36fe"
-NTFY = "https://ntfy.sh"
+NTFY = "https://yaro.tail6a3c7a.ts.net"
 PY = sys.executable
 
 

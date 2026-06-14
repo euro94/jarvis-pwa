@@ -14,7 +14,7 @@ import argparse, json, os, sys, time, urllib.request
 BASE = os.path.dirname(os.path.abspath(__file__))
 SUBS = os.path.join(BASE, "subscriptions.json")
 SUB_TOPIC = "hermes-yaro-jarvis-pwa-sub-426e9ec3"
-NTFY = "https://ntfy.sh"
+NTFY = "https://yaro.tail6a3c7a.ts.net"
 
 
 def load():

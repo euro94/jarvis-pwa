@@ -77,7 +77,7 @@ def main():
     ap.add_argument("--title", default="AETHER")
     ap.add_argument("--body", required=True)
     ap.add_argument("--url")
-    ap.add_argument("--tag", default="jarvis")
+    ap.add_argument("--tag", default=None)
     ap.add_argument("--require", action="store_true")
     # --action id:Label:URL  (repeatable) — optional 4th field :BODY for POST body
     ap.add_argument("--action", action="append", default=[])
@@ -92,7 +92,8 @@ def main():
             action_urls[aid] = aurl
             if len(parts) == 4:
                 action_bodies[aid] = parts[3]
-    send(a.title, a.body, url=a.url, tag=a.tag, require=a.require,
+    import time as _t
+    send(a.title, a.body, url=a.url, tag=(a.tag or f"aether-{int(_t.time())}"), require=a.require,
          actions=actions or None, action_urls=action_urls or None,
          action_bodies=action_bodies or None)
 

@@ -1,5 +1,5 @@
 // AETHER service worker — handles Web Push + notification taps
-const VERSION = 'jarvis-v28';
+const VERSION = 'jarvis-v29';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -20,7 +20,7 @@ self.addEventListener('push', (event) => {
     body: data.body || '',
     icon: data.icon || './icons/icon-192.png',
     badge: './icons/icon-192.png',
-    tag: data.tag || 'jarvis',
+    tag: data.tag || ('aether-' + Date.now()),
     renotify: true,
     requireInteraction: !!data.requireInteraction,
     data: { url: data.url || './index.html', actionUrls: data.actionUrls || {}, actionBodies: data.actionBodies || {} },

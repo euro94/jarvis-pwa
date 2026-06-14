@@ -15,7 +15,7 @@ import argparse, sys, urllib.parse
 import push as pushmod
 
 INBOUND_TOPIC = "hermes-yaro-jarvis-in-c4e3ac0f"
-NTFY = "https://ntfy.sh"
+NTFY = "https://yaro.tail6a3c7a.ts.net"
 
 
 def send_checkin(habit, question, tag="jarvis-checkin"):
