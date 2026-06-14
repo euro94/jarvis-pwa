@@ -777,9 +777,9 @@ function primeTTS(){ // must run inside a user gesture to unlock iOS speech
 }
 function voiceModeAfterReply(msg){
   // ALWAYS speak in voice mode, then resume listening when done.
-  const resume=()=>{ speaking=false; if(window.__voiceMode){ setTimeout(()=>{ if(window.__voiceMode) startListening(); }, 250); } };
+  const resume=()=>{ speaking=false; if(window.__voiceMode){ setTimeout(()=>{ if(window.__voiceMode && !speaking) startListening(); }, 250); } };
   if(!window.speechSynthesis){ resume(); return; }
-  speaking=true; voSetState('speaking','AETHER'); 
+  speaking=true; voSetState('speaking','AETHER · tap to interrupt');
   const clean=msg.replace(/[*_`#>\[\]]/g,'').replace(/https?:\/\/\S+/g,'link').slice(0,700);
   $('voTranscript').textContent=clean.slice(0,160)+(clean.length>160?'…':'');
   const u=new SpeechSynthesisUtterance(clean); u.rate=1.03; u.pitch=1.0; u.lang='en-US';
@@ -790,6 +790,22 @@ function voiceModeAfterReply(msg){
   setTimeout(()=>{ try{ window.speechSynthesis.speak(u); }catch(e){ resume(); } }, 60);
   // safety net: if speech never fires, resume after a timeout
   setTimeout(()=>{ if(speaking && window.__voiceMode && !window.speechSynthesis.speaking){ resume(); } }, Math.min(2000+clean.length*60, 15000));
+}
+// Barge-in: tap the orb (or anywhere on the overlay) while AETHER is speaking
+// to cut it off and start listening immediately. iOS-reliable alternative to
+// true voice barge-in (the recognizer + synthesizer fight over the audio
+// session on Safari, so tap is the dependable interrupt).
+function voiceInterrupt(){
+  if(!window.__voiceMode) return;
+  if(speaking){
+    speaking=false;
+    if(window.speechSynthesis) window.speechSynthesis.cancel();
+    haptic();
+    setTimeout(()=>{ if(window.__voiceMode && !speaking) startListening(); }, 120);
+  } else if(!listening){
+    // not speaking and not listening (e.g. paused) — kick listening back on
+    startListening();
+  }
 }
 function startVoiceConversation(){
   if(!SR){ toast('Voice mode not supported on this browser.',true); return; }
@@ -808,6 +824,10 @@ function stopVoiceConversation(){
   if(window.speechSynthesis) window.speechSynthesis.cancel();
 }
 $('voStop').addEventListener('click', stopVoiceConversation);
+// Tap the orb (or empty overlay space) while AETHER is talking = interrupt it
+// and start listening. The Stop button stops propagation so it still ends mode.
+$('voOrb').addEventListener('click', (e)=>{ e.stopPropagation(); voiceInterrupt(); });
+$('voiceOverlay').addEventListener('click', (e)=>{ if(e.target&&e.target.id==='voStop')return; voiceInterrupt(); });
 $('voiceModeBtn').addEventListener('click', ()=>{
   if(!SR){ toast('Voice mode not supported on this browser.',true); return; }
   if(window.__voiceMode){ stopVoiceConversation(); } else { startVoiceConversation(); }
