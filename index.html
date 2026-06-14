@@ -66,6 +66,24 @@
   .chat-top { display:flex; align-items:center; gap:10px; padding:calc(env(safe-area-inset-top) + 12px) 16px 12px; border-bottom:1px solid var(--line); background:rgba(247,250,252,.92); backdrop-filter:blur(8px); }
   .chat-top img { width:30px; height:30px; }
   .chat-top .nm { font-weight:800; letter-spacing:3px; font-size:15px; color:var(--indigo); }
+  .topbtn { width:34px; height:34px; flex:0 0 34px; border:none; background:var(--card); border:1px solid var(--line); border-radius:10px; color:var(--indigo); font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .topbtn:active { transform:scale(.92); }
+
+  /* history drawer */
+  #histScrim { position:fixed; inset:0; background:rgba(26,32,44,.4); z-index:90; opacity:0; pointer-events:none; transition:opacity .25s; }
+  #histScrim.open { opacity:1; pointer-events:auto; }
+  #histDrawer { position:fixed; top:0; left:0; bottom:0; width:80%; max-width:330px; background:var(--card); z-index:91; transform:translateX(-100%); transition:transform .25s; box-shadow:6px 0 30px rgba(26,32,44,.2); display:flex; flex-direction:column; padding-top:env(safe-area-inset-top); }
+  #histDrawer.open { transform:none; }
+  .hd-head { display:flex; align-items:center; justify-content:space-between; padding:18px 18px 12px; font-size:14px; font-weight:700; color:var(--indigo); border-bottom:1px solid var(--line); }
+  .hd-head #hdNew { background:var(--teal); color:#fff; border:none; border-radius:10px; padding:7px 12px; font-size:13px; font-weight:700; cursor:pointer; }
+  #hdList { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:8px; }
+  .hd-item { padding:13px 14px; border-radius:12px; cursor:pointer; display:flex; flex-direction:column; gap:3px; margin-bottom:4px; }
+  .hd-item:active { background:#eef2f6; }
+  .hd-item.active { background:#e6fbf8; border:1px solid #9decdf; }
+  .hd-item .t { font-size:14px; font-weight:600; color:var(--indigo); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .hd-item .m { font-size:11.5px; color:var(--dim); }
+  .hd-item .del { font-size:11px; color:#c53030; }
+  .hd-empty { padding:20px 16px; text-align:center; color:var(--dim); font-size:13px; }
   .selwrap { margin-left:auto; position:relative; }
   .selbtn { display:flex; align-items:center; gap:7px; background:var(--card); border:1px solid var(--line); border-radius:18px; padding:7px 12px; font-size:13px; font-weight:600; color:var(--indigo); cursor:pointer; }
   .selbtn .chev { color:var(--dim); font-size:11px; }
@@ -182,12 +200,13 @@
   <!-- ===== CHAT ===== -->
   <div class="screen" id="screenChat">
     <div class="chat-top">
-      <img src="icons/mark-256.png" alt="">
+      <button class="topbtn" id="histBtn" title="Chats">☰</button>
       <div class="nm">AETHER</div>
       <div class="selwrap">
         <div class="selbtn" id="selBtn"><span id="selLabel">Assistant</span><span class="chev">▾</span></div>
         <div class="selmenu" id="selMenu"></div>
       </div>
+      <button class="topbtn" id="newBtn" title="New chat">✎</button>
     </div>
     <div id="chatThread"></div>
     <div id="attachPreview"></div>
@@ -201,6 +220,16 @@
       <button class="iconbtn send2" id="sendBtn">➤</button>
     </div>
     <input type="file" id="fileInput" accept="image/*" multiple style="display:none;">
+  </div>
+
+  <!-- ===== HISTORY DRAWER ===== -->
+  <div id="histScrim"></div>
+  <div id="histDrawer">
+    <div class="hd-head">
+      <span>Chats · <span id="hdAgent">Assistant</span></span>
+      <button id="hdNew">+ New</button>
+    </div>
+    <div id="hdList"></div>
   </div>
 
   <!-- ===== SETTINGS ===== -->
@@ -297,11 +326,68 @@ async function loadState(){
 }
 loadState(); setInterval(loadState,60000);
 
-/* ===== CHAT (multi-agent) ===== */
+/* ===== CHAT (multi-agent + sessions) ===== */
 let pollStop=0, pendingImages=[];
-function chatKey(){ return 'aetherChat_'+activeAgent.id; }
-function loadHistory(){ try{ return JSON.parse(localStorage.getItem(chatKey())||'[]'); }catch(e){ return []; } }
-let chatLog = loadHistory();
+
+/* Session store: per agent, an array of {id,title,created,updated,msgs:[]}. */
+function sessKey(){ return 'aetherSessions_'+activeAgent.id; }
+function loadSessions(){ try{ return JSON.parse(localStorage.getItem(sessKey())||'[]'); }catch(e){ return []; } }
+function saveSessions(arr){ localStorage.setItem(sessKey(), JSON.stringify(arr)); }
+function activeSessKey(){ return 'aetherActiveSess_'+activeAgent.id; }
+let sessions = loadSessions();
+let curSession = null;
+
+function newSessionObj(){ return { id:'s'+Date.now()+Math.floor(Math.random()*1000), title:'New chat', created:Date.now(), updated:Date.now(), msgs:[] }; }
+function ensureSession(){
+  sessions = loadSessions();
+  const wantId = localStorage.getItem(activeSessKey());
+  curSession = sessions.find(s=>s.id===wantId) || sessions[0] || null;
+  if(!curSession){ curSession = newSessionObj(); sessions.unshift(curSession); saveSessions(sessions); }
+  localStorage.setItem(activeSessKey(), curSession.id);
+}
+ensureSession();
+let chatLog = curSession.msgs; // alias so existing code paths work
+
+function persistSession(){
+  curSession.updated = Date.now();
+  curSession.msgs = chatLog;
+  // title from first user message
+  if(curSession.title==='New chat'){ const fm=chatLog.find(m=>m.role==='me'); if(fm) curSession.title=fm.text.slice(0,40); }
+  const i=sessions.findIndex(s=>s.id===curSession.id);
+  if(i>=0) sessions[i]=curSession; else sessions.unshift(curSession);
+  saveSessions(sessions);
+}
+
+async function startNewChat(){
+  // tell THIS agent's Hermes session to reset
+  try{ await fetch(`${NTFY}/${activeAgent.in}`,{method:'POST',body:'/new'}); }catch(e){}
+  curSession = newSessionObj(); sessions = loadSessions(); sessions.unshift(curSession); saveSessions(sessions);
+  localStorage.setItem(activeSessKey(), curSession.id);
+  chatLog = curSession.msgs;
+  renderChat(); renderHistory();
+  toast('New chat started — '+activeAgent.label+' context reset.');
+}
+function openSession(id){
+  sessions=loadSessions(); const s=sessions.find(x=>x.id===id); if(!s)return;
+  curSession=s; localStorage.setItem(activeSessKey(),id); chatLog=curSession.msgs;
+  // re-sync Hermes: a reopened old chat needs a fresh Hermes session (it can't
+  // restore old server context), so reset and replay nothing — the transcript
+  // is readable here; new turns continue from a clean slate.
+  fetch(`${NTFY}/${activeAgent.in}`,{method:'POST',body:'/new'}).catch(()=>{});
+  renderChat(); renderHistory(); closeHistory();
+}
+function deleteSession(id){
+  sessions=loadSessions().filter(s=>s.id!==id); saveSessions(sessions);
+  if(curSession && curSession.id===id){ curSession=null; ensureSession(); chatLog=curSession.msgs; renderChat(); }
+  renderHistory();
+}
+
+function switchAgent(a){
+  activeAgent=a; localStorage.setItem('aetherAgent',a.id);
+  ensureSession(); chatLog=curSession.msgs;
+  renderSelector(); renderChat(); renderHistory();
+  $('chatInput').placeholder='Message '+a.label+'…';
+}
 
 function renderSelector(){
   $('selLabel').textContent=activeAgent.label;
@@ -309,7 +395,7 @@ function renderSelector(){
   for(const a of AGENTS){
     const o=document.createElement('div'); o.className='opt';
     o.innerHTML='<span class="ic">'+a.ic+'</span><span>'+a.label+'<span class="sub">'+a.hint+'</span></span>'+(a.id===activeAgent.id?'<span class="ck">✓</span>':'');
-    o.addEventListener('click', ()=>{ activeAgent=a; localStorage.setItem('aetherAgent',a.id); chatLog=loadHistory(); $('selMenu').classList.remove('open'); renderSelector(); renderChat(); $('chatInput').placeholder='Message '+a.label+'…'; haptic(); });
+    o.addEventListener('click', ()=>{ $('selMenu').classList.remove('open'); switchAgent(a); haptic(); });
     m.appendChild(o);
   }
 }
@@ -331,7 +417,7 @@ function renderChat(){
   scrollChat();
 }
 function scrollChat(){ const t=$('chatThread'); requestAnimationFrame(()=>{ t.scrollTop=t.scrollHeight; }); }
-function pushMsg(role,text,extra){ const m={role,text,t:Date.now()}; if(extra)Object.assign(m,extra); chatLog.push(m); if(chatLog.length>100)chatLog=chatLog.slice(-100); localStorage.setItem(chatKey(),JSON.stringify(chatLog)); saveRecent(); renderChat(); }
+function pushMsg(role,text,extra){ const m={role,text,t:Date.now()}; if(extra)Object.assign(m,extra); chatLog.push(m); if(chatLog.length>200)chatLog=chatLog.slice(-200); curSession.msgs=chatLog; persistSession(); saveRecent(); renderChat(); }
 function showTyping(){ if($('typingRow'))return; const d=document.createElement('div'); d.className='typing'; d.id='typingRow'; d.innerHTML='<span></span><span></span><span></span>'; $('chatThread').appendChild(d); scrollChat(); }
 function hideTyping(){ const e=$('typingRow'); if(e)e.remove(); }
 
@@ -348,7 +434,7 @@ async function askAgent(text, silent, imgUrls){
 }
 async function pollReply(sinceTs, silent, agent){
   pollStop=Date.now()+180000; const seen=new Set();
-  const isNoise=(m)=>{ const t=m.trim(); return !t||/top-up left/i.test(t)||/Credits \d+% used/i.test(t)||/^💾/.test(t)||/^⚠/.test(t)||/Self-improvement review/i.test(t)||/Memory updated/i.test(t)||/^•\s/.test(t); };
+  const isNoise=(m)=>{ const t=m.trim(); return !t||/top-up left/i.test(t)||/Credits \d+% used/i.test(t)||/^💾/.test(t)||/^⚠/.test(t)||/Self-improvement review/i.test(t)||/Memory updated/i.test(t)||/^•\s/.test(t)||/^✨ Session reset/i.test(t); };
   while(Date.now()<pollStop){
     if(agent.id!==activeAgent.id){ hideTyping(); return; }
     try{
@@ -383,23 +469,42 @@ async function sendFromInput(){
     askAgent(v||('Please review '+(urls.length>1?'these '+urls.length+' images':'this image')+'.'), false, urls);
   } else askAgent(v,false);
 }
-$('clearChat').addEventListener('click', ()=>{ chatLog=[]; localStorage.removeItem(chatKey()); renderChat(); toast('Conversation cleared.'); });
+$('clearChat').addEventListener('click', ()=>{ startNewChat(); });
+
+/* ===== NEW CHAT + HISTORY DRAWER ===== */
+$('newBtn').addEventListener('click', ()=>{ startNewChat(); haptic(); });
+$('hdNew').addEventListener('click', ()=>{ startNewChat(); closeHistory(); haptic(); });
+$('histBtn').addEventListener('click', ()=>{ renderHistory(); openHistory(); });
+$('histScrim').addEventListener('click', closeHistory);
+function openHistory(){ $('histScrim').classList.add('open'); $('histDrawer').classList.add('open'); }
+function closeHistory(){ $('histScrim').classList.remove('open'); $('histDrawer').classList.remove('open'); }
+function renderHistory(){
+  $('hdAgent').textContent=activeAgent.label;
+  const arr=loadSessions().slice().sort((a,b)=>b.updated-a.updated);
+  const el=$('hdList'); el.innerHTML='';
+  if(arr.length===0){ el.innerHTML='<div class="hd-empty">No chats yet.</div>'; return; }
+  for(const s of arr){
+    const d=document.createElement('div'); d.className='hd-item'+(curSession&&s.id===curSession.id?' active':'');
+    const when=new Date(s.updated).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+    d.innerHTML='<div class="t">'+(s.title||'New chat')+'</div><div class="m">'+s.msgs.length+' msgs · '+when+' · <span class="del">delete</span></div>';
+    d.addEventListener('click',(e)=>{ if(e.target.classList.contains('del')){ e.stopPropagation(); deleteSession(s.id); } else openSession(s.id); });
+    el.appendChild(d);
+  }
+}
 
 /* ===== HOME prompt bar + feature cards ===== */
 $('homePrompt').addEventListener('click', ()=>{ goChat(); setTimeout(()=>$('chatInput').focus(),120); });
 document.querySelectorAll('.fcard').forEach(c=>{
   c.addEventListener('click', ()=>{
-    const a=AGENTS.find(x=>x.id===c.dataset.agent)||activeAgent; activeAgent=a; localStorage.setItem('aetherAgent',a.id);
-    chatLog=loadHistory(); renderSelector(); renderChat(); goChat();
+    const a=AGENTS.find(x=>x.id===c.dataset.agent)||activeAgent; switchAgent(a); goChat();
     $('chatInput').value=c.dataset.q; $('chatInput').focus(); haptic();
   });
 });
 
-/* ===== RECENT (last message per agent) ===== */
+/* ===== RECENT (home) — most recently updated session per agent ===== */
 function saveRecent(){
-  const last=chatLog[chatLog.length-1]; if(!last)return;
   let rec=JSON.parse(localStorage.getItem('aetherRecent')||'{}');
-  rec[activeAgent.id]={ label:activeAgent.label, text:(chatLog.find(m=>m.role==='me')||last).text.slice(0,46), t:Date.now() };
+  rec[activeAgent.id]={ label:activeAgent.label, text:(curSession.title||'New chat'), t:Date.now(), sid:curSession.id };
   localStorage.setItem('aetherRecent',JSON.stringify(rec));
 }
 function renderRecent(){
@@ -411,7 +516,7 @@ function renderRecent(){
   for(const [aid,r] of items){
     const d=document.createElement('div'); d.className='item';
     d.innerHTML='<span class="dot2"></span><span><b>'+r.label+'</b> · '+ (r.text||'…') +'</span>';
-    d.addEventListener('click', ()=>{ const a=AGENTS.find(x=>x.id===aid); if(a){ activeAgent=a; localStorage.setItem('aetherAgent',a.id); chatLog=loadHistory(); renderSelector(); renderChat(); goChat(); } });
+    d.addEventListener('click', ()=>{ const a=AGENTS.find(x=>x.id===aid); if(a){ switchAgent(a); if(r.sid) openSession(r.sid); goChat(); } });
     el.appendChild(d);
   }
 }
@@ -424,7 +529,7 @@ function renderAttachments(){ const p=$('attachPreview'); p.innerHTML=''; pendin
 function clearAttachments(){ pendingImages=[]; renderAttachments(); }
 async function uploadImages(imgs){ const urls=[]; for(const im of imgs){ try{ const fd=new FormData(); fd.append('reqtype','fileupload'); fd.append('time','24h'); fd.append('fileToUpload',im.file,im.name); const r=await fetch('https://litterbox.catbox.moe/resources/internals/api.php',{method:'POST',body:fd}); const u=(await r.text()).trim(); if(u.startsWith('http'))urls.push(u);}catch(e){} } return urls; }
 
-renderSelector(); renderChat();
+renderSelector(); renderChat(); renderHistory();
 
 /* ===== VOICE INPUT ===== */
 let recog=null, listening=false;
