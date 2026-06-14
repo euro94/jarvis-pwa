@@ -52,7 +52,15 @@
   .note { color:var(--dim); font-size:12.5px; text-align:center; margin-top:12px; line-height:1.5; }
 
   /* chat */
-  #chatThread { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:14px 16px 8px; display:flex; flex-direction:column; gap:10px; }
+  .agentbar { display:flex; gap:7px; padding:10px 14px 8px; overflow-x:auto; border-bottom:1px solid var(--line); -webkit-overflow-scrolling:touch; }
+  .agentbar button { flex:0 0 auto; background:var(--card); border:1px solid var(--line); color:var(--dim); border-radius:20px; padding:7px 14px; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; transition:.15s; }
+  .agentbar button.active { background:var(--cyan); color:#00161a; border-color:var(--cyan); box-shadow:0 0 14px rgba(0,229,255,.3); }
+  #attachPreview { display:flex; flex-wrap:wrap; gap:8px; padding:0 16px; }
+  #attachPreview:not(:empty) { padding:10px 16px; }
+  #attachPreview .thumb { position:relative; width:60px; height:60px; border-radius:10px; overflow:hidden; border:1px solid var(--line); }
+  #attachPreview .thumb img { width:100%; height:100%; object-fit:cover; }
+  #attachPreview .thumb .x { position:absolute; top:1px; right:1px; width:18px; height:18px; background:rgba(0,0,0,.7); color:#fff; border-radius:50%; font-size:12px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+  .attach { background:var(--card); border:1px solid var(--line); color:var(--cyan); font-size:24px; }
   .msg { max-width:82%; padding:11px 14px; border-radius:18px; font-size:15.5px; line-height:1.42; white-space:pre-wrap; word-wrap:break-word; animation:pop .18s ease-out; }
   @keyframes pop { from{opacity:0; transform:translateY(6px) scale(.98);} to{opacity:1; transform:none;} }
   .msg.me { align-self:flex-end; background:var(--user); border:1px solid #0a525e; border-bottom-right-radius:6px; }
@@ -62,12 +70,14 @@
   .typing span { width:7px; height:7px; border-radius:50%; background:var(--cyan); opacity:.5; animation:blink 1.2s infinite; }
   .typing span:nth-child(2){animation-delay:.2s;} .typing span:nth-child(3){animation-delay:.4s;}
   @keyframes blink { 0%,60%,100%{opacity:.3; transform:translateY(0);} 30%{opacity:1; transform:translateY(-3px);} }
-  .composer { display:flex; align-items:flex-end; gap:9px; padding:10px 14px calc(var(--safe-b) + 10px); border-top:1px solid var(--line); background:rgba(10,10,10,.85); backdrop-filter:blur(10px); }
-  .composer textarea { flex:1; resize:none; max-height:120px; background:#0c0c0c; color:var(--fg); border:1px solid var(--line); border-radius:20px; padding:11px 15px; font-size:16px; font-family:inherit; line-height:1.3; }
-  .iconbtn { width:46px; height:46px; flex:0 0 46px; border-radius:50%; border:none; display:flex; align-items:center; justify-content:center; font-size:20px; cursor:pointer; transition:transform .08s; }
+  .composer { display:flex; align-items:flex-end; gap:6px; padding:10px 12px calc(var(--safe-b) + 10px); border-top:1px solid var(--line); background:rgba(10,10,10,.85); backdrop-filter:blur(10px); }
+  .composer textarea { flex:1; min-width:0; resize:none; max-height:120px; background:#0c0c0c; color:var(--fg); border:1px solid var(--line); border-radius:20px; padding:11px 14px; font-size:16px; font-family:inherit; line-height:1.3; }
+  .iconbtn { width:42px; height:42px; flex:0 0 42px; border-radius:50%; border:none; display:flex; align-items:center; justify-content:center; font-size:19px; cursor:pointer; transition:transform .08s; }
   .iconbtn:active { transform:scale(.9); }
   .mic { background:var(--card); border:1px solid var(--line); color:var(--cyan); }
   .mic.listening { background:var(--cyan); color:#00161a; animation:pulse 1.2s infinite; }
+  .voicemode { background:var(--card); border:1px solid var(--line); color:var(--dim); }
+  .voicemode.on { background:var(--cyan); color:#00161a; animation:pulse 1.2s infinite; }
   @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(0,229,255,.5);} 50%{box-shadow:0 0 0 12px rgba(0,229,255,0);} }
   .send { background:var(--cyan); color:#00161a; }
 
@@ -116,12 +126,17 @@
 
   <!-- CHAT -->
   <div class="screen" id="screenChat">
+    <div class="agentbar" id="agentBar"></div>
     <div id="chatThread"></div>
+    <div id="attachPreview"></div>
     <div class="composer">
+      <button class="iconbtn attach" id="attachBtn" title="Attach images">＋</button>
       <button class="iconbtn mic" id="micBtn" title="Speak">🎙️</button>
       <textarea id="chatInput" rows="1" placeholder="Ask JARVIS…"></textarea>
+      <button class="iconbtn voicemode" id="voiceModeBtn" title="Voice conversation mode">🔊</button>
       <button class="iconbtn send" id="sendBtn" title="Send">↑</button>
     </div>
+    <input type="file" id="fileInput" accept="image/*" multiple style="display:none;">
   </div>
 
   <!-- SETTINGS -->
@@ -170,9 +185,18 @@
 const VAPID_PUBLIC = "BJDnPKy5bxemFNASfGNRCprskjmhnon32m3ksEypcK7RzcT5_6g3mbSEu_Ad-7vQX891PbnSwCDI7Vjl_4icBak";
 const SUB_TOPIC    = "hermes-yaro-jarvis-pwa-sub-426e9ec3";
 const STATE_TOPIC  = "hermes-yaro-jarvis-state-85ec36fe";
-const INBOUND_TOPIC= "hermes-yaro-jarvis-in-c4e3ac0f";   // -> gateway -> Jarvis
-const REPLY_TOPIC  = "hermes-yaro-jarvis-7450b76f";       // Jarvis publishes replies here
 const NTFY = "https://ntfy.sh";
+
+// Multi-agent fleet. Each agent = a Hermes profile with its own ntfy bridge.
+const AGENTS = [
+  { id:"jarvis",    label:"JARVIS",     in:"hermes-yaro-jarvis-in-c4e3ac0f",   out:"hermes-yaro-jarvis-7450b76f",     hint:"Your schedule, calendar, quick tasks." },
+  { id:"research",  label:"Researcher", in:"hermes-yaro-research-in-f97aeefc",  out:"hermes-yaro-research-out-82375690", hint:"Deep research, sources, synthesis." },
+  { id:"seniorrev", label:"Reviewer",   in:"hermes-yaro-seniorrev-in-bfb96220", out:"hermes-yaro-seniorrev-out-c9cd4a94", hint:"Code & design review. Attach images for bulk review." },
+  { id:"design",    label:"Designer",   in:"hermes-yaro-design-in-ea57c6e8",    out:"hermes-yaro-design-out-ba07f8fc",   hint:"Design, UI, brand, visuals." },
+];
+let activeAgent = AGENTS.find(a=>a.id===(localStorage.getItem('jarvisAgent')||'jarvis')) || AGENTS[0];
+const INBOUND_TOPIC = ()=>activeAgent.in;     // -> gateway -> that agent
+const REPLY_TOPIC   = ()=>activeAgent.out;     // that agent publishes replies here
 
 const $ = (id) => document.getElementById(id);
 const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
@@ -215,51 +239,69 @@ async function loadState(){
 loadState(); setInterval(loadState, 60000);
 $('refreshBtn').addEventListener('click', ()=>{ loadState(); haptic(); toast('Refreshed.'); });
 
-/* ===== CHAT ===== */
-let chatLog = JSON.parse(localStorage.getItem('jarvisChat')||'[]');
-let polling=false, pollStop=0;
+/* ===== CHAT (multi-agent) ===== */
+let pollStop=0;
+let pendingImages=[]; // {name, dataUrl, file}
+
+// per-agent history stored separately
+function chatKey(){ return 'jarvisChat_'+activeAgent.id; }
+function loadHistory(){ try{ return JSON.parse(localStorage.getItem(chatKey())||'[]'); }catch(e){ return []; } }
+let chatLog = loadHistory();
+
+function renderAgentBar(){
+  const bar=$('agentBar'); bar.innerHTML='';
+  for(const a of AGENTS){
+    const b=document.createElement('button'); b.textContent=a.label;
+    if(a.id===activeAgent.id) b.classList.add('active');
+    b.addEventListener('click', ()=>{ if(a.id===activeAgent.id)return; activeAgent=a; localStorage.setItem('jarvisAgent',a.id); chatLog=loadHistory(); renderAgentBar(); renderChat(); $('chatInput').placeholder='Ask '+a.label+'…'; haptic(); });
+    bar.appendChild(b);
+  }
+}
 
 function renderChat(){
   const t=$('chatThread'); t.innerHTML='';
   if(chatLog.length===0){
     const w=document.createElement('div'); w.className='msg ai';
-    w.innerHTML='<b>JARVIS online.</b> Ask me anything — your schedule, a quick calc, add a calendar event, or just talk. I have your calendar, memory, and tools.';
+    w.innerHTML='<b>'+activeAgent.label+' online.</b> '+activeAgent.hint;
     t.appendChild(w);
   }
-  for(const m of chatLog){ const d=document.createElement('div'); d.className='msg '+(m.role==='me'?'me':'ai'); d.textContent=m.text; t.appendChild(d); }
+  for(const m of chatLog){
+    const d=document.createElement('div'); d.className='msg '+(m.role==='me'?'me':'ai');
+    d.textContent=m.text;
+    if(m.imgs && m.imgs.length){ const ic=document.createElement('div'); ic.style.cssText='margin-top:6px;font-size:12px;opacity:.8'; ic.textContent='📎 '+m.imgs.length+' image'+(m.imgs.length>1?'s':''); d.appendChild(ic); }
+    t.appendChild(d);
+  }
   scrollChat();
 }
 function scrollChat(){ const t=$('chatThread'); requestAnimationFrame(()=>{ t.scrollTop=t.scrollHeight; }); }
-function pushMsg(role,text){ chatLog.push({role,text,t:Date.now()}); if(chatLog.length>100)chatLog=chatLog.slice(-100); localStorage.setItem('jarvisChat',JSON.stringify(chatLog)); renderChat(); }
+function pushMsg(role,text,extra){ const m={role,text,t:Date.now()}; if(extra)Object.assign(m,extra); chatLog.push(m); if(chatLog.length>100)chatLog=chatLog.slice(-100); localStorage.setItem(chatKey(),JSON.stringify(chatLog)); renderChat(); }
 function showTyping(){ if($('typingRow'))return; const d=document.createElement('div'); d.className='typing'; d.id='typingRow'; d.innerHTML='<span></span><span></span><span></span>'; $('chatThread').appendChild(d); scrollChat(); }
 function hideTyping(){ const e=$('typingRow'); if(e)e.remove(); }
 
-async function askJarvis(text, silent){
-  if(!silent){ pushMsg('me',text); }
+async function askAgent(text, silent, imgUrls){
+  const agent = activeAgent; // capture (user might switch mid-flight)
+  if(!silent){ pushMsg('me',text,{imgs:imgUrls||[]}); }
   showTyping();
   const sentAt = Math.floor(Date.now()/1000) - 1;
+  let body = text;
+  if(imgUrls && imgUrls.length){
+    body = text + "\n\nImages to review (fetch each with your vision tool):\n" + imgUrls.join("\n");
+  }
   try{
-    await fetch(`${NTFY}/${INBOUND_TOPIC}`, { method:'POST', body:text });
-  }catch(e){ hideTyping(); toast('Could not reach JARVIS.',true); return; }
-  pollReply(sentAt, silent);
+    await fetch(`${NTFY}/${agent.in}`, { method:'POST', body });
+  }catch(e){ hideTyping(); toast('Could not reach '+agent.label+'.',true); return; }
+  pollReply(sentAt, silent, agent);
 }
 
-async function pollReply(sinceTs, silent){
-  pollStop = Date.now()+120000; // poll up to 2 min
+async function pollReply(sinceTs, silent, agent){
+  pollStop = Date.now()+180000; // up to 3 min (research/review can be slow)
   const seen=new Set();
-  // noise patterns that land on the shared reply topic but aren't chat answers
-  const isNoise = (m)=>{
-    const t=m.trim();
-    return !t
-      || /top-up left/i.test(t)
-      || /^💾/.test(t)
-      || /Self-improvement review/i.test(t)
-      || /Memory updated/i.test(t)
-      || /^•\s/.test(t);
-  };
+  const isNoise=(m)=>{ const t=m.trim(); return !t || /top-up left/i.test(t) || /Credits \d+% used/i.test(t) || /^💾/.test(t) || /^⚠/.test(t) || /Self-improvement review/i.test(t) || /Memory updated/i.test(t) || /^•\s/.test(t); };
   while(Date.now()<pollStop){
+    // stop if user switched agents
+    if(agent.id!==activeAgent.id){ hideTyping(); return; }
     try{
-      const r=await fetch(`${NTFY}/${REPLY_TOPIC}/json?poll=1&since=${sinceTs}`,{cache:'no-store'});
+      const r=await fetch(`${NTFY}/${agent.out}/json?poll=1&since=${sinceTs}`,{cache:'no-store'});
       const lines=(await r.text()).trim().split('\n').filter(Boolean);
       for(const ln of lines){
         let o; try{o=JSON.parse(ln);}catch(e){continue;}
@@ -269,23 +311,62 @@ async function pollReply(sinceTs, silent){
         const msg=(o.message||'').trim();
         if(isNoise(msg)) continue;
         hideTyping();
-        pushMsg('ai', msg);
-        speak(msg);
-        return; // got the reply
+        // only render if still on this agent
+        if(agent.id===activeAgent.id){ pushMsg('ai', msg); speak(msg); }
+        if(window.__voiceMode) voiceModeAfterReply(msg);
+        return;
       }
     }catch(e){}
     await new Promise(r=>setTimeout(r,2500));
   }
   hideTyping();
-  if(!silent) toast('No reply yet — JARVIS may be busy.',true);
+  if(!silent) toast('No reply yet — '+agent.label+' may be busy.',true);
 }
 
 $('sendBtn').addEventListener('click', sendFromInput);
 $('chatInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendFromInput(); } });
 $('chatInput').addEventListener('input', function(){ this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,120)+'px'; });
-function sendFromInput(){ const v=$('chatInput').value.trim(); if(!v)return; $('chatInput').value=''; $('chatInput').style.height='auto'; haptic(); askJarvis(v,false); }
-$('clearChat').addEventListener('click', ()=>{ chatLog=[]; localStorage.removeItem('jarvisChat'); renderChat(); toast('Conversation cleared.'); });
-renderChat();
+async function sendFromInput(){
+  const v=$('chatInput').value.trim();
+  if(!v && pendingImages.length===0) return;
+  $('chatInput').value=''; $('chatInput').style.height='auto'; haptic();
+  if(pendingImages.length){
+    const imgs=pendingImages.slice(); clearAttachments();
+    toast('Uploading '+imgs.length+' image'+(imgs.length>1?'s':'')+'…');
+    const urls=await uploadImages(imgs);
+    if(urls.length===0){ toast('Image upload failed.',true); return; }
+    askAgent(v||('Please review '+(urls.length>1?'these '+urls.length+' images':'this image')+'.'), false, urls);
+  } else {
+    askAgent(v,false);
+  }
+}
+$('clearChat').addEventListener('click', ()=>{ chatLog=[]; localStorage.removeItem(chatKey()); renderChat(); toast('Conversation cleared.'); });
+
+/* ===== IMAGE ATTACH + UPLOAD (litterbox, CORS-friendly) ===== */
+$('attachBtn').addEventListener('click', ()=>{ $('fileInput').click(); });
+$('fileInput').addEventListener('change', (e)=>{
+  for(const f of e.target.files){ const reader=new FileReader(); reader.onload=ev=>{ pendingImages.push({name:f.name,dataUrl:ev.target.result,file:f}); renderAttachments(); }; reader.readAsDataURL(f); }
+  e.target.value='';
+});
+function renderAttachments(){
+  const p=$('attachPreview'); p.innerHTML='';
+  pendingImages.forEach((im,i)=>{ const d=document.createElement('div'); d.className='thumb'; d.innerHTML='<img src="'+im.dataUrl+'"><div class="x">×</div>'; d.querySelector('.x').addEventListener('click',()=>{ pendingImages.splice(i,1); renderAttachments(); }); p.appendChild(d); });
+}
+function clearAttachments(){ pendingImages=[]; renderAttachments(); }
+async function uploadImages(imgs){
+  const urls=[];
+  for(const im of imgs){
+    try{
+      const fd=new FormData(); fd.append('reqtype','fileupload'); fd.append('time','24h'); fd.append('fileToUpload', im.file, im.name);
+      const r=await fetch('https://litterbox.catbox.moe/resources/internals/api.php',{method:'POST',body:fd});
+      const url=(await r.text()).trim();
+      if(url.startsWith('http')) urls.push(url);
+    }catch(e){}
+  }
+  return urls;
+}
+
+renderAgentBar(); renderChat();
 
 /* ===== VOICE INPUT (Web Speech API) ===== */
 let recog=null, listening=false;
@@ -293,14 +374,40 @@ const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 if(SR){
   recog=new SR(); recog.lang='en-US'; recog.interimResults=true; recog.continuous=false;
   recog.onresult=(e)=>{ let txt=''; for(let i=0;i<e.results.length;i++)txt+=e.results[i][0].transcript; $('chatInput').value=txt; };
-  recog.onend=()=>{ listening=false; $('micBtn').classList.remove('listening'); const v=$('chatInput').value.trim(); if(v){ $('chatInput').value=''; askJarvis(v,false); } };
+  recog.onend=()=>{ listening=false; $('micBtn').classList.remove('listening'); const v=$('chatInput').value.trim(); if(v){ $('chatInput').value=''; sendVoiceText(v); } else if(window.__voiceMode){ /* heard nothing, keep loop */ setTimeout(()=>{ if(window.__voiceMode) startListening(); }, 400); } };
   recog.onerror=()=>{ listening=false; $('micBtn').classList.remove('listening'); };
 }
+function startListening(){ if(!SR||listening)return; listening=true; $('micBtn').classList.add('listening'); $('chatInput').value=''; try{recog.start();}catch(e){listening=false;} }
+function sendVoiceText(v){ if(pendingImages.length){ sendFromInput(); } else { askAgent(v,false); } }
 $('micBtn').addEventListener('click', ()=>{
   if(!SR){ toast('Voice input not supported here — type instead.',true); return; }
   if(listening){ recog.stop(); return; }
-  haptic(); listening=true; $('micBtn').classList.add('listening'); $('chatInput').value=''; try{recog.start();}catch(e){}
+  haptic(); startListening();
 });
+
+/* ===== CLAUDE-STYLE VOICE CONVERSATION MODE ===== */
+window.__voiceMode=false;
+function voiceModeAfterReply(msg){
+  // reply already spoken via speak(); when speech ends, listen again
+  const resume=()=>{ if(window.__voiceMode) setTimeout(startListening, 300); };
+  if(window.speechSynthesis && localStorage.getItem('jarvisTTS')!=='1'){
+    // force-speak in voice mode even if TTS toggle off
+    const clean=msg.replace(/[*_`#>]/g,'').slice(0,600);
+    const u=new SpeechSynthesisUtterance(clean); u.rate=1.04; u.lang='en-US'; u.onend=resume;
+    window.speechSynthesis.cancel(); window.speechSynthesis.speak(u);
+  } else if(window.speechSynthesis){
+    // TTS already triggered in speak(); poll for end
+    const iv=setInterval(()=>{ if(!window.speechSynthesis.speaking){ clearInterval(iv); resume(); } }, 250);
+  } else { resume(); }
+}
+$('voiceModeBtn') && $('voiceModeBtn').addEventListener('click', toggleVoiceMode);
+function toggleVoiceMode(){
+  if(!SR){ toast('Voice mode not supported on this browser.',true); return; }
+  window.__voiceMode=!window.__voiceMode;
+  const fab=$('voiceModeBtn');
+  if(window.__voiceMode){ fab.classList.add('on'); toast('Voice mode on — just talk. Tap again to stop.'); haptic(); startListening(); }
+  else { fab.classList.remove('on'); if(listening){try{recog.stop();}catch(e){}} window.speechSynthesis&&window.speechSynthesis.cancel(); toast('Voice mode off.'); }
+}
 
 /* ===== TTS PLAYBACK ===== */
 $('ttsToggle').checked = localStorage.getItem('jarvisTTS')==='1';
