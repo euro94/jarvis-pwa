@@ -1,5 +1,5 @@
 // AETHER service worker — handles Web Push + notification taps
-const VERSION = 'jarvis-v30';
+const VERSION = 'jarvis-v31';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

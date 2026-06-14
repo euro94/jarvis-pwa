@@ -889,20 +889,28 @@ function speakPhoneVoice(clean, resume){
 function voiceModeAfterReply(msg){
   // ALWAYS speak in voice mode, then resume listening when done.
   const resume=()=>{ speaking=false; if(window.__voiceMode){ setTimeout(()=>{ if(window.__voiceMode && !speaking) startListening(); }, 250); } };
-  speaking=true; voSetState('speaking','AETHER · tap to interrupt');
+  speaking=true;
   const clean=msg.replace(/[*_`#>\[\]]/g,'').replace(/https?:\/\/\S+/g,'link').slice(0,700);
-  $('voTranscript').textContent=clean.slice(0,160)+(clean.length>160?'…':'');
-  if(!aiVoiceOn){ speakPhoneVoice(clean, resume); return; }
-  // Try the real OpenAI voice; fall back to phone voice if it doesn't arrive.
+  const showText=()=>{ $('voTranscript').textContent=clean.slice(0,160)+(clean.length>160?'…':''); };
+  if(!aiVoiceOn){
+    // phone voice is instant — reveal text and speak together
+    voSetState('speaking','AETHER · tap to interrupt'); showText();
+    speakPhoneVoice(clean, resume); return;
+  }
+  // Real OpenAI voice: it takes ~3s to generate/upload/fetch. Hold the text
+  // reveal until the audio actually STARTS so you hear and read it together
+  // (otherwise the text lands ~3s before the voice). Stay on "thinking" meanwhile.
+  voSetState('thinking','Thinking…');
   fetchAIVoiceUrl(clean).then(url=>{
     if(!speaking||!window.__voiceMode){ return; } // interrupted while waiting
-    if(!url){ speakPhoneVoice(clean, resume); return; }
-    const a=ensureAudioEl(); a.src=url; a.onended=resume; a.onerror=()=>speakPhoneVoice(clean, resume);
+    if(!url){ voSetState('speaking','AETHER · tap to interrupt'); showText(); speakPhoneVoice(clean, resume); return; }
+    const a=ensureAudioEl(); a.src=url; a.onended=resume; a.onerror=()=>{ voSetState('speaking','AETHER · tap to interrupt'); showText(); speakPhoneVoice(clean, resume); };
+    a.onplaying=()=>{ voSetState('speaking','AETHER · tap to interrupt'); showText(); };  // sync: text appears as voice begins
     a.play().then(()=>{
       // safety net if 'ended' never fires
       setTimeout(()=>{ if(speaking && window.__voiceMode && a.paused){ resume(); } }, Math.min(4000+clean.length*70, 20000));
-    }).catch(()=>{ speakPhoneVoice(clean, resume); });
-  }).catch(()=>speakPhoneVoice(clean, resume));
+    }).catch(()=>{ voSetState('speaking','AETHER · tap to interrupt'); showText(); speakPhoneVoice(clean, resume); });
+  }).catch(()=>{ voSetState('speaking','AETHER · tap to interrupt'); showText(); speakPhoneVoice(clean, resume); });
 }
 // Barge-in: tap the orb (or anywhere on the overlay) while AETHER is speaking
 // to cut it off and start listening immediately. iOS-reliable alternative to
