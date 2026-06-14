@@ -237,6 +237,24 @@
 
   .toast { position:fixed; left:20px; right:20px; bottom:calc(var(--safe-b) + 72px); background:#1A202C; color:#fff; padding:13px 16px; border-radius:12px; text-align:center; font-size:14px; opacity:0; transform:translateY(10px); transition:.3s; pointer-events:none; z-index:80; }
   .toast.show { opacity:1; transform:translateY(0); } .toast.err { background:#C53030; }
+  /* voice overlay */
+  #voiceOverlay { position:fixed; inset:0; z-index:120; display:none; flex-direction:column; align-items:center; justify-content:center; gap:26px;
+    background:radial-gradient(circle at 50% 38%, #16306f 0%, #0a1430 70%, #050a1c 100%); }
+  #voiceOverlay.open { display:flex; }
+  .vo-orb { width:150px; height:150px; border-radius:50%;
+    background:radial-gradient(circle at 38% 32%, #8ff0ee, #2dd4bf 42%, #2b73c4 78%, #1f2a52 100%);
+    box-shadow:0 0 60px rgba(45,212,191,.55), inset 0 6px 18px rgba(255,255,255,.4);
+    transition:transform .25s ease; }
+  #voiceOverlay.listening .vo-orb { animation:voListen 1.4s ease-in-out infinite; }
+  #voiceOverlay.speaking .vo-orb { animation:voSpeak .7s ease-in-out infinite; }
+  #voiceOverlay.thinking .vo-orb { animation:voThink 1.1s linear infinite; opacity:.8; }
+  @keyframes voListen { 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.12); } }
+  @keyframes voSpeak  { 0%,100%{ transform:scale(1.04); } 50%{ transform:scale(1.18); } }
+  @keyframes voThink  { 0%{ transform:rotate(0) scale(.95);} 100%{ transform:rotate(360deg) scale(.95);} }
+  .vo-status { color:#9fe9e0; font-size:14px; letter-spacing:2px; text-transform:uppercase; font-weight:600; }
+  .vo-transcript { color:#fff; font-size:19px; line-height:1.4; text-align:center; max-width:82%; min-height:28px; opacity:.95; }
+  .vo-stop { margin-top:14px; background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.3); border-radius:24px; padding:13px 26px; font-size:15px; font-weight:600; cursor:pointer; }
+  .vo-stop:active { transform:scale(.96); }
   .foot { text-align:center; color:#cbd5e0; font-size:11px; letter-spacing:2px; margin:18px 0 6px; }
 
   /* log sheet */
@@ -358,6 +376,14 @@
       </div>
       <div class="foot">AETHER · NOUS · HERMES</div>
     </div>
+  </div>
+
+  <!-- ===== VOICE OVERLAY (stays on current tab) ===== -->
+  <div id="voiceOverlay">
+    <div class="vo-orb" id="voOrb"></div>
+    <div class="vo-status" id="voStatus">Listening…</div>
+    <div class="vo-transcript" id="voTranscript"></div>
+    <button class="vo-stop" id="voStop">End voice mode</button>
   </div>
 
   <!-- ===== NAV ===== -->
@@ -554,8 +580,9 @@ async function pollReply(sinceTs, silent, agent){
         if(o.time&&o.time<sinceTs)continue;
         const msg=(o.message||'').trim(); if(isNoise(msg))continue;
         hideTyping();
-        if(agent.id===activeAgent.id){ pushMsg('ai',msg); speak(msg); }
-        if(window.__voiceMode) voiceModeAfterReply(msg);
+        if(agent.id===activeAgent.id){ pushMsg('ai',msg); }
+        if(window.__voiceMode){ voiceModeAfterReply(msg); }
+        else if(agent.id===activeAgent.id){ speak(msg); }
         return;
       }
     }catch(e){}
@@ -602,22 +629,44 @@ function renderHistory(){
 }
 
 /* ===== HOME prompt bar + feature cards ===== */
-/* Home prompt bar: the mic records voice and sends straight to the active agent.
-   Tapping the stone (not the mic) opens the chat to type. */
+/* Tap the stone (not the mic) → opens chat to type.
+   Tap the mic → starts voice conversation (overlay, stays on Home).
+   Long-press the mic → agent dropdown to pick which agent you're talking to. */
 $('homePrompt').addEventListener('click', ()=>{ goChat(); setTimeout(()=>$('chatInput').focus(),120); });
-$('homeMic').addEventListener('click', (e)=>{
-  e.stopPropagation();
-  if(!SR){ goChat(); setTimeout(()=>$('chatInput').focus(),120); toast('Voice not supported here — type instead.',true); return; }
-  haptic(); goChat();
-  // mark the home mic recording; reuse the same recognizer, which sends on end
-  $('homeMic').classList.add('rec');
-  const stopRec=()=>{ $('homeMic').classList.remove('rec'); };
-  if(listening){ recog.stop(); stopRec(); return; }
-  // hook a one-shot cleanup of the rec indicator
-  const origEnd=recog.onend;
-  recog.onend=function(ev){ stopRec(); recog.onend=origEnd; if(origEnd) origEnd.call(recog,ev); };
-  startListening();
-});
+(function(){
+  const mic=$('homeMic'); let lp=null, longFired=false;
+  function openHomeAgentMenu(){
+    longFired=true; haptic();
+    // build a quick agent menu anchored under the bar (reuse selMenu styling via a transient list)
+    let m=document.getElementById('homeAgentMenu');
+    if(!m){ m=document.createElement('div'); m.id='homeAgentMenu'; m.className='selmenu';
+      m.style.cssText='position:fixed;left:50%;top:auto;bottom:120px;transform:translateX(-50%);z-index:130;min-width:240px;';
+      document.body.appendChild(m);
+      document.addEventListener('click',(ev)=>{ if(m.classList.contains('open') && !m.contains(ev.target) && ev.target!==mic) m.classList.remove('open'); });
+    }
+    m.innerHTML='';
+    for(const a of AGENTS){ const o=document.createElement('div'); o.className='opt';
+      o.innerHTML='<span class="ic">'+a.ic+'</span><span>'+a.label+'<span class="sub">'+a.hint+'</span></span>'+(a.id===activeAgent.id?'<span class="ck">✓</span>':'');
+      o.addEventListener('click',()=>{ switchAgent(a); m.classList.remove('open'); toast('Talking to '+a.label); });
+      m.appendChild(o);
+    }
+    const add=document.createElement('div'); add.className='opt'; add.style.borderTop='1px solid var(--line)';
+    add.innerHTML='<span class="ic">＋</span><span>Add agent</span>';
+    add.addEventListener('click',()=>{ m.classList.remove('open'); addAgentFlow(); });
+    m.appendChild(add);
+    m.classList.add('open');
+  }
+  function startMicTalk(){
+    if(longFired) return;
+    if(!SR){ goChat(); setTimeout(()=>$('chatInput').focus(),120); toast('Voice not supported here — type instead.',true); return; }
+    startVoiceConversation();   // overlay, stays on Home
+  }
+  mic.addEventListener('touchstart',(e)=>{ e.stopPropagation(); longFired=false; lp=setTimeout(openHomeAgentMenu,450); },{passive:true});
+  mic.addEventListener('touchend',(e)=>{ e.stopPropagation(); clearTimeout(lp); if(!longFired) startMicTalk(); },{passive:true});
+  // desktop / non-touch
+  mic.addEventListener('click',(e)=>{ e.stopPropagation(); if(!('ontouchstart' in window)){ if(longFired){longFired=false;return;} startMicTalk(); } });
+  mic.addEventListener('contextmenu',(e)=>{ e.preventDefault(); openHomeAgentMenu(); });
+})();
 document.querySelectorAll('.fcard').forEach(c=>{
   c.addEventListener('click', ()=>{
     const a=AGENTS.find(x=>x.id===c.dataset.agent)||activeAgent; switchAgent(a); goChat();
@@ -659,30 +708,78 @@ renderSelector(); renderChat(); renderHistory();
 let recog=null, listening=false;
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 if(SR){ recog=new SR(); recog.lang='en-US'; recog.interimResults=true; recog.continuous=false;
-  recog.onresult=(e)=>{ let t=''; for(let i=0;i<e.results.length;i++)t+=e.results[i][0].transcript; $('chatInput').value=t; };
-  recog.onend=()=>{ listening=false; $('micBtn').classList.remove('listening'); const v=$('chatInput').value.trim(); if(v){ $('chatInput').value=''; askAgent(v,false);} else if(window.__voiceMode){ setTimeout(()=>{ if(window.__voiceMode) startListening(); },400);} };
-  recog.onerror=()=>{ listening=false; $('micBtn').classList.remove('listening'); };
+  recog.onresult=(e)=>{
+    let t=''; for(let i=0;i<e.results.length;i++)t+=e.results[i][0].transcript;
+    if(window.__voiceMode){ $('voTranscript').textContent=t; } else { $('chatInput').value=t; }
+  };
+  recog.onend=()=>{
+    listening=false; $('micBtn').classList.remove('listening'); $('homeMic')&&$('homeMic').classList.remove('rec');
+    if(window.__voiceMode){
+      const said=($('voTranscript').textContent||'').trim();
+      if(said){ voSetState('thinking','Thinking…'); $('voTranscript').textContent='“'+said+'”'; askAgent(said,false); }
+      else { /* heard nothing — keep listening */ setTimeout(()=>{ if(window.__voiceMode && !speaking) startListening(); }, 500); }
+      return;
+    }
+    const v=$('chatInput').value.trim(); if(v){ $('chatInput').value=''; askAgent(v,false);} 
+  };
+  recog.onerror=(e)=>{
+    listening=false; $('micBtn').classList.remove('listening'); $('homeMic')&&$('homeMic').classList.remove('rec');
+    // 'no-speech'/'aborted' are normal in a loop — just restart listening
+    if(window.__voiceMode && !speaking){ setTimeout(()=>{ if(window.__voiceMode && !speaking) startListening(); }, 600); }
+  };
 }
-function startListening(){ if(!SR||listening)return; listening=true; $('micBtn').classList.add('listening'); $('chatInput').value=''; try{recog.start();}catch(e){listening=false;} }
+function startListening(){ if(!SR||listening||speaking)return; listening=true;
+  if(window.__voiceMode){ voSetState('listening','Listening…'); $('voTranscript').textContent=''; }
+  else { $('micBtn').classList.add('listening'); $('chatInput').value=''; }
+  try{recog.start();}catch(e){ listening=false; if(window.__voiceMode) setTimeout(()=>{ if(window.__voiceMode&&!speaking) startListening(); },500); }
+}
 $('micBtn').addEventListener('click', ()=>{ if(!SR){ toast('Voice input not supported here.',true); return;} if(listening){recog.stop();return;} haptic(); startListening(); });
 
-/* ===== VOICE CONVERSATION MODE ===== */
-window.__voiceMode=false;
-function voiceModeAfterReply(msg){
-  const resume=()=>{ if(window.__voiceMode) setTimeout(()=>{ if(window.__voiceMode) startListening(); },350); };
-  // In a voice conversation we ALWAYS speak the reply (regardless of the TTS toggle).
-  if(window.speechSynthesis){ const c=msg.replace(/[*_`#>\[\]]/g,'').slice(0,650); const u=new SpeechSynthesisUtterance(c); u.rate=1.04; u.lang='en-US'; u.onend=resume; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); }
-  else resume();
+/* ===== VOICE CONVERSATION MODE (overlay, stays on tab, loops, speaks back) ===== */
+window.__voiceMode=false; let speaking=false; let ttsPrimed=false; let preferredVoice=null;
+function pickVoice(){ try{ const vs=window.speechSynthesis.getVoices()||[]; preferredVoice = vs.find(v=>/Samantha|Karen|Daniel|Google US English|Aaron|Evan/i.test(v.name)) || vs.find(v=>v.lang&&v.lang.indexOf('en')===0) || vs[0] || null; }catch(e){} }
+if(window.speechSynthesis){ pickVoice(); window.speechSynthesis.onvoiceschanged=pickVoice; }
+function voSetState(cls,label){ const o=$('voiceOverlay'); o.classList.remove('listening','speaking','thinking'); if(cls)o.classList.add(cls); if(label)$('voStatus').textContent=label; }
+function primeTTS(){ // must run inside a user gesture to unlock iOS speech
+  if(ttsPrimed||!window.speechSynthesis) return;
+  try{ const u=new SpeechSynthesisUtterance(' '); u.volume=0; window.speechSynthesis.speak(u); ttsPrimed=true; }catch(e){}
 }
+function voiceModeAfterReply(msg){
+  // ALWAYS speak in voice mode, then resume listening when done.
+  const resume=()=>{ speaking=false; if(window.__voiceMode){ setTimeout(()=>{ if(window.__voiceMode) startListening(); }, 250); } };
+  if(!window.speechSynthesis){ resume(); return; }
+  speaking=true; voSetState('speaking','AETHER'); 
+  const clean=msg.replace(/[*_`#>\[\]]/g,'').replace(/https?:\/\/\S+/g,'link').slice(0,700);
+  $('voTranscript').textContent=clean.slice(0,160)+(clean.length>160?'…':'');
+  const u=new SpeechSynthesisUtterance(clean); u.rate=1.03; u.pitch=1.0; u.lang='en-US';
+  if(preferredVoice) u.voice=preferredVoice;
+  u.onend=resume; u.onerror=resume;
+  window.speechSynthesis.cancel();
+  // tiny delay so cancel() settles on iOS before speak()
+  setTimeout(()=>{ try{ window.speechSynthesis.speak(u); }catch(e){ resume(); } }, 60);
+  // safety net: if speech never fires, resume after a timeout
+  setTimeout(()=>{ if(speaking && window.__voiceMode && !window.speechSynthesis.speaking){ resume(); } }, Math.min(2000+clean.length*60, 15000));
+}
+function startVoiceConversation(){
+  if(!SR){ toast('Voice mode not supported on this browser.',true); return; }
+  primeTTS();                 // unlock iOS speech inside this tap
+  window.__voiceMode=true;
+  $('voiceOverlay').classList.add('open');     // overlay — does NOT change tab
+  $('voiceModeBtn') && $('voiceModeBtn').classList.add('on');
+  voSetState('listening','Listening…'); $('voTranscript').textContent='';
+  haptic(); startListening();
+}
+function stopVoiceConversation(){
+  window.__voiceMode=false; speaking=false;
+  $('voiceOverlay').classList.remove('open');
+  $('voiceModeBtn') && $('voiceModeBtn').classList.remove('on');
+  if(listening){ try{recog.stop();}catch(e){} }
+  if(window.speechSynthesis) window.speechSynthesis.cancel();
+}
+$('voStop').addEventListener('click', stopVoiceConversation);
 $('voiceModeBtn').addEventListener('click', ()=>{
   if(!SR){ toast('Voice mode not supported on this browser.',true); return; }
-  if(window.__voiceMode){
-    window.__voiceMode=false; $('voiceModeBtn').classList.remove('on');
-    if(listening){try{recog.stop();}catch(e){}} window.speechSynthesis&&window.speechSynthesis.cancel();
-    toast('Voice mode off.');
-  } else {
-    startVoiceConversation();
-  }
+  if(window.__voiceMode){ stopVoiceConversation(); } else { startVoiceConversation(); }
 });
 
 /* ===== TTS ===== */
@@ -810,14 +907,7 @@ function addAgentFlow(){
 }
 
 /* ===== VOICE CONVERSATION MODE — true Claude-style hands-free =====
-   The ⇄ button (and a tap on the home mic when held) starts a loop:
-   listen → transcribe → send to active agent → speak the reply aloud → listen again. */
-function startVoiceConversation(){
-  if(!SR){ toast('Voice mode not supported on this browser.',true); return; }
-  window.__voiceMode=true;
-  goChat(); $('voiceModeBtn') && $('voiceModeBtn').classList.add('on');
-  toast('Voice mode — just talk. Tap ⇄ to stop.'); haptic(); startListening();
-}
+   Implemented above (overlay-based, stays on current tab, loops, speaks back). */
 </script>
 </body>
 </html>
