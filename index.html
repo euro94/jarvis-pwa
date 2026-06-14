@@ -278,6 +278,20 @@
   @keyframes voThinkPulse { 0%,100%{ transform:scale(.96); filter:brightness(.9);} 50%{ transform:scale(1.0); filter:brightness(1.15);} }
   @keyframes voEcho { 0%{ transform:scale(.85); opacity:.5; } 70%{ opacity:.12; } 100%{ transform:scale(1.25); opacity:0; } }
   .vo-status { color:#9fe9e0; font-size:14px; letter-spacing:2px; text-transform:uppercase; font-weight:600; }
+  /* voice session chooser */
+  #voiceSessSheet { position:fixed; inset:0; z-index:130; display:none; align-items:center; justify-content:center; background:rgba(5,10,28,.72); backdrop-filter:blur(6px); }
+  #voiceSessSheet.open { display:flex; }
+  .vss-card { width:min(420px,86vw); max-height:80vh; overflow:auto; background:linear-gradient(180deg,#0f2350,#0a1430); border:1px solid rgba(110,231,255,.18); border-radius:22px; padding:22px 18px; box-shadow:0 18px 60px rgba(0,0,0,.5); }
+  .vss-h { color:#eaffff; font-size:19px; font-weight:700; text-align:center; margin-bottom:16px; letter-spacing:.5px; }
+  .vss-sub { color:#7fa8c8; font-size:12px; letter-spacing:1px; text-transform:uppercase; margin:16px 4px 8px; font-weight:600; }
+  .vss-btn { display:block; width:100%; box-sizing:border-box; text-align:left; padding:14px 16px; margin:8px 0; border-radius:14px; border:1px solid rgba(110,231,255,.2); background:rgba(255,255,255,.05); color:#eaffff; font-size:15px; font-weight:600; cursor:pointer; }
+  .vss-btn:active { transform:scale(.98); }
+  .vss-primary { background:linear-gradient(135deg,#14b8a6,#2b73c4); border-color:transparent; }
+  .vss-cancel { text-align:center; background:transparent; border-color:rgba(255,255,255,.14); color:#9fb6cc; margin-top:14px; }
+  .vss-list:empty::after { content:'No past chats yet'; color:#5d7a96; font-size:13px; display:block; padding:6px 4px; }
+  .vss-item { display:flex; justify-content:space-between; gap:8px; padding:12px 14px; margin:6px 0; border-radius:12px; background:rgba(255,255,255,.035); border:1px solid rgba(255,255,255,.07); color:#dbeefe; font-size:14px; cursor:pointer; }
+  .vss-item:active { background:rgba(20,184,166,.18); }
+  .vss-item .when { color:#6f93b0; font-size:11px; white-space:nowrap; }
   .vo-transcript { color:#fff; font-size:19px; line-height:1.4; text-align:center; max-width:82%; min-height:28px; opacity:.95; }
   .vo-stop { margin-top:14px; background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.3); border-radius:24px; padding:13px 26px; font-size:15px; font-weight:600; cursor:pointer; }
   .vo-stop:active { transform:scale(.96); }
@@ -416,6 +430,19 @@
     <div class="vo-transcript" id="voTranscript"></div>
     <button class="vo-stop" id="voStop">End voice mode</button>
   </div>
+
+  <!-- ===== VOICE SESSION CHOOSER (shown before voice mode starts) ===== -->
+  <div id="voiceSessSheet">
+    <div class="vss-card">
+      <div class="vss-h">Start voice with…</div>
+      <button class="vss-btn vss-primary" id="vssNew">✨ New conversation</button>
+      <button class="vss-btn" id="vssContinue">↩︎ Continue current chat</button>
+      <div class="vss-sub">Or pick a past chat</div>
+      <div class="vss-list" id="vssList"></div>
+      <button class="vss-btn vss-cancel" id="vssCancel">Cancel</button>
+    </div>
+  </div>
+
 
   <!-- ===== NAV ===== -->
   <div class="nav">
@@ -598,18 +625,22 @@ async function askAgent(text, silent, imgUrls){
   catch(e){ hideTyping(); toast('Could not reach '+agent.label+'.',true); return; }
   pollReply(sentAt, silent, agent);
 }
+let __pollGen=0;  // generation token: a new poll cancels any older one
 async function pollReply(sinceTs, silent, agent){
-  // Listen for the WHOLE task, not just the first reply. A long Mode-B task
-  // streams several spoken checkpoints into the app before the final message;
-  // we keep catching them and extend the window each time one lands, so the
-  // app speaks each checkpoint as it arrives. Ends after a quiet gap.
-  const QUIET_GAP=90000;        // stop if no new message for 90s
-  const HARD_CAP=20*60000;      // absolute safety cap: 20 min
+  const myGen=++__pollGen;     // claim this generation; older loops will see they're stale and exit
+  // VOICE MODE: return after the FIRST real reply so the listen→speak→listen
+  // loop can advance. TEXT MODE: listen for the whole task (streamed checkpoints)
+  // with a quiet-gap window.
+  const voice=window.__voiceMode;
+  const QUIET_GAP = voice ? 0 : 90000;
+  const HARD_CAP = voice ? 180000 : 20*60000;   // voice: 3min reply wait, text: 20min
   const hardStop=Date.now()+HARD_CAP;
-  pollStop=Date.now()+QUIET_GAP; const seen=new Set(); let got=0;
+  pollStop = voice ? hardStop : (Date.now()+QUIET_GAP);
+  const seen=new Set(); let got=0;
   const isNoise=(m)=>{ const t=m.trim(); return !t||/top-up left/i.test(t)||/Credits \d+% used/i.test(t)||/^💾/.test(t)||/^⚠/.test(t)||/Self-improvement review/i.test(t)||/Memory updated/i.test(t)||/^•\s/.test(t)||/^✨ Session reset/i.test(t); };
-  while(Date.now()<pollStop && Date.now()<hardStop){
-    if(agent.id!==activeAgent.id){ hideTyping(); return; }
+  while(Date.now()<hardStop && (voice || Date.now()<pollStop)){
+    if(myGen!==__pollGen){ return; }                      // a newer poll superseded us
+    if(agent.id!==activeAgent.id){ hideTyping(); return; } // user switched agent
     try{
       const r=await fetch(`${NTFY}/${agent.out}/json?poll=1&since=${sinceTs}`,{cache:'no-store'});
       const lines=(await r.text()).trim().split('\n').filter(Boolean);
@@ -619,18 +650,18 @@ async function pollReply(sinceTs, silent, agent){
         const msg=(o.message||'').trim(); if(isNoise(msg))continue;
         hideTyping(); got++;
         sinceTs=Math.max(sinceTs,(o.time||Math.floor(Date.now()/1000)));
-        pollStop=Date.now()+QUIET_GAP;   // a checkpoint landed — keep listening for more
         if(agent.id===activeAgent.id){ pushMsg('ai',msg); }
-        if(window.__voiceMode){ voiceModeAfterReply(msg); }
-        else if(agent.id===activeAgent.id){ enqueueSpeak(msg); }
+        if(voice){ voiceModeAfterReply(msg); return; }      // first reply → hand off to speak loop
+        if(agent.id===activeAgent.id){ enqueueSpeak(msg); }
+        pollStop=Date.now()+QUIET_GAP;                      // text mode: keep listening for more
       }
     }catch(e){}
-    await new Promise(r=>setTimeout(r,2500));
+    await new Promise(r=>setTimeout(r, voice?1500:2500));
   }
+  if(myGen!==__pollGen) return;
   hideTyping();
-  if(window.__voiceMode && got===0 && !speaking){
-    // No reply arrived — never leave the orb stuck on "Thinking…". Recover to
-    // listening so the conversation can continue.
+  if(voice && got===0 && !speaking){
+    // No reply arrived — never leave the orb stuck on "Thinking…". Recover to listening.
     voSetState('listening','Listening…');
     setTimeout(()=>{ if(window.__voiceMode && !speaking) startListening(); }, 300);
   } else if(!silent && got===0){ toast('No reply yet — '+agent.label+' may be busy.',true); }
@@ -914,8 +945,28 @@ $('voOrb').addEventListener('click', (e)=>{ e.stopPropagation(); voiceInterrupt(
 $('voiceOverlay').addEventListener('click', (e)=>{ if(e.target&&e.target.id==='voStop')return; voiceInterrupt(); });
 $('voiceModeBtn').addEventListener('click', ()=>{
   if(!SR){ toast('Voice mode not supported on this browser.',true); return; }
-  if(window.__voiceMode){ stopVoiceConversation(); } else { startVoiceConversation(); }
+  if(window.__voiceMode){ stopVoiceConversation(); } else { openVoiceSessChooser(); }
 });
+
+/* ===== VOICE SESSION CHOOSER ===== */
+function openVoiceSessChooser(){
+  // populate past-chat list (most recent first, excluding the current one)
+  const list=$('vssList'); list.innerHTML='';
+  const ss=loadSessions().filter(s=>s.id!==(curSession&&curSession.id) && (s.msgs&&s.msgs.length));
+  for(const s of ss.slice(0,12)){
+    const it=document.createElement('div'); it.className='vss-item';
+    const title=(s.title&&s.title!=='New chat')?s.title:(s.msgs[0]?.text||'Chat').slice(0,40);
+    const when=new Date(s.updated||s.created).toLocaleDateString([], {month:'short',day:'numeric'});
+    it.innerHTML='<span>'+title.replace(/[<>]/g,'')+'</span><span class="when">'+when+'</span>';
+    it.addEventListener('click', ()=>{ closeVoiceSessChooser(); openSession(s.id); startVoiceConversation(); });
+    list.appendChild(it);
+  }
+  $('voiceSessSheet').classList.add('open');
+}
+function closeVoiceSessChooser(){ $('voiceSessSheet').classList.remove('open'); }
+$('vssNew').addEventListener('click', ()=>{ primeTTS(); primeAudio(); closeVoiceSessChooser(); startNewChat().then(()=>startVoiceConversation()); });
+$('vssContinue').addEventListener('click', ()=>{ primeTTS(); primeAudio(); closeVoiceSessChooser(); startVoiceConversation(); });
+$('vssCancel').addEventListener('click', closeVoiceSessChooser);
 
 /* ===== TTS ===== */
 $('ttsToggle').checked = localStorage.getItem('aetherTTS')==='1';
