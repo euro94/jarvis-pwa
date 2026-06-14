@@ -599,9 +599,16 @@ async function askAgent(text, silent, imgUrls){
   pollReply(sentAt, silent, agent);
 }
 async function pollReply(sinceTs, silent, agent){
-  pollStop=Date.now()+180000; const seen=new Set();
+  // Listen for the WHOLE task, not just the first reply. A long Mode-B task
+  // streams several spoken checkpoints into the app before the final message;
+  // we keep catching them and extend the window each time one lands, so the
+  // app speaks each checkpoint as it arrives. Ends after a quiet gap.
+  const QUIET_GAP=90000;        // stop if no new message for 90s
+  const HARD_CAP=20*60000;      // absolute safety cap: 20 min
+  const hardStop=Date.now()+HARD_CAP;
+  pollStop=Date.now()+QUIET_GAP; const seen=new Set(); let got=0;
   const isNoise=(m)=>{ const t=m.trim(); return !t||/top-up left/i.test(t)||/Credits \d+% used/i.test(t)||/^💾/.test(t)||/^⚠/.test(t)||/Self-improvement review/i.test(t)||/Memory updated/i.test(t)||/^•\s/.test(t)||/^✨ Session reset/i.test(t); };
-  while(Date.now()<pollStop){
+  while(Date.now()<pollStop && Date.now()<hardStop){
     if(agent.id!==activeAgent.id){ hideTyping(); return; }
     try{
       const r=await fetch(`${NTFY}/${agent.out}/json?poll=1&since=${sinceTs}`,{cache:'no-store'});
@@ -610,16 +617,37 @@ async function pollReply(sinceTs, silent, agent){
         if(o.event!=='message'||!o.id||seen.has(o.id))continue; seen.add(o.id);
         if(o.time&&o.time<sinceTs)continue;
         const msg=(o.message||'').trim(); if(isNoise(msg))continue;
-        hideTyping();
+        hideTyping(); got++;
+        sinceTs=Math.max(sinceTs,(o.time||Math.floor(Date.now()/1000)));
+        pollStop=Date.now()+QUIET_GAP;   // a checkpoint landed — keep listening for more
         if(agent.id===activeAgent.id){ pushMsg('ai',msg); }
         if(window.__voiceMode){ voiceModeAfterReply(msg); }
-        else if(agent.id===activeAgent.id){ speak(msg); }
-        return;
+        else if(agent.id===activeAgent.id){ enqueueSpeak(msg); }
       }
     }catch(e){}
     await new Promise(r=>setTimeout(r,2500));
   }
-  hideTyping(); if(!silent) toast('No reply yet — '+agent.label+' may be busy.',true);
+  hideTyping(); if(!silent && got===0) toast('No reply yet — '+agent.label+' may be busy.',true);
+}
+
+/* Sequential speech queue so rapid streamed checkpoints play in order
+   (not cut each other off) through the app's own browser voice. */
+let __speakQ=[], __speakBusy=false;
+function enqueueSpeak(text){
+  if(localStorage.getItem('aetherTTS')!=='1'||!window.speechSynthesis) return;
+  const c=text.replace(/[*_`#>\[\]]/g,'').replace(/https?:\/\/\S+/g,'link').slice(0,500);
+  if(!c) return;
+  __speakQ.push(c); drainSpeakQ();
+}
+function drainSpeakQ(){
+  if(__speakBusy||!__speakQ.length||!window.speechSynthesis) return;
+  __speakBusy=true; const c=__speakQ.shift();
+  const u=new SpeechSynthesisUtterance(c); u.rate=1.04; u.lang='en-US';
+  if(preferredVoice) u.voice=preferredVoice;
+  const next=()=>{ __speakBusy=false; setTimeout(drainSpeakQ,120); };
+  u.onend=next; u.onerror=next;
+  try{ window.speechSynthesis.speak(u); }catch(e){ next(); }
+  setTimeout(()=>{ if(__speakBusy && !window.speechSynthesis.speaking){ next(); } }, Math.min(2500+c.length*70, 20000));
 }
 
 $('sendBtn').addEventListener('click', sendFromInput);
@@ -775,21 +803,69 @@ function primeTTS(){ // must run inside a user gesture to unlock iOS speech
   if(ttsPrimed||!window.speechSynthesis) return;
   try{ const u=new SpeechSynthesisUtterance(' '); u.volume=0; window.speechSynthesis.speak(u); ttsPrimed=true; }catch(e){}
 }
-function voiceModeAfterReply(msg){
-  // ALWAYS speak in voice mode, then resume listening when done.
-  const resume=()=>{ speaking=false; if(window.__voiceMode){ setTimeout(()=>{ if(window.__voiceMode && !speaking) startListening(); }, 250); } };
+// ===== AETHER AI VOICE (real OpenAI voice via host bridge) =====
+// In voice mode we prefer the real OpenAI voice over the phone's robotic
+// built-in speech. We POST the reply text to the bridge's request topic; a
+// host watcher (tts_bridge.py) generates the mp3, uploads it, and posts the
+// audio URL to the audio topic. We poll that, then play it through a hidden
+// <audio> element (primed on the start gesture so iOS allows autoplay).
+const TTS_REQ_TOPIC = "hermes-yaro-aether-ttsreq-9f3a1c";
+const TTS_AUD_TOPIC = "hermes-yaro-aether-ttsaud-9f3a1c";
+let aiVoiceOn = (localStorage.getItem('aetherAIVoice')!=='0'); // default ON
+let aiAudioEl = null;
+function ensureAudioEl(){
+  if(!aiAudioEl){ aiAudioEl=new Audio(); aiAudioEl.preload='auto'; aiAudioEl.setAttribute('playsinline',''); }
+  return aiAudioEl;
+}
+function primeAudio(){ // unlock autoplay inside a user gesture (iOS)
+  try{ const a=ensureAudioEl(); a.muted=true; a.src='data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCA'; a.play().then(()=>{a.pause();a.muted=false;}).catch(()=>{a.muted=false;}); }catch(e){}
+}
+async function fetchAIVoiceUrl(text){
+  // ask the bridge to speak it
+  const since=Math.floor(Date.now()/1000)-1;
+  try{ await fetch(`${NTFY}/${TTS_REQ_TOPIC}`,{method:'POST',body:text}); }catch(e){ return null; }
+  // poll the audio topic for the URL (up to ~12s)
+  const deadline=Date.now()+12000;
+  while(Date.now()<deadline){
+    try{
+      const r=await fetch(`${NTFY}/${TTS_AUD_TOPIC}/json?poll=1&since=${since}`,{cache:'no-store'});
+      const lines=(await r.text()).trim().split('\n').filter(Boolean);
+      for(const ln of lines){ let o; try{o=JSON.parse(ln);}catch(e){continue;}
+        if(o.event!=='message')continue;
+        try{ const d=JSON.parse(o.message||'{}'); if(d.audio) return d.audio; }catch(e){}
+      }
+    }catch(e){}
+    await new Promise(r=>setTimeout(r,800));
+  }
+  return null;
+}
+function speakPhoneVoice(clean, resume){
+  // fallback: the browser's built-in voice
   if(!window.speechSynthesis){ resume(); return; }
-  speaking=true; voSetState('speaking','AETHER · tap to interrupt');
-  const clean=msg.replace(/[*_`#>\[\]]/g,'').replace(/https?:\/\/\S+/g,'link').slice(0,700);
-  $('voTranscript').textContent=clean.slice(0,160)+(clean.length>160?'…':'');
   const u=new SpeechSynthesisUtterance(clean); u.rate=1.03; u.pitch=1.0; u.lang='en-US';
   if(preferredVoice) u.voice=preferredVoice;
   u.onend=resume; u.onerror=resume;
   window.speechSynthesis.cancel();
-  // tiny delay so cancel() settles on iOS before speak()
   setTimeout(()=>{ try{ window.speechSynthesis.speak(u); }catch(e){ resume(); } }, 60);
-  // safety net: if speech never fires, resume after a timeout
   setTimeout(()=>{ if(speaking && window.__voiceMode && !window.speechSynthesis.speaking){ resume(); } }, Math.min(2000+clean.length*60, 15000));
+}
+function voiceModeAfterReply(msg){
+  // ALWAYS speak in voice mode, then resume listening when done.
+  const resume=()=>{ speaking=false; if(window.__voiceMode){ setTimeout(()=>{ if(window.__voiceMode && !speaking) startListening(); }, 250); } };
+  speaking=true; voSetState('speaking','AETHER · tap to interrupt');
+  const clean=msg.replace(/[*_`#>\[\]]/g,'').replace(/https?:\/\/\S+/g,'link').slice(0,700);
+  $('voTranscript').textContent=clean.slice(0,160)+(clean.length>160?'…':'');
+  if(!aiVoiceOn){ speakPhoneVoice(clean, resume); return; }
+  // Try the real OpenAI voice; fall back to phone voice if it doesn't arrive.
+  fetchAIVoiceUrl(clean).then(url=>{
+    if(!speaking||!window.__voiceMode){ return; } // interrupted while waiting
+    if(!url){ speakPhoneVoice(clean, resume); return; }
+    const a=ensureAudioEl(); a.src=url; a.onended=resume; a.onerror=()=>speakPhoneVoice(clean, resume);
+    a.play().then(()=>{
+      // safety net if 'ended' never fires
+      setTimeout(()=>{ if(speaking && window.__voiceMode && a.paused){ resume(); } }, Math.min(4000+clean.length*70, 20000));
+    }).catch(()=>{ speakPhoneVoice(clean, resume); });
+  }).catch(()=>speakPhoneVoice(clean, resume));
 }
 // Barge-in: tap the orb (or anywhere on the overlay) while AETHER is speaking
 // to cut it off and start listening immediately. iOS-reliable alternative to
@@ -800,6 +876,7 @@ function voiceInterrupt(){
   if(speaking){
     speaking=false;
     if(window.speechSynthesis) window.speechSynthesis.cancel();
+    if(aiAudioEl){ try{ aiAudioEl.pause(); aiAudioEl.currentTime=0; }catch(e){} }
     haptic();
     setTimeout(()=>{ if(window.__voiceMode && !speaking) startListening(); }, 120);
   } else if(!listening){
@@ -810,6 +887,7 @@ function voiceInterrupt(){
 function startVoiceConversation(){
   if(!SR){ toast('Voice mode not supported on this browser.',true); return; }
   primeTTS();                 // unlock iOS speech inside this tap
+  primeAudio();               // unlock <audio> autoplay for the AI voice
   window.__voiceMode=true;
   $('voiceOverlay').classList.add('open');     // overlay — does NOT change tab
   $('voiceModeBtn') && $('voiceModeBtn').classList.add('on');
