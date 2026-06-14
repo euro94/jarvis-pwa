@@ -626,6 +626,17 @@ async function askAgent(text, silent, imgUrls){
   pollReply(sentAt, silent, agent);
 }
 let __pollGen=0;  // generation token: a new poll cancels any older one
+// Persistent dedup: remember which reply IDs we've already shown/spoken so a
+// reply cached on the server never gets re-announced when the app reopens.
+let __handledIds = (function(){ try{ return JSON.parse(localStorage.getItem('aetherHandledIds')||'[]'); }catch(e){ return []; } })();
+const __handledSet = new Set(__handledIds);
+function alreadyHandled(id){ return __handledSet.has(id); }
+function markHandled(id){
+  if(__handledSet.has(id)) return;
+  __handledSet.add(id); __handledIds.push(id);
+  if(__handledIds.length>400){ const drop=__handledIds.splice(0,__handledIds.length-400); for(const d of drop) __handledSet.delete(d); }
+  try{ localStorage.setItem('aetherHandledIds', JSON.stringify(__handledIds)); }catch(e){}
+}
 async function pollReply(sinceTs, silent, agent){
   const myGen=++__pollGen;     // claim this generation; older loops will see they're stale and exit
   // VOICE MODE: return after the FIRST real reply so the listen→speak→listen
@@ -647,7 +658,9 @@ async function pollReply(sinceTs, silent, agent){
       for(const ln of lines){ let o; try{o=JSON.parse(ln);}catch(e){continue;}
         if(o.event!=='message'||!o.id||seen.has(o.id))continue; seen.add(o.id);
         if(o.time&&o.time<sinceTs)continue;
+        if(alreadyHandled(o.id)) continue;                  // never re-speak across app restarts
         const msg=(o.message||'').trim(); if(isNoise(msg))continue;
+        markHandled(o.id);
         hideTyping(); got++;
         sinceTs=Math.max(sinceTs,(o.time||Math.floor(Date.now()/1000)));
         if(agent.id===activeAgent.id){ pushMsg('ai',msg); }
