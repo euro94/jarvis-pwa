@@ -1,5 +1,5 @@
-// JARVIS service worker — handles Web Push + notification taps
-const VERSION = 'jarvis-v7';
+// AETHER service worker — handles Web Push + notification taps
+const VERSION = 'jarvis-v8';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -13,9 +13,9 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('push', (event) => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch (e) {
-    data = { title: 'J.A.R.V.I.S.', body: event.data ? event.data.text() : '' };
+    data = { title: 'AETHER', body: event.data ? event.data.text() : '' };
   }
-  const title = data.title || 'J.A.R.V.I.S.';
+  const title = data.title || 'AETHER';
   const options = {
     body: data.body || '',
     icon: data.icon || './icons/icon-192.png',

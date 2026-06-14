@@ -5,28 +5,29 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="JARVIS">
-<meta name="theme-color" content="#0A0A0A">
-<title>JARVIS</title>
+<meta name="apple-mobile-web-app-title" content="AETHER">
+<meta name="theme-color" content="#04070f">
+<title>AETHER</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <style>
   :root {
-    --bg:#0A0A0A; --fg:#FFFFFF; --cyan:#00E5FF; --dim:#8a8f93;
-    --card:#141414; --line:#1f1f1f; --user:#063b44; --safe-b: env(safe-area-inset-bottom);
+    --bg:#04070f; --fg:#FFFFFF; --cyan:#21E6FF; --dim:#7e8794;
+    --card:#0c1320; --line:#1a2536; --user:#0a2e4a; --safe-b: env(safe-area-inset-bottom);
   }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body { margin:0; height:100%; overflow:hidden; }
   body {
-    background:radial-gradient(1200px 600px at 50% -10%, #06222a 0%, var(--bg) 55%) fixed;
+    background:radial-gradient(1200px 600px at 50% -10%, #0c2347 0%, var(--bg) 55%) fixed;
     color:var(--fg); font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",system-ui,sans-serif;
     -webkit-font-smoothing:antialiased; display:flex; flex-direction:column; height:100dvh;
   }
   /* top bar */
   .top { display:flex; align-items:center; gap:11px; padding:calc(env(safe-area-inset-top) + 14px) 20px 12px; }
-  .top img { width:38px; height:38px; border-radius:10px; box-shadow:0 0 16px rgba(0,229,255,.35); }
-  .top .name { font-weight:800; letter-spacing:3px; font-size:17px; }
-  .top .name span { color:var(--cyan); }
+  .top img { width:38px; height:38px; filter:drop-shadow(0 0 12px rgba(33,230,255,.45)); }
+  .brand { display:flex; flex-direction:column; gap:2px; }
+  .top .name { font-weight:800; letter-spacing:5px; font-size:18px; color:#fff; }
+  .top .tag { font-size:8px; letter-spacing:2.5px; color:var(--cyan); font-weight:600; }
   .dot { width:8px; height:8px; border-radius:50%; background:var(--dim); margin-left:auto; transition:.3s; }
   .dot.live { background:var(--cyan); box-shadow:0 0 10px var(--cyan); }
 
@@ -101,8 +102,8 @@
 </head>
 <body>
   <div class="top">
-    <img src="icons/icon-192.png" alt="JARVIS">
-    <div class="name">J<span>.</span>A<span>.</span>R<span>.</span>V<span>.</span>I<span>.</span>S</div>
+    <img src="icons/mark-256.png" alt="AETHER">
+    <div class="brand"><div class="name">AETHER</div><div class="tag">DESIGN · STRATEGY · INNOVATION</div></div>
     <div class="dot" id="dot"></div>
   </div>
 
@@ -110,7 +111,7 @@
   <div class="screen active" id="screenHome">
     <div class="hero">
       <div class="greeting" id="greeting">Standing by</div>
-      <div class="headline" id="headline">Your intelligence system</div>
+      <div class="headline" id="headline">Design · Strategy · Innovation</div>
     </div>
     <div class="card">
       <h3>Today</h3>
@@ -121,7 +122,7 @@
     </div>
     <div class="card"><h3>Gym Streak</h3><div class="big" id="streak">0 <small>DAYS</small></div></div>
     <button class="btn btn-ghost" id="refreshBtn">↻ Refresh status</button>
-    <div class="foot">NOUS · HERMES</div>
+    <div class="foot">AETHER · NOUS</div>
   </div>
 
   <!-- CHAT -->
@@ -132,7 +133,7 @@
     <div class="composer">
       <button class="iconbtn attach" id="attachBtn" title="Attach images">＋</button>
       <button class="iconbtn mic" id="micBtn" title="Speak">🎙️</button>
-      <textarea id="chatInput" rows="1" placeholder="Ask JARVIS…"></textarea>
+      <textarea id="chatInput" rows="1" placeholder="Ask AETHER…"></textarea>
       <button class="iconbtn voicemode" id="voiceModeBtn" title="Voice conversation mode">🔊</button>
       <button class="iconbtn send" id="sendBtn" title="Send">↑</button>
     </div>
@@ -144,7 +145,7 @@
     <div class="card">
       <h3>Notifications</h3>
       <div class="note" id="pushStatus" style="margin-top:0;">Push not enabled yet.</div>
-      <button class="btn btn-primary" id="enableBtn">Enable JARVIS Push</button>
+      <button class="btn btn-primary" id="enableBtn">Enable AETHER Push</button>
       <button class="btn btn-ghost" id="testBtn" style="display:none;">Send me a test push</button>
       <textarea class="subbox" id="subText" readonly></textarea>
       <button class="btn btn-ghost" id="copyBtn" style="display:none;">Copy subscription</button>
@@ -152,13 +153,13 @@
     <div class="card">
       <h3>Voice</h3>
       <div class="row"><span class="k">Read replies aloud</span><span class="v"><input type="checkbox" id="ttsToggle" style="transform:scale(1.4);"></span></div>
-      <div class="note" style="text-align:left;">When on, JARVIS speaks its answers in the Talk tab.</div>
+      <div class="note" style="text-align:left;">When on, AETHER speaks its answers in the Talk tab.</div>
     </div>
     <div class="card">
       <h3>Chat</h3>
       <button class="btn btn-ghost" id="clearChat">Clear conversation</button>
     </div>
-    <div class="foot">NOUS · HERMES · JARVIS</div>
+    <div class="foot">AETHER · NOUS · HERMES</div>
   </div>
 
   <!-- NAV -->
@@ -172,7 +173,7 @@
 
   <!-- LOG SHEET -->
   <div id="logSheet">
-    <div class="lbl">J.A.R.V.I.S. CHECK-IN</div>
+    <div class="lbl">AETHER CHECK-IN</div>
     <div class="ttl" id="logTitle">Log Gym</div>
     <button class="btn btn-primary" data-status="done">✅ Did it</button>
     <button class="btn btn-ghost" data-status="partial" style="border-color:#5b4a1f;color:#ffd98a;">🟡 Partial</button>
@@ -189,7 +190,7 @@ const NTFY = "https://ntfy.sh";
 
 // Multi-agent fleet. Each agent = a Hermes profile with its own ntfy bridge.
 const AGENTS = [
-  { id:"jarvis",    label:"JARVIS",     in:"hermes-yaro-jarvis-in-c4e3ac0f",   out:"hermes-yaro-jarvis-7450b76f",     hint:"Your schedule, calendar, quick tasks." },
+  { id:"jarvis",    label:"Assistant", in:"hermes-yaro-jarvis-in-c4e3ac0f",   out:"hermes-yaro-jarvis-7450b76f",     hint:"Your schedule, calendar, quick tasks." },
   { id:"research",  label:"Researcher", in:"hermes-yaro-research-in-f97aeefc",  out:"hermes-yaro-research-out-82375690", hint:"Deep research, sources, synthesis." },
   { id:"seniorrev", label:"Reviewer",   in:"hermes-yaro-seniorrev-in-bfb96220", out:"hermes-yaro-seniorrev-out-c9cd4a94", hint:"Code & design review. Attach images for bulk review." },
   { id:"design",    label:"Designer",   in:"hermes-yaro-design-in-ea57c6e8",    out:"hermes-yaro-design-out-ba07f8fc",   hint:"Design, UI, brand, visuals." },
@@ -422,7 +423,7 @@ function speak(text){
 /* ===== PUSH ===== */
 async function registerSW(){ if(!('serviceWorker' in navigator)) throw new Error('No SW'); return navigator.serviceWorker.register('sw.js'); }
 async function enablePush(){
-  if(!isStandalone()){ toast('First: Share → Add to Home Screen, then open JARVIS from the icon.',true); return; }
+  if(!isStandalone()){ toast('First: Share → Add to Home Screen, then open AETHER from the icon.',true); return; }
   if(!('PushManager' in window)){ toast('Push not supported here.',true); return; }
   $('enableBtn').disabled=true; $('enableBtn').textContent='Enabling…';
   try{
@@ -436,11 +437,11 @@ async function enablePush(){
     $('subText').value=j;
     if(!delivered){ $('subText').style.display='block'; $('copyBtn').style.display='block'; toast('Subscribed. Tap Copy and send to Jarvis.'); }
     localStorage.setItem('jarvisSub','1'); localStorage.setItem('jarvisSubJson',j);
-    $('pushStatus').textContent='Push enabled. JARVIS can reach you.'; $('enableBtn').textContent='Push Enabled ✓'; $('testBtn').style.display='block'; $('dot').classList.add('live');
-    toast('JARVIS is online.');
+    $('pushStatus').textContent='Push enabled. AETHER can reach you.'; $('enableBtn').textContent='Push Enabled ✓'; $('testBtn').style.display='block'; $('dot').classList.add('live');
+    toast('AETHER is online.');
   }catch(e){ toast('Failed: '+e.message,true); resetBtn(); }
 }
-function resetBtn(){ $('enableBtn').disabled=false; $('enableBtn').textContent='Enable JARVIS Push'; }
+function resetBtn(){ $('enableBtn').disabled=false; $('enableBtn').textContent='Enable AETHER Push'; }
 async function sendTest(){ await fetch(`${NTFY}/${SUB_TOPIC}`,{method:'POST',headers:{'Title':'jarvis-test-request'},body:'TEST_PUSH'}); toast('Requested — should land shortly.'); }
 $('enableBtn').addEventListener('click',enablePush);
 $('testBtn').addEventListener('click',sendTest);
@@ -448,10 +449,10 @@ $('copyBtn').addEventListener('click',async()=>{ const v=$('subText').value||loc
 
 if(localStorage.getItem('jarvisSub')){
   registerSW();
-  $('pushStatus').textContent='Push enabled. JARVIS can reach you.'; $('enableBtn').textContent='Push Enabled ✓'; $('testBtn').style.display='block';
+  $('pushStatus').textContent='Push enabled. AETHER can reach you.'; $('enableBtn').textContent='Push Enabled ✓'; $('testBtn').style.display='block';
   (async()=>{ try{ const reg=await navigator.serviceWorker.ready; const sub=await reg.pushManager.getSubscription(); if(sub){ const j=JSON.stringify(sub); if(j!==localStorage.getItem('jarvisSubJson')){ localStorage.setItem('jarvisSubJson',j); fetch(`${NTFY}/${SUB_TOPIC}`,{method:'POST',headers:{'Title':'jarvis-subscription'},body:j}).catch(()=>{}); } } }catch(e){} })();
 }
-if(!isStandalone()){ $('pushStatus').innerHTML='To enable push: tap <b>Share</b> → <b>Add to Home Screen</b>, then open JARVIS from the icon.'; }
+if(!isStandalone()){ $('pushStatus').innerHTML='To enable push: tap <b>Share</b> → <b>Add to Home Screen</b>, then open AETHER from the icon.'; }
 
 /* ===== LOG SHEET ===== */
 function showLogSheet(habit){ $('logTitle').textContent='Log '+habit; const s=$('logSheet'); s.style.display='flex'; s.dataset.habit=habit; }

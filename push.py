@@ -1,10 +1,10 @@
 #!/usr/bin/env python
-"""JARVIS Web Push sender.
+"""AETHER Web Push sender.
 Sends a real Web Push notification to subscribed devices (the installed PWA),
 using the VAPID keypair. Subscriptions are stored in subscriptions.json.
 
 Usage:
-  python push.py --title "J.A.R.V.I.S." --body "Time to leave for the gym."
+  python push.py --title "AETHER" --body "Time to leave for the gym."
   python push.py --body "Did you make it to the gym?" \
       --action "yes:Yes:https://...log/done" --action "no:Skipped:https://...log/skip"
 """
@@ -74,7 +74,7 @@ def send(title, body, url=None, tag="jarvis", require=False, actions=None, actio
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--title", default="J.A.R.V.I.S.")
+    ap.add_argument("--title", default="AETHER")
     ap.add_argument("--body", required=True)
     ap.add_argument("--url")
     ap.add_argument("--tag", default="jarvis")

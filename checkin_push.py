@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-"""JARVIS interactive habit check-in via Web Push (branded, lock-screen buttons).
+"""AETHER interactive habit check-in via Web Push (branded, lock-screen buttons).
 
-Mirrors the old ntfy checkin.py loop, but pushes through the JARVIS PWA:
+Mirrors the old ntfy checkin.py loop, but pushes through the AETHER PWA:
   - sends a branded push with ✅ Did it / ❌ Skipped / 🟡 Partial buttons
   - each button silently POSTs "Log <habit>: <status>" to the INBOUND ntfy topic
   - the gateway delivers that to Jarvis, who logs it via coach.py and replies
@@ -37,7 +37,7 @@ def send_checkin(habit, question, tag="jarvis-checkin"):
         "partial": f"Log {habit}: partial",
     }
     return pushmod.send(
-        "J.A.R.V.I.S.", question, url=open_url, tag=tag, require=True,
+        "AETHER", question, url=open_url, tag=tag, require=True,
         actions=actions, action_urls=action_urls, action_bodies=action_bodies,
     )
 
