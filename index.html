@@ -284,6 +284,8 @@
   .msg.ai .md-li .md-n { position:absolute; left:0; font-weight:700; color:var(--teal); }
   .msg.me { align-self:flex-end; background:var(--grad-bubble); color:#fff; border-bottom-right-radius:7px; box-shadow:0 4px 12px rgba(37,99,235,.22), 0 14px 30px rgba(37,99,235,.20), inset 0 1px 0 rgba(255,255,255,.22); }
   .msg .imgnote { margin-top:6px; font-size:12px; opacity:.8; }
+  /* Claude Code live build steps streamed into Talk — subtle, not a full bubble */
+  .msg.ai.progress { background:rgba(12,26,46,.04); border:1px solid var(--line); box-shadow:none; color:var(--dim); font-family:ui-monospace,"SF Mono",monospace; font-size:13px; padding:8px 13px; border-radius:12px; font-weight:500; max-width:90%; animation:none; }
   .typing { align-self:flex-start; display:flex; gap:5px; padding:15px 17px; background:var(--card-solid); border:1px solid var(--line); border-radius:20px; border-bottom-left-radius:7px; box-shadow:var(--e1); }
   .typing span { width:7px; height:7px; border-radius:50%; background:var(--teal); opacity:.7; animation:blink 1.2s infinite; }
   .typing span:nth-child(2){animation-delay:.2s;} .typing span:nth-child(3){animation-delay:.4s;}
@@ -1282,7 +1284,9 @@ function startStream(){
   // the same items on top of them — duplicates on each tab re-entry.
   const feed=$('streamFeed'); if(feed) feed.innerHTML='<div class="stream-empty">Listening to '+activeAgent.label+'… activity will appear here in real time.</div>';
   if(__streamTimer) clearInterval(__streamTimer);
-  streamTick(); __streamTimer=setInterval(streamTick, 2500);
+  // Poll Claude Code's feed faster so build steps land near real time.
+  const tickMs = activeAgent.id==='builder' ? 1500 : 2500;
+  streamTick(); __streamTimer=setInterval(streamTick, tickMs);
 }
 function stopStream(){ if(__streamTimer){ clearInterval(__streamTimer); __streamTimer=null; } }
 function clearStream(){ const feed=$('streamFeed'); if(feed){ feed.innerHTML='<div class="stream-empty">Cleared. Listening…</div>'; } __streamSeen.clear(); haptic(); }
@@ -1317,9 +1321,9 @@ function renderChat(){
     t.appendChild(w);
   }
   for(const m of chatLog){
-    const d=document.createElement('div'); d.className='msg '+(m.role==='me'?'me':'ai');
-    if(m.role==='me'){ d.textContent=m.text; } else { d.innerHTML=mdToHtml(m.text); }
-    attachCopy(d, m.text);
+    const d=document.createElement('div'); d.className='msg '+(m.role==='me'?'me':'ai')+(m.progress?' progress':'');
+    if(m.role==='me'||m.progress){ d.textContent=m.text; } else { d.innerHTML=mdToHtml(m.text); }
+    if(!m.progress) attachCopy(d, m.text);
     if(m.imgs&&m.imgs.length){ const ic=document.createElement('div'); ic.className='imgnote'; ic.textContent='📎 '+m.imgs.length+' image'+(m.imgs.length>1?'s':''); d.appendChild(ic); }
     t.appendChild(d);
   }
@@ -1329,6 +1333,15 @@ function scrollChat(){ const t=$('chatThread'); requestAnimationFrame(()=>{ t.sc
 function pushMsg(role,text,extra){ const m={role,text,t:Date.now()}; if(extra)Object.assign(m,extra); chatLog.push(m); if(chatLog.length>200)chatLog=chatLog.slice(-200); curSession.msgs=chatLog; persistSession(); saveRecent(); renderChat(); }
 function showTyping(){ if($('typingRow'))return; const d=document.createElement('div'); d.className='typing'; d.id='typingRow'; d.innerHTML='<span></span><span></span><span></span>'; $('chatThread').appendChild(d); scrollChat(); }
 function hideTyping(){ const e=$('typingRow'); if(e)e.remove(); }
+// Transient Claude Code build step (e.g. "• Edit index.html"). Shown live below
+// the conversation but NOT persisted — the next renderChat (final reply) clears
+// these so reopened sessions stay clean. Typing dots stay pinned to the bottom.
+function renderProgressLine(text){
+  const t=$('chatThread'); if(!t) return;
+  hideTyping();
+  const d=document.createElement('div'); d.className='msg ai progress'; d.textContent=text;
+  t.appendChild(d); showTyping(); scrollChat();
+}
 
 async function askAgent(text, silent, imgUrls){
   const agent=activeAgent;
@@ -1363,7 +1376,9 @@ async function pollReply(sinceTs, silent, agent){
   // loop can advance. TEXT MODE: listen for the whole task (streamed checkpoints)
   // with a quiet-gap window.
   const voice=window.__voiceMode;
-  const QUIET_GAP = voice ? 0 : 90000;
+  // Claude Code does real build work (edits, git, tests) between checkpoints, so
+  // give it a longer quiet window before we stop listening for the final reply.
+  const QUIET_GAP = voice ? 0 : (agent.id==='builder' ? 240000 : 90000);
   const HARD_CAP = voice ? 180000 : 20*60000;   // voice: 3min reply wait, text: 20min
   const hardStop=Date.now()+HARD_CAP;
   pollStop = voice ? hardStop : (Date.now()+QUIET_GAP);
@@ -1379,17 +1394,27 @@ async function pollReply(sinceTs, silent, agent){
         if(o.event!=='message'||!o.id||seen.has(o.id))continue; seen.add(o.id);
         if(o.time&&o.time<sinceTs)continue;
         if(alreadyHandled(o.id)) continue;                  // never re-speak across app restarts
-        const msg=(o.message||'').trim(); sniffCredits(msg); if(isNoise(msg))continue;
+        const msg=(o.message||'').trim(); sniffCredits(msg);
+        // Claude Code streams live tool steps ("• Edit index.html", "⌘ On it…").
+        // In Talk/text mode surface them as lightweight progress so you watch it
+        // work in real time instead of staring at a frozen typing dot.
+        const isProgress = agent.id==='builder' && !voice && /^[•⌘]/.test(msg);
+        if(isNoise(msg) && !isProgress) continue;
         markHandled(o.id);
-        hideTyping(); got++;
         sinceTs=Math.max(sinceTs,(o.time||Math.floor(Date.now()/1000)));
+        if(isProgress){
+          if(agent.id===activeAgent.id){ renderProgressLine(msg); }
+          pollStop=Date.now()+QUIET_GAP;                    // still working — keep listening
+          continue;                                          // don't speak, don't count as the final reply
+        }
+        hideTyping(); got++;
         if(agent.id===activeAgent.id){ pushMsg('ai',msg); }
         if(voice){ voiceModeAfterReply(msg); return; }      // first reply → hand off to speak loop
         if(agent.id===activeAgent.id){ enqueueSpeak(msg); }
         pollStop=Date.now()+QUIET_GAP;                      // text mode: keep listening for more
       }
     }catch(e){}
-    await new Promise(r=>setTimeout(r, voice?1500:2500));
+    await new Promise(r=>setTimeout(r, voice||agent.id==='builder'?1500:2500));
   }
   if(myGen!==__pollGen) return;
   hideTyping();
