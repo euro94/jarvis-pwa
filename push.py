@@ -34,7 +34,7 @@ def save_subs(subs):
     json.dump(subs, open(SUBS, "w"), indent=2)
 
 
-def send(title, body, url=None, tag="jarvis", require=False, actions=None, action_urls=None):
+def send(title, body, url=None, tag="jarvis", require=False, actions=None, action_urls=None, action_bodies=None):
     subs = load_subs()
     if not subs:
         print("No subscriptions yet. Enable push in the PWA first.")
@@ -47,6 +47,8 @@ def send(title, body, url=None, tag="jarvis", require=False, actions=None, actio
         payload["actions"] = actions
     if action_urls:
         payload["actionUrls"] = action_urls
+    if action_bodies:
+        payload["actionBodies"] = action_bodies
 
     ok, dead = 0, []
     for sub in subs:
@@ -77,19 +79,22 @@ def main():
     ap.add_argument("--url")
     ap.add_argument("--tag", default="jarvis")
     ap.add_argument("--require", action="store_true")
-    # --action id:Label:URL  (repeatable)
+    # --action id:Label:URL  (repeatable) — optional 4th field :BODY for POST body
     ap.add_argument("--action", action="append", default=[])
     a = ap.parse_args()
 
-    actions, action_urls = [], {}
+    actions, action_urls, action_bodies = [], {}, {}
     for spec in a.action:
-        parts = spec.split(":", 2)
-        if len(parts) == 3:
-            aid, label, aurl = parts
+        parts = spec.split(":", 3)
+        if len(parts) >= 3:
+            aid, label, aurl = parts[0], parts[1], parts[2]
             actions.append({"action": aid, "title": label})
             action_urls[aid] = aurl
+            if len(parts) == 4:
+                action_bodies[aid] = parts[3]
     send(a.title, a.body, url=a.url, tag=a.tag, require=a.require,
-         actions=actions or None, action_urls=action_urls or None)
+         actions=actions or None, action_urls=action_urls or None,
+         action_bodies=action_bodies or None)
 
 
 if __name__ == "__main__":

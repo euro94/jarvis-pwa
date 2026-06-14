@@ -1,5 +1,5 @@
 // JARVIS service worker — handles Web Push + notification taps
-const VERSION = 'jarvis-v1';
+const VERSION = 'jarvis-v2';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -23,7 +23,7 @@ self.addEventListener('push', (event) => {
     tag: data.tag || 'jarvis',
     renotify: true,
     requireInteraction: !!data.requireInteraction,
-    data: { url: data.url || './index.html', actionUrls: data.actionUrls || {} },
+    data: { url: data.url || './index.html', actionUrls: data.actionUrls || {}, actionBodies: data.actionBodies || {} },
     actions: data.actions || []
   };
   event.waitUntil(self.registration.showNotification(title, options));
@@ -37,10 +37,9 @@ self.addEventListener('notificationclick', (event) => {
 
   // Action buttons fire a fire-and-forget POST (one-tap habit logging, no app open)
   if (action && d.actionUrls && d.actionUrls[action]) {
-    event.waitUntil(
-      fetch(d.actionUrls[action], { method: 'POST', mode: 'no-cors', keepalive: true })
-        .catch(() => {})
-    );
+    const opts = { method: 'POST', mode: 'no-cors', keepalive: true };
+    if (d.actionBodies && d.actionBodies[action]) opts.body = d.actionBodies[action];
+    event.waitUntil(fetch(d.actionUrls[action], opts).catch(() => {}));
     return;
   }
 
