@@ -345,6 +345,14 @@
         <div class="note">When on, AETHER speaks answers in the Talk tab.</div>
       </div>
       <div class="card2">
+        <h3>Model · <span id="modelAgent">Assistant</span></h3>
+        <div class="note" id="modelCurrent" style="margin-top:0;">Current model: tap Refresh to load.</div>
+        <select id="modelSelect" style="width:100%;margin-top:10px;padding:12px;border-radius:12px;border:1px solid var(--line);background:#f0f4f8;color:var(--indigo);font-size:14px;"></select>
+        <button class="btn btn-primary" id="modelApply" style="margin-top:10px;">Switch this agent's model</button>
+        <button class="btn btn-ghost" id="modelRefresh" style="margin-top:8px;">Refresh model list</button>
+        <div class="note">Changes the live Hermes model for the selected agent (sends /model). Each agent can run a different model.</div>
+      </div>
+      <div class="card2">
         <h3>Chat</h3>
         <button class="btn btn-ghost" id="clearChat">Clear this conversation</button>
       </div>
@@ -355,7 +363,7 @@
   <!-- ===== NAV ===== -->
   <div class="nav">
     <button class="active" data-screen="screenHome"><span class="ico">◈</span>HOME</button>
-    <button data-screen="screenChat"><span class="ico">⬡</span>TALK</button>
+    <button data-screen="screenChat" id="talkNav"><span class="ico">⬡</span>TALK</button>
     <button data-screen="screenSettings"><span class="ico">⚙</span>SETTINGS</button>
   </div>
 
@@ -494,6 +502,11 @@ function renderSelector(){
     o.addEventListener('click', ()=>{ $('selMenu').classList.remove('open'); switchAgent(a); haptic(); });
     m.appendChild(o);
   }
+  // + Add agent row
+  const add=document.createElement('div'); add.className='opt'; add.style.borderTop='1px solid var(--line)';
+  add.innerHTML='<span class="ic">＋</span><span>Add agent<span class="sub">Bridge a new Hermes profile</span></span>';
+  add.addEventListener('click', ()=>{ $('selMenu').classList.remove('open'); addAgentFlow(); });
+  m.appendChild(add);
 }
 $('selBtn').addEventListener('click', (e)=>{ e.stopPropagation(); $('selMenu').classList.toggle('open'); });
 document.addEventListener('click', ()=>$('selMenu').classList.remove('open'));
@@ -656,16 +669,20 @@ $('micBtn').addEventListener('click', ()=>{ if(!SR){ toast('Voice input not supp
 /* ===== VOICE CONVERSATION MODE ===== */
 window.__voiceMode=false;
 function voiceModeAfterReply(msg){
-  const resume=()=>{ if(window.__voiceMode) setTimeout(startListening,300); };
-  if(window.speechSynthesis && localStorage.getItem('aetherTTS')!=='1'){ const c=msg.replace(/[*_`#>]/g,'').slice(0,600); const u=new SpeechSynthesisUtterance(c); u.rate=1.04; u.lang='en-US'; u.onend=resume; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); }
-  else if(window.speechSynthesis){ const iv=setInterval(()=>{ if(!window.speechSynthesis.speaking){ clearInterval(iv); resume(); } },250); }
+  const resume=()=>{ if(window.__voiceMode) setTimeout(()=>{ if(window.__voiceMode) startListening(); },350); };
+  // In a voice conversation we ALWAYS speak the reply (regardless of the TTS toggle).
+  if(window.speechSynthesis){ const c=msg.replace(/[*_`#>\[\]]/g,'').slice(0,650); const u=new SpeechSynthesisUtterance(c); u.rate=1.04; u.lang='en-US'; u.onend=resume; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); }
   else resume();
 }
 $('voiceModeBtn').addEventListener('click', ()=>{
   if(!SR){ toast('Voice mode not supported on this browser.',true); return; }
-  window.__voiceMode=!window.__voiceMode; const fab=$('voiceModeBtn');
-  if(window.__voiceMode){ fab.classList.add('on'); toast('Voice mode on — just talk. Tap again to stop.'); haptic(); startListening(); }
-  else { fab.classList.remove('on'); if(listening){try{recog.stop();}catch(e){}} window.speechSynthesis&&window.speechSynthesis.cancel(); toast('Voice mode off.'); }
+  if(window.__voiceMode){
+    window.__voiceMode=false; $('voiceModeBtn').classList.remove('on');
+    if(listening){try{recog.stop();}catch(e){}} window.speechSynthesis&&window.speechSynthesis.cancel();
+    toast('Voice mode off.');
+  } else {
+    startVoiceConversation();
+  }
 });
 
 /* ===== TTS ===== */
@@ -712,6 +729,95 @@ document.querySelectorAll('#logSheet [data-status]').forEach(b=>b.addEventListen
 $('logClose').addEventListener('click',()=>{$('logSheet').style.display='none';});
 (function(){ const h=new URLSearchParams(location.search).get('log'); if(h){ showLogSheet(h); history.replaceState({},'',location.pathname);} })();
 navigator.serviceWorker && navigator.serviceWorker.addEventListener('message',(e)=>{ if(e.data&&e.data.type==='show-log'&&e.data.habit) showLogSheet(e.data.habit); });
+
+/* ===== MODEL SWITCHER (per agent, via /model over the gateway) ===== */
+let modelListCache = {}; // agentId -> {current, options[]}
+function pollOnce(topic, sinceSec, matchFn, timeoutMs){
+  return new Promise(async (resolve)=>{
+    const stop=Date.now()+(timeoutMs||20000); const seen=new Set();
+    while(Date.now()<stop){
+      try{
+        const r=await fetch(`${NTFY}/${topic}/json?poll=1&since=${sinceSec}`,{cache:'no-store'});
+        const lines=(await r.text()).trim().split('\n').filter(Boolean);
+        for(const ln of lines){ let o; try{o=JSON.parse(ln);}catch(e){continue;}
+          if(o.event!=='message'||!o.id||seen.has(o.id))continue; seen.add(o.id);
+          if(o.time&&o.time<sinceSec)continue;
+          const m=(o.message||''); if(matchFn(m)) { resolve(m); return; }
+        }
+      }catch(e){}
+      await new Promise(r=>setTimeout(r,2000));
+    }
+    resolve(null);
+  });
+}
+function parseModels(text){
+  // pull `backticked` model ids out of the /model reply
+  const ids=[...text.matchAll(/`([a-zA-Z0-9._\/-]+\/[a-zA-Z0-9._-]+|[a-zA-Z0-9._-]+-[a-zA-Z0-9._-]+)`/g)].map(m=>m[1]);
+  const cur=(text.match(/Current:\s*`([^`]+)`/)||[])[1]||'';
+  // de-dupe, drop the "/model <name>" usage token
+  const opts=[...new Set(ids)].filter(x=>x && x!=='name' && !/^\/model/.test(x));
+  return { current:cur, options:opts };
+}
+async function refreshModels(){
+  const agent=activeAgent; $('modelAgent').textContent=agent.label;
+  $('modelCurrent').textContent='Loading models from '+agent.label+'…';
+  const since=Math.floor(Date.now()/1000)-1;
+  try{ await fetch(`${NTFY}/${agent.in}`,{method:'POST',body:'/model'}); }catch(e){ $('modelCurrent').textContent='Could not reach agent.'; return; }
+  const reply=await pollOnce(agent.out, since, (m)=>/Current:|\/model/i.test(m)&&/`/.test(m), 22000);
+  if(!reply){ $('modelCurrent').textContent='No response — agent may be busy. Try again.'; return; }
+  const {current,options}=parseModels(reply);
+  modelListCache[agent.id]={current,options};
+  $('modelCurrent').textContent='Current: '+(current||'unknown');
+  const sel=$('modelSelect'); sel.innerHTML='';
+  (options.length?options:[current]).forEach(o=>{ const op=document.createElement('option'); op.value=o; op.textContent=o; if(o===current)op.selected=true; sel.appendChild(op); });
+}
+async function applyModel(){
+  const agent=activeAgent; const m=$('modelSelect').value; if(!m){ toast('Pick a model first.',true); return; }
+  $('modelApply').disabled=true; $('modelApply').textContent='Switching…';
+  const since=Math.floor(Date.now()/1000)-1;
+  try{ await fetch(`${NTFY}/${agent.in}`,{method:'POST',body:'/model '+m}); }catch(e){}
+  const reply=await pollOnce(agent.out, since, (m2)=>/model|switch|now using|set to/i.test(m2), 22000);
+  $('modelApply').disabled=false; $('modelApply').textContent="Switch this agent's model";
+  toast(reply? (agent.label+' → '+m) : 'Sent — confirm with Refresh.');
+  $('modelCurrent').textContent='Current: '+m; haptic();
+}
+$('modelRefresh').addEventListener('click', refreshModels);
+$('modelApply').addEventListener('click', applyModel);
+// keep the model card pointed at the active agent when Settings opens
+document.querySelector('.nav button[data-screen="screenSettings"]').addEventListener('click', ()=>{ $('modelAgent').textContent=activeAgent.label; const c=modelListCache[activeAgent.id]; if(c){ $('modelCurrent').textContent='Current: '+(c.current||'unknown'); } else { $('modelCurrent').textContent='Tap Refresh to load '+activeAgent.label+"'s models."; $('modelSelect').innerHTML=''; } });
+
+/* ===== TALK nav: long-press = agent picker (tap still opens chat) ===== */
+(function(){
+  const btn=$('talkNav'); let lpTimer=null, longFired=false;
+  const openPicker=()=>{ longFired=true; haptic(); goChat(); $('selMenu').classList.add('open'); };
+  btn.addEventListener('touchstart', ()=>{ longFired=false; lpTimer=setTimeout(openPicker,450); }, {passive:true});
+  btn.addEventListener('touchend', (e)=>{ clearTimeout(lpTimer); if(longFired){ e.preventDefault(); e.stopPropagation(); } }, {passive:false});
+  btn.addEventListener('contextmenu', (e)=>{ e.preventDefault(); openPicker(); });
+})();
+
+/* ===== ADD AGENT (custom agent pointing at topics) ===== */
+function loadCustomAgents(){ try{ return JSON.parse(localStorage.getItem('aetherCustomAgents')||'[]'); }catch(e){ return []; } }
+(function mergeCustom(){ for(const c of loadCustomAgents()){ if(!AGENTS.find(a=>a.id===c.id)) AGENTS.push(c); } })();
+function addAgentFlow(){
+  const label=prompt('New agent name (e.g. Strategist):'); if(!label) return;
+  const inTopic=prompt('Its inbound ntfy topic (the topic its Hermes gateway listens on):'); if(!inTopic) return;
+  const outTopic=prompt('Its outbound/reply ntfy topic:'); if(!outTopic) return;
+  const id='custom_'+Date.now();
+  const agent={ id, label, ic:'✦', in:inTopic.trim(), out:outTopic.trim(), hint:'Custom agent.', custom:true };
+  const list=loadCustomAgents(); list.push(agent); localStorage.setItem('aetherCustomAgents',JSON.stringify(list));
+  AGENTS.push(agent); renderSelector(); switchAgent(agent);
+  toast('Added '+label+'. (Needs a Hermes profile bridged to those topics.)');
+}
+
+/* ===== VOICE CONVERSATION MODE — true Claude-style hands-free =====
+   The ⇄ button (and a tap on the home mic when held) starts a loop:
+   listen → transcribe → send to active agent → speak the reply aloud → listen again. */
+function startVoiceConversation(){
+  if(!SR){ toast('Voice mode not supported on this browser.',true); return; }
+  window.__voiceMode=true;
+  goChat(); $('voiceModeBtn') && $('voiceModeBtn').classList.add('on');
+  toast('Voice mode — just talk. Tap ⇄ to stop.'); haptic(); startListening();
+}
 </script>
 </body>
 </html>
