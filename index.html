@@ -2167,9 +2167,20 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
     rrBusy=true; rrCancelled=false; rrAbort=new AbortController(); rrSyncCTA(); haptic();
     rrShow('loading'); rrStartLoadCycle();
     try{
-      // upload all (resized) images
-      const imgs=[];
-      for(const im of rrImages){ const url=await rrUpload(im.dataUrl, im.label||im.name); imgs.push({label:im.label||im.name, url, thumb:im.dataUrl}); }
+      // upload all (resized) images IN PARALLEL, with a live progress count so
+      // the user can SEE it working instead of a silent multi-photo wait. Order
+      // is preserved (Promise.all keeps array order) so the connected-set labels
+      // stay correct and cross-workpaper tie-out detection is untouched.
+      const subEl=$('rrLoadSub');
+      const total=rrImages.length; let done=0;
+      const setProg=()=>{ if(subEl) subEl.textContent='Uploaded '+done+' of '+total+' workpaper'+(total>1?'s':'')+'…'; };
+      setProg();
+      const imgs=await Promise.all(rrImages.map(async (im)=>{
+        const url=await rrUpload(im.dataUrl, im.label||im.name);
+        done++; setProg();
+        return {label:im.label||im.name, url, thumb:im.dataUrl};
+      }));
+      if(subEl) subEl.textContent='All workpapers in. Sent as one connected set so tie-outs across them get caught.';
       const body=rrBuildMessage(imgs);
       const sentAt=Math.floor(Date.now()/1000)-1;
       await rrFetch(`${NTFY}/${RR_AGENT.in}`,{method:'POST',body}, 30000);
