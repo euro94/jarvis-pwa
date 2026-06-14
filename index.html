@@ -15,7 +15,7 @@
     --bg:#F7FAFC; --card:#FFFFFF; --fg:#1A202C; --dim:#718096; --line:#E2E8F0;
     --teal:#14B8A6; --teal2:#2DD4BF; --blue:#3182CE; --indigo:#2D3748;
     --usr:#E2E8F0; --safe-b:env(safe-area-inset-bottom);
-    --grad:linear-gradient(100deg,#27306b 0%,#2b73c4 45%,#3fd0c9 100%);
+    --grad:linear-gradient(105deg,#1f2a52 0%,#27508f 42%,#1f9aa6 78%,#37c9c0 100%);
     --grad-bubble:linear-gradient(160deg,#2DD4BF 0%,#3B82F6 100%);
   }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -39,10 +39,49 @@
   .greet .h1 { font-size:23px; font-weight:700; color:var(--indigo); line-height:1.3; }
   .greet .h2 { font-size:23px; font-weight:700; color:var(--teal); line-height:1.3; }
 
-  .prompt-bar { display:flex; align-items:center; gap:10px; background:var(--grad); border-radius:22px; padding:16px 18px; box-shadow:0 12px 30px rgba(43,115,196,.28); cursor:text; }
-  .prompt-bar .mic { color:#fff; font-size:20px; flex:0 0 auto; opacity:.95; }
-  .prompt-bar .ph { color:rgba(255,255,255,.85); font-size:15.5px; flex:1; }
-  .prompt-bar .av { width:30px; height:30px; border-radius:9px; background:rgba(255,255,255,.18); color:#fff; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; flex:0 0 auto; }
+  /* ===== engraved-stone prompt bar ===== */
+  .prompt-bar {
+    position:relative; overflow:hidden; display:flex; align-items:center; gap:12px;
+    background:var(--grad); border-radius:24px; padding:18px 18px; cursor:text;
+    /* polished slab: soft drop shadow + bright top specular bevel + dark bottom edge */
+    box-shadow:
+      0 14px 34px rgba(20,40,90,.34),
+      inset 0 2px 1px rgba(255,255,255,.55),
+      inset 0 -3px 6px rgba(0,20,40,.40),
+      inset 0 0 0 1px rgba(255,255,255,.10);
+  }
+  /* glossy light sweep across the top half of the stone */
+  .prompt-bar::before {
+    content:""; position:absolute; left:0; right:0; top:0; height:55%;
+    background:linear-gradient(180deg, rgba(255,255,255,.28), rgba(255,255,255,0));
+    pointer-events:none; border-radius:24px 24px 40% 40%;
+  }
+  /* embossed AETHER watermark chiseled into the stone */
+  .pb-watermark {
+    position:absolute; right:-6px; top:50%; transform:translateY(-50%);
+    width:120px; height:120px; opacity:.16; pointer-events:none;
+    filter:drop-shadow(0 1px 0 rgba(255,255,255,.4)) drop-shadow(0 -1px 1px rgba(0,20,40,.5));
+  }
+  .prompt-bar .mic {
+    position:relative; z-index:1; color:rgba(255,255,255,.92); font-size:18px; flex:0 0 auto;
+    width:38px; height:38px; display:flex; align-items:center; justify-content:center; border-radius:50%;
+    /* carved-in recess for the mic */
+    box-shadow: inset 0 2px 4px rgba(0,15,35,.55), inset 0 -1px 1px rgba(255,255,255,.25);
+    background:rgba(0,20,45,.18);
+  }
+  .prompt-bar .ph {
+    position:relative; z-index:1; flex:1; font-size:15.5px; font-weight:500;
+    color:rgba(255,255,255,.9);
+    /* etched text: dark inner + faint light below */
+    text-shadow:0 1px 1px rgba(0,15,35,.45), 0 -1px 0 rgba(255,255,255,.18);
+  }
+  .prompt-bar .av {
+    position:relative; z-index:1; width:32px; height:32px; border-radius:10px;
+    background:rgba(255,255,255,.16); color:#fff; font-size:12px; font-weight:700;
+    display:flex; align-items:center; justify-content:center; flex:0 0 auto;
+    box-shadow: inset 0 1px 2px rgba(255,255,255,.3), inset 0 -2px 3px rgba(0,15,35,.4);
+  }
+  .prompt-bar:active { box-shadow:0 6px 18px rgba(20,40,90,.3), inset 0 2px 5px rgba(0,20,40,.5); }
 
   .cards { display:flex; gap:12px; margin:18px 0 8px; }
   .fcard { flex:1; background:var(--card); border:1px solid var(--line); border-radius:18px; padding:16px 12px; text-align:center; box-shadow:0 4px 16px rgba(45,55,72,.05); cursor:pointer; transition:transform .1s; }
@@ -171,6 +210,13 @@
         <div class="h2">Ready to innovate?</div>
       </div>
       <div class="prompt-bar" id="homePrompt">
+        <svg class="pb-watermark" viewBox="0 0 100 100" aria-hidden="true">
+          <g fill="none" stroke="#ffffff" stroke-width="9" stroke-linecap="round">
+            <rect x="20" y="34" width="60" height="32" rx="16" transform="rotate(-45 50 50)"/>
+            <rect x="20" y="34" width="60" height="32" rx="16" transform="rotate(45 50 50)"/>
+          </g>
+          <circle cx="50" cy="50" r="11" fill="none" stroke="#ffffff" stroke-width="6"/>
+        </svg>
         <span class="mic">🎙️</span>
         <span class="ph">Ask AETHER anything…</span>
         <span class="av">YL</span>
