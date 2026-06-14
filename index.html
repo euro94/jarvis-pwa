@@ -241,16 +241,42 @@
   #voiceOverlay { position:fixed; inset:0; z-index:120; display:none; flex-direction:column; align-items:center; justify-content:center; gap:26px;
     background:radial-gradient(circle at 50% 38%, #16306f 0%, #0a1430 70%, #050a1c 100%); }
   #voiceOverlay.open { display:flex; }
-  .vo-orb { width:150px; height:150px; border-radius:50%;
-    background:radial-gradient(circle at 38% 32%, #8ff0ee, #2dd4bf 42%, #2b73c4 78%, #1f2a52 100%);
-    box-shadow:0 0 60px rgba(45,212,191,.55), inset 0 6px 18px rgba(255,255,255,.4);
-    transition:transform .25s ease; }
-  #voiceOverlay.listening .vo-orb { animation:voListen 1.4s ease-in-out infinite; }
-  #voiceOverlay.speaking .vo-orb { animation:voSpeak .7s ease-in-out infinite; }
-  #voiceOverlay.thinking .vo-orb { animation:voThink 1.1s linear infinite; opacity:.8; }
-  @keyframes voListen { 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.12); } }
-  @keyframes voSpeak  { 0%,100%{ transform:scale(1.04); } 50%{ transform:scale(1.18); } }
-  @keyframes voThink  { 0%{ transform:rotate(0) scale(.95);} 100%{ transform:rotate(360deg) scale(.95);} }
+  /* advanced AI presence visualizer */
+  .vo-orb { position:relative; width:260px; height:260px; display:flex; align-items:center; justify-content:center; }
+  .vo-orb .ring { position:absolute; border-radius:50%; pointer-events:none; }
+  /* rotating energy halo (conic sweep) */
+  .vo-orb .halo { inset:0;
+    background:conic-gradient(from 0deg, transparent 0deg, rgba(45,212,191,.0) 40deg, rgba(45,212,191,.55) 130deg, rgba(110,231,255,.85) 180deg, rgba(45,212,191,.55) 230deg, transparent 320deg, transparent 360deg);
+    -webkit-mask:radial-gradient(circle, transparent 58%, #000 60%, #000 72%, transparent 74%);
+            mask:radial-gradient(circle, transparent 58%, #000 60%, #000 72%, transparent 74%);
+    filter:blur(.5px); animation:voSpin 6s linear infinite; opacity:.9; }
+  /* breathing concentric rings */
+  .vo-orb .r1 { inset:18px; border:1.5px solid rgba(110,231,255,.35); box-shadow:0 0 22px rgba(45,212,191,.25) inset; }
+  .vo-orb .r2 { inset:42px; border:1px solid rgba(110,231,255,.22); }
+  /* glassy luminous core */
+  .vo-orb .core { position:relative; width:118px; height:118px; border-radius:50%;
+    background:radial-gradient(circle at 38% 30%, #d6fffb 0%, #8ff0ee 22%, #2dd4bf 50%, #2b73c4 82%, #1c2b55 100%);
+    box-shadow:0 0 50px rgba(45,212,191,.6), 0 0 90px rgba(43,115,196,.4), inset 0 8px 22px rgba(255,255,255,.45), inset 0 -10px 24px rgba(20,30,70,.5);
+    transition:transform .3s ease; }
+  .vo-orb .core::after { content:''; position:absolute; inset:0; border-radius:50%;
+    background:radial-gradient(circle at 50% 120%, rgba(110,231,255,.5), transparent 60%); mix-blend-mode:screen; }
+  /* state behaviors */
+  #voiceOverlay.listening .halo { animation-duration:9s; }
+  #voiceOverlay.listening .core { animation:voBreathe 3.2s ease-in-out infinite; }
+  #voiceOverlay.listening .r1 { animation:voEcho 2.6s ease-out infinite; }
+  #voiceOverlay.listening .r2 { animation:voEcho 2.6s ease-out .9s infinite; }
+  #voiceOverlay.thinking .halo { animation-duration:1.4s; opacity:1; }
+  #voiceOverlay.thinking .core { animation:voThinkPulse 1.1s ease-in-out infinite; }
+  #voiceOverlay.thinking .r1, #voiceOverlay.thinking .r2 { opacity:.35; }
+  #voiceOverlay.speaking .halo { animation-duration:3.2s; }
+  #voiceOverlay.speaking .core { animation:voSpeakPulse .42s ease-in-out infinite; }
+  #voiceOverlay.speaking .r1 { animation:voEcho 1s ease-out infinite; }
+  #voiceOverlay.speaking .r2 { animation:voEcho 1s ease-out .35s infinite; }
+  @keyframes voSpin { to{ transform:rotate(360deg); } }
+  @keyframes voBreathe { 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.06); } }
+  @keyframes voSpeakPulse { 0%,100%{ transform:scale(1.02); } 50%{ transform:scale(1.13); } }
+  @keyframes voThinkPulse { 0%,100%{ transform:scale(.96); filter:brightness(.9);} 50%{ transform:scale(1.0); filter:brightness(1.15);} }
+  @keyframes voEcho { 0%{ transform:scale(.85); opacity:.5; } 70%{ opacity:.12; } 100%{ transform:scale(1.25); opacity:0; } }
   .vo-status { color:#9fe9e0; font-size:14px; letter-spacing:2px; text-transform:uppercase; font-weight:600; }
   .vo-transcript { color:#fff; font-size:19px; line-height:1.4; text-align:center; max-width:82%; min-height:28px; opacity:.95; }
   .vo-stop { margin-top:14px; background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.3); border-radius:24px; padding:13px 26px; font-size:15px; font-weight:600; cursor:pointer; }
@@ -380,7 +406,12 @@
 
   <!-- ===== VOICE OVERLAY (stays on current tab) ===== -->
   <div id="voiceOverlay">
-    <div class="vo-orb" id="voOrb"></div>
+    <div class="vo-orb" id="voOrb">
+      <div class="ring halo"></div>
+      <div class="ring r1"></div>
+      <div class="ring r2"></div>
+      <div class="core"></div>
+    </div>
     <div class="vo-status" id="voStatus">Listening…</div>
     <div class="vo-transcript" id="voTranscript"></div>
     <button class="vo-stop" id="voStop">End voice mode</button>
