@@ -369,6 +369,10 @@
   .si-text code { font-family:ui-monospace,monospace; font-size:12.5px; background:rgba(255,255,255,.08); padding:1px 5px; border-radius:5px; }
   .si-text a { color:var(--cyan); word-break:break-all; }
   .si-when { font-family:ui-monospace,monospace; font-size:10px; color:var(--faint); margin-top:4px; }
+  .stream-item.k-you { border-left-color:var(--cyan); background:rgba(125,180,235,.1); }
+  .stream-item.k-you .si-when { color:var(--cyan); opacity:.8; }
+  .stream-composer { flex:0 0 auto; padding:8px 14px calc(var(--safe-b) + 10px); background:linear-gradient(to top, var(--bg) 72%, transparent); }
+  .stream-composer textarea { font-size:16px; }
 
   /* ===== NAV ===== */
   .nav {
@@ -587,6 +591,13 @@
     </div>
     <div class="stream-sub" id="streamSub">Live feed of everything AETHER is doing — no PC needed.</div>
     <div id="streamFeed" class="stream-feed"></div>
+    <div class="composer stream-composer">
+      <div class="field">
+        <button class="iconbtn mic2" id="streamMic">🎙️</button>
+        <textarea id="streamInput" rows="1" placeholder="Query AETHER…"></textarea>
+      </div>
+      <button class="iconbtn send2" id="streamSend">➤</button>
+    </div>
   </div>
   <div id="voiceOverlay">
     <div class="vo-orb" id="voOrb">
@@ -672,6 +683,17 @@ function goChat(){ document.querySelectorAll('.nav button').forEach(x=>x.classLi
 /* ===== STREAM + CREDITS button wiring ===== */
 $('streamClear') && $('streamClear').addEventListener('click', clearStream);
 $('streamSelBtn') && $('streamSelBtn').addEventListener('click', ()=>{ const i=AGENTS.findIndex(a=>a.id===activeAgent.id); const next=AGENTS[(i+1)%AGENTS.length]; switchAgent(next); startStream(); toast('Streaming '+next.label); });
+$('streamSend') && $('streamSend').addEventListener('click', streamSend);
+$('streamInput') && $('streamInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); streamSend(); } });
+$('streamInput') && $('streamInput').addEventListener('input', function(){ this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,90)+'px'; });
+$('streamMic') && $('streamMic').addEventListener('click', ()=>{
+  if(!SR){ toast('Voice input not supported here.',true); return; }
+  if(listening){ recog.stop(); return; }
+  haptic();
+  // dictate into the stream input (reuse recog; route result there)
+  __streamDictation=true; const inp=$('streamInput'); inp.value=''; $('streamMic').classList.add('listening');
+  try{ recog.start(); listening=true; }catch(e){ listening=false; __streamDictation=false; $('streamMic').classList.remove('listening'); }
+});
 $('creditReload') && $('creditReload').addEventListener('click', openPortalReload);
 $('creditRefresh') && $('creditRefresh').addEventListener('click', refreshCredits);
 $('creditBadge') && $('creditBadge').addEventListener('click', openPortalReload);
@@ -900,6 +922,29 @@ function startStream(){
 }
 function stopStream(){ if(__streamTimer){ clearInterval(__streamTimer); __streamTimer=null; } }
 function clearStream(){ const feed=$('streamFeed'); if(feed){ feed.innerHTML='<div class="stream-empty">Cleared. Listening…</div>'; } __streamSeen.clear(); haptic(); }
+/* render a "you" query line in the stream feed (distinct from agent items) */
+function renderStreamQuery(text){
+  const feed=$('streamFeed'); if(!feed) return;
+  const empty=feed.querySelector('.stream-empty'); if(empty) empty.remove();
+  const row=document.createElement('div'); row.className='stream-item k-you';
+  const when=new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit',second:'2-digit'});
+  row.innerHTML='<span class="si-ic">🗣️</span><div class="si-body"><div class="si-text"></div><div class="si-when">you · '+when+'</div></div>';
+  row.querySelector('.si-text').textContent=text;
+  feed.appendChild(row); requestAnimationFrame(()=>{ feed.scrollTop=feed.scrollHeight; });
+}
+async function streamSend(){
+  const inp=$('streamInput'); const text=(inp.value||'').trim(); if(!text) return;
+  inp.value=''; inp.style.height='auto'; haptic();
+  // make sure the feed is listening to the agent we're sending to
+  if(!__streamTimer || __streamAgent!==activeAgent){ startStream(); }
+  renderStreamQuery(text);
+  // also persist into the chat session so it shows up in Talk/history
+  try{ pushMsg('me', text); }catch(e){}
+  try{ await fetch(`${NTFY}/${activeAgent.in}`,{method:'POST',body:text}); }
+  catch(e){ toast('Could not reach '+activeAgent.label+'.',true); return; }
+  // the reply lands in the live feed via streamTick; also drive a chat poll so Talk stays in sync
+  pollReply(Math.floor(Date.now()/1000)-1, true, activeAgent);
+}
 function renderChat(){
   const t=$('chatThread'); t.innerHTML='';
   if(chatLog.length===0){
@@ -1134,25 +1179,28 @@ async function uploadImages(imgs){ const urls=[]; for(const im of imgs){ try{ co
 renderSelector(); renderChat(); renderHistory();
 
 /* ===== VOICE INPUT ===== */
-let recog=null, listening=false;
+let recog=null, listening=false, __streamDictation=false;
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 if(SR){ recog=new SR(); recog.lang='en-US'; recog.interimResults=true; recog.continuous=false;
   recog.onresult=(e)=>{
     let t=''; for(let i=0;i<e.results.length;i++)t+=e.results[i][0].transcript;
-    if(window.__voiceMode){ $('voTranscript').textContent=t; } else { $('chatInput').value=t; }
+    if(window.__voiceMode){ $('voTranscript').textContent=t; }
+    else if(__streamDictation){ $('streamInput').value=t; }
+    else { $('chatInput').value=t; }
   };
   recog.onend=()=>{
-    listening=false; $('micBtn').classList.remove('listening'); $('homeMic')&&$('homeMic').classList.remove('rec');
+    listening=false; $('micBtn').classList.remove('listening'); $('homeMic')&&$('homeMic').classList.remove('rec'); $('streamMic')&&$('streamMic').classList.remove('listening');
     if(window.__voiceMode){
       const said=($('voTranscript').textContent||'').trim();
       if(said){ voSetState('thinking','Thinking…'); $('voTranscript').textContent='“'+said+'”'; askAgent(said,false); }
       else { /* heard nothing — keep listening */ setTimeout(()=>{ if(window.__voiceMode && !speaking) startListening(); }, 500); }
       return;
     }
+    if(__streamDictation){ __streamDictation=false; const inp=$('streamInput'); if(inp){ inp.focus(); inp.dispatchEvent(new Event('input')); } return; }
     const v=$('chatInput').value.trim(); if(v){ $('chatInput').value=''; askAgent(v,false);} 
   };
   recog.onerror=(e)=>{
-    listening=false; $('micBtn').classList.remove('listening'); $('homeMic')&&$('homeMic').classList.remove('rec');
+    listening=false; __streamDictation=false; $('micBtn').classList.remove('listening'); $('homeMic')&&$('homeMic').classList.remove('rec'); $('streamMic')&&$('streamMic').classList.remove('listening');
     // 'no-speech'/'aborted' are normal in a loop — just restart listening
     if(window.__voiceMode && !speaking){ setTimeout(()=>{ if(window.__voiceMode && !speaking) startListening(); }, 600); }
   };
