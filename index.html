@@ -982,6 +982,7 @@ const AGENTS = [
   { id:"research",  label:"Researcher", ic:"⚛️", in:"hermes-yaro-research-in-f97aeefc",  out:"hermes-yaro-research-out-82375690", hint:"Deep research, sources, synthesis." },
   { id:"seniorrev", label:"Reviewer",   ic:"🛠️", in:"hermes-yaro-seniorrev-in-bfb96220", out:"hermes-yaro-seniorrev-out-c9cd4a94", hint:"Code & design review. Attach images for bulk review." },
   { id:"design",    label:"Designer",   ic:"💡", in:"hermes-yaro-design-in-ea57c6e8",    out:"hermes-yaro-design-out-ba07f8fc",   hint:"Design, UI, brand, visuals." },
+  { id:"builder",   label:"Claude Code",ic:"⌘", in:"hermes-yaro-builder-in-c7b4c5ae80", out:"hermes-yaro-builder-out-376c52849c",hint:"Edit & ship the app from your phone — direct to Claude Code, bypasses Hermes." },
 ];
 let activeAgent = AGENTS.find(a=>a.id===(localStorage.getItem('aetherAgent')||'jarvis')) || AGENTS[0];
 
