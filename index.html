@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="AETHER">
@@ -22,6 +22,10 @@
     --usr:rgba(10,110,200,.10);
     /* brand — aether gem + aqua (tuned for light) */
     --teal:#0EA59B; --teal2:#0C9C95; --cyan:#0891B2; --blue:#2563EB; --indigo:#5A6E8C;
+    /* semantic layer — warm hues outside the cool brand band so colour can carry meaning */
+    --warn:#B5730A; --warn-bg:rgba(181,115,10,.12); --warn-line:rgba(181,115,10,.32);
+    --danger:#C73843; --danger-bg:rgba(199,56,67,.12); --danger-line:rgba(199,56,67,.34);
+    --success:#1B9C6E; --success-bg:rgba(27,156,110,.12); --success-line:rgba(27,156,110,.32);
     --gem-0:#0A3D8F; --gem-1:#0A84D6; --gem-2:#21E6FF;
     --safe-b:env(safe-area-inset-bottom);
     /* signature gradients */
@@ -356,8 +360,8 @@
   .credit-bar-fill.low { background:linear-gradient(90deg,#ff6b78,#f1b545); }
   /* low-credit badge (floats over home) */
   #creditBadge { display:none; position:fixed; left:50%; transform:translateX(-50%); top:calc(env(safe-area-inset-top) + 8px); z-index:70;
-    align-items:center; gap:7px; padding:7px 14px; border-radius:var(--r-pill); background:rgba(58,15,24,.92); border:1px solid rgba(255,122,138,.5);
-    color:#ffd7dc; font-size:12px; font-weight:700; box-shadow:0 10px 30px rgba(0,0,0,.5); cursor:pointer; -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); }
+    align-items:center; gap:7px; padding:7px 14px; border-radius:var(--r-pill); background:var(--danger-bg); border:1px solid var(--danger-line);
+    color:var(--danger); font-size:12px; font-weight:700; box-shadow:var(--e2); cursor:pointer; -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); }
 
   /* ===== STREAM mode ===== */
   #screenStream.active { display:flex; flex-direction:column; overflow:hidden; }
@@ -710,7 +714,7 @@
         <div class="pb-waves2"></div>
         <img class="pb-emboss" src="icons/mark-256.png" alt="" aria-hidden="true">
         <div class="pb-pill">
-          <button class="pb-mic" id="homeMic" title="Tap to talk to AETHER">
+          <button class="pb-mic" id="homeMic" title="Tap to talk to AETHER" aria-label="Talk to AETHER">
             <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="currentColor" d="M12 14c1.7 0 3-1.3 3-3V5c0-1.7-1.3-3-3-3S9 3.3 9 5v6c0 1.7 1.3 3 3 3Zm5.3-3c0 3-2.3 5.5-5.3 5.5S6.7 14 6.7 11H5c0 3.6 2.8 6.6 6.2 7v3H8v2h8v-2h-3.2v-3c3.4-.4 6.2-3.4 6.2-7h-1.7Z"/></svg>
           </button>
           <span class="pb-divider"></span>
@@ -750,24 +754,24 @@
   <!-- ===== CHAT ===== -->
   <div class="screen" id="screenChat">
     <div class="chat-top">
-      <button class="topbtn" id="histBtn" title="Chats">☰</button>
+      <button class="topbtn" id="histBtn" title="Chats" aria-label="Chat history">☰</button>
       <div class="nm">AETHER</div>
       <div class="selwrap">
         <div class="selbtn" id="selBtn"><span id="selLabel">Assistant</span><span class="chev">▾</span></div>
         <div class="selmenu" id="selMenu"></div>
       </div>
-      <button class="topbtn" id="newBtn" title="New chat">✎</button>
+      <button class="topbtn" id="newBtn" title="New chat" aria-label="New chat">✎</button>
     </div>
     <div id="chatThread"></div>
     <div id="attachPreview"></div>
     <div class="composer">
-      <button class="iconbtn attach2" id="attachBtn">＋</button>
+      <button class="iconbtn attach2" id="attachBtn" title="Attach image" aria-label="Attach image">＋</button>
       <div class="field">
-        <button class="iconbtn mic2" id="micBtn">🎙️</button>
+        <button class="iconbtn mic2" id="micBtn" title="Voice input" aria-label="Voice input">🎙️</button>
         <textarea id="chatInput" rows="1" placeholder="Type your message…"></textarea>
-        <button class="iconbtn vmode" id="voiceModeBtn" title="Hands-free voice conversation">⇄</button>
+        <button class="iconbtn vmode" id="voiceModeBtn" title="Hands-free voice conversation" aria-label="Hands-free voice conversation">⇄</button>
       </div>
-      <button class="iconbtn send2" id="sendBtn">➤</button>
+      <button class="iconbtn send2" id="sendBtn" title="Send" aria-label="Send message">➤</button>
     </div>
     <input type="file" id="fileInput" accept="image/*" multiple style="display:none;">
   </div>
@@ -834,16 +838,16 @@
       <div class="selwrap">
         <div class="selbtn" id="streamSelBtn"><span id="streamSelLabel">Assistant</span><span class="chev">▾</span></div>
       </div>
-      <button class="topbtn" id="streamClear" title="Clear">⌦</button>
+      <button class="topbtn" id="streamClear" title="Clear" aria-label="Clear stream">⌦</button>
     </div>
     <div class="stream-sub" id="streamSub">Live feed of everything AETHER is doing — no PC needed.</div>
     <div id="streamFeed" class="stream-feed"></div>
     <div class="composer stream-composer">
       <div class="field">
-        <button class="iconbtn mic2" id="streamMic">🎙️</button>
+        <button class="iconbtn mic2" id="streamMic" title="Voice input" aria-label="Voice input">🎙️</button>
         <textarea id="streamInput" rows="1" placeholder="Query AETHER…"></textarea>
       </div>
-      <button class="iconbtn send2" id="streamSend">➤</button>
+      <button class="iconbtn send2" id="streamSend" title="Send" aria-label="Send message">➤</button>
     </div>
   </div>
   <div id="voiceOverlay">
@@ -994,6 +998,20 @@ const VAPID_PUBLIC = "BJDnPKy5bxemFNASfGNRCprskjmhnon32m3ksEypcK7RzcT5_6g3mbSEu_
 const SUB_TOPIC   = "hermes-yaro-jarvis-pwa-sub-426e9ec3";
 const STATE_TOPIC = "hermes-yaro-jarvis-state-85ec36fe";
 const NTFY = "https://yaro.tail6a3c7a.ts.net";
+// Confidential uploads stay on the tailnet. We publish the bytes to ntfy as a
+// native attachment (PUT with the file as the body); ntfy stores it and hands
+// back a URL on this same tailnet host, which the agent can fetch. Client
+// workpapers / financials never touch a public file host. Fail closed — never
+// fall back to an off-tailnet host, or confidentiality is silently lost.
+const UPLOAD_TOPIC = "hermes-yaro-uploads-9d2f41";
+async function tailnetUpload(blob, filename, fetchImpl){
+  const f = fetchImpl || ((u,o)=>fetch(u,o));
+  const r = await f(`${NTFY}/${UPLOAD_TOPIC}`, { method:'PUT', headers:{ 'Filename': filename||'upload' }, body: blob });
+  let o; try{ o = await r.json(); }catch(e){ throw new Error('upload failed'); }
+  const u = o && o.attachment && o.attachment.url;
+  if(!u || !/^https?:/i.test(u)) throw new Error('upload failed');
+  return u;
+}
 
 const AGENTS = [
   { id:"jarvis",    label:"Assistant",  ic:"💧", in:"hermes-yaro-jarvis-in-c4e3ac0f",   out:"hermes-yaro-jarvis-7450b76f",      hint:"Your schedule, calendar, quick tasks." },
@@ -1059,7 +1077,25 @@ async function loadState(){
     if(s.streak!=null)$('streak').textContent=s.streak;
   }catch(e){}
 }
-loadState(); setInterval(loadState,60000);
+let __stateTimer = null;
+function startStatePoll(){ if(!__stateTimer){ loadState(); __stateTimer=setInterval(loadState,60000); } }
+function stopStatePoll(){ if(__stateTimer){ clearInterval(__stateTimer); __stateTimer=null; } }
+startStatePoll();
+
+// Pause background polling while the tab/app is hidden — no radio wakeups or
+// data spend with the screen off — and refresh on return. The stream poller
+// (streamTick) and state poller are the only standing intervals; the chat/TTS
+// loops are bounded and tied to a user action, so they don't need this.
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden){
+    stopStatePoll();
+    if(typeof stopStream==='function') stopStream();
+  }else{
+    startStatePoll();
+    const ss=$('screenStream');
+    if(ss && ss.classList.contains('active') && typeof startStream==='function') startStream();
+  }
+});
 
 /* ===== CHAT (multi-agent + sessions) ===== */
 let pollStop=0, pendingImages=[];
@@ -1532,7 +1568,7 @@ $('attachBtn').addEventListener('click', ()=>$('fileInput').click());
 $('fileInput').addEventListener('change',(e)=>{ for(const f of e.target.files){ const rd=new FileReader(); rd.onload=ev=>{ pendingImages.push({name:f.name,dataUrl:ev.target.result,file:f}); renderAttachments(); }; rd.readAsDataURL(f);} e.target.value=''; });
 function renderAttachments(){ const p=$('attachPreview'); p.innerHTML=''; pendingImages.forEach((im,i)=>{ const d=document.createElement('div'); d.className='thumb'; d.innerHTML='<img src="'+im.dataUrl+'"><div class="x">×</div>'; d.querySelector('.x').addEventListener('click',()=>{ pendingImages.splice(i,1); renderAttachments(); }); p.appendChild(d); }); }
 function clearAttachments(){ pendingImages=[]; renderAttachments(); }
-async function uploadImages(imgs){ const urls=[]; for(const im of imgs){ try{ const fd=new FormData(); fd.append('reqtype','fileupload'); fd.append('time','24h'); fd.append('fileToUpload',im.file,im.name); const r=await fetch('https://litterbox.catbox.moe/resources/internals/api.php',{method:'POST',body:fd}); const u=(await r.text()).trim(); if(u.startsWith('http'))urls.push(u);}catch(e){} } return urls; }
+async function uploadImages(imgs){ const urls=[]; for(const im of imgs){ try{ urls.push(await tailnetUpload(im.file, im.name)); }catch(e){} } return urls; }
 
 renderSelector(); renderChat(); renderHistory();
 
@@ -1950,10 +1986,9 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
       .finally(()=>{ clearTimeout(timer); if(onCancel && rrAbort) rrAbort.signal.removeEventListener('abort', onCancel); });
   }
   async function rrUpload(dataUrl, name){
-    const fd=new FormData(); fd.append('reqtype','fileupload'); fd.append('time','24h');
-    fd.append('fileToUpload', dataUrlToBlob(dataUrl), (name||'wp')+'.jpg');
-    const r=await rrFetch('https://litterbox.catbox.moe/resources/internals/api.php',{method:'POST',body:fd}, 60000);
-    const u=(await r.text()).trim(); if(!u.startsWith('http')) throw new Error('upload failed'); return u;
+    // Workpaper photos stay on the tailnet (see tailnetUpload). rrFetch keeps the
+    // per-upload timeout + cancellation behaviour of the rest of Review Radar.
+    return tailnetUpload(dataUrlToBlob(dataUrl), (name||'wp')+'.jpg', (u,o)=>rrFetch(u,o,60000));
   }
 
   // ---- compose: add / render / remove images ----
