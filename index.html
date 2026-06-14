@@ -627,7 +627,13 @@ async function pollReply(sinceTs, silent, agent){
     }catch(e){}
     await new Promise(r=>setTimeout(r,2500));
   }
-  hideTyping(); if(!silent && got===0) toast('No reply yet — '+agent.label+' may be busy.',true);
+  hideTyping();
+  if(window.__voiceMode && got===0 && !speaking){
+    // No reply arrived — never leave the orb stuck on "Thinking…". Recover to
+    // listening so the conversation can continue.
+    voSetState('listening','Listening…');
+    setTimeout(()=>{ if(window.__voiceMode && !speaking) startListening(); }, 300);
+  } else if(!silent && got===0){ toast('No reply yet — '+agent.label+' may be busy.',true); }
 }
 
 /* Sequential speech queue so rapid streamed checkpoints play in order
