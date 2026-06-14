@@ -107,11 +107,22 @@
   <div class="foot">NOUS · HERMES</div>
   <div class="toast" id="toast"></div>
 
+  <!-- One-tap log overlay (opened from a check-in notification tap) -->
+  <div id="logSheet" style="display:none;position:fixed;inset:0;background:rgba(5,5,5,.92);backdrop-filter:blur(8px);z-index:100;padding:env(safe-area-inset-top) 22px calc(env(safe-area-inset-bottom) + 24px);flex-direction:column;justify-content:center;">
+    <div style="text-align:center;margin-bottom:6px;color:var(--cyan);letter-spacing:3px;font-size:12px;font-weight:700;">J.A.R.V.I.S. CHECK-IN</div>
+    <div id="logTitle" style="text-align:center;font-size:24px;font-weight:700;margin-bottom:24px;">Log Gym</div>
+    <button class="btn btn-primary" data-status="done">✅ Did it</button>
+    <button class="btn btn-ghost" data-status="partial" style="border-color:#5b4a1f;color:#ffd98a;">🟡 Partial</button>
+    <button class="btn btn-ghost" data-status="skipped" style="border-color:#5b1f1f;color:#ffb0b0;">❌ Skipped</button>
+    <button class="btn btn-ghost" id="logClose" style="margin-top:18px;opacity:.6;">Dismiss</button>
+  </div>
+
 <script>
 /* ===== CONFIG (injected at build) ===== */
 const VAPID_PUBLIC = "BJDnPKy5bxemFNASfGNRCprskjmhnon32m3ksEypcK7RzcT5_6g3mbSEu_Ad-7vQX891PbnSwCDI7Vjl_4icBak";
 const SUB_TOPIC = "hermes-yaro-jarvis-pwa-sub-426e9ec3";          // ntfy topic the backend listens on for subscriptions
 const STATE_TOPIC = "hermes-yaro-jarvis-state-85ec36fe";       // ntfy topic the backend publishes state to
+const INBOUND_TOPIC = "hermes-yaro-jarvis-in-c4e3ac0f";        // gateway delivers messages here to Jarvis
 const NTFY = "https://ntfy.sh";
 
 /* ===== helpers ===== */
@@ -237,6 +248,42 @@ if (localStorage.getItem('jarvisSub')) {
 if (!isStandalone()) {
   $('pushStatus').innerHTML = 'To enable push: tap <b>Share</b> → <b>Add to Home Screen</b>, then open JARVIS from the icon.';
 }
+
+/* ===== one-tap log sheet (opened from a check-in notification tap: ?log=Gym) ===== */
+function showLogSheet(habit) {
+  $('logTitle').textContent = 'Log ' + habit;
+  const sheet = $('logSheet');
+  sheet.style.display = 'flex';
+  sheet.dataset.habit = habit;
+}
+async function logStatus(habit, status) {
+  try {
+    await fetch(`${NTFY}/${INBOUND_TOPIC}`, {
+      method: 'POST', body: `Log ${habit}: ${status}`
+    });
+    toast(`Logged: ${habit} ${status} ✓`);
+  } catch (e) {
+    toast('Could not reach Jarvis — try again.', true);
+  }
+  setTimeout(() => { $('logSheet').style.display = 'none'; }, 900);
+}
+document.querySelectorAll('#logSheet [data-status]').forEach((b) => {
+  b.addEventListener('click', () => {
+    const habit = $('logSheet').dataset.habit || 'Gym';
+    logStatus(habit, b.dataset.status);
+  });
+});
+$('logClose').addEventListener('click', () => { $('logSheet').style.display = 'none'; });
+
+(function checkLogParam() {
+  const params = new URLSearchParams(location.search);
+  const habit = params.get('log');
+  if (habit) {
+    showLogSheet(habit);
+    // clean the URL so a refresh doesn't reopen the sheet
+    history.replaceState({}, '', location.pathname);
+  }
+})();
 </script>
 </body>
 </html>

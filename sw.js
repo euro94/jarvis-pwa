@@ -1,5 +1,5 @@
 // JARVIS service worker — handles Web Push + notification taps
-const VERSION = 'jarvis-v2';
+const VERSION = 'jarvis-v3';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
