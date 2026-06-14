@@ -39,56 +39,44 @@
   .greet .h1 { font-size:23px; font-weight:700; color:var(--indigo); line-height:1.3; }
   .greet .h2 { font-size:23px; font-weight:700; color:var(--teal); line-height:1.3; }
 
-  /* ===== engraved-stone prompt bar ===== */
+  /* ===== engraved-stone prompt bar (image-backed) ===== */
   .prompt-bar {
-    position:relative; overflow:hidden; display:flex; align-items:center; gap:12px;
-    background:var(--grad); border-radius:24px; padding:18px 18px; cursor:text;
-    /* polished slab: soft drop shadow + bright top specular bevel + dark bottom edge */
+    position:relative; overflow:hidden; display:flex; align-items:center; justify-content:flex-start;
+    min-height:78px; padding:0 20px; cursor:pointer;
+    background:url("assets/aether-stone.png") center/cover no-repeat, var(--grad);
+    /* chiseled, hard-chamfered corners (not rounded) */
+    clip-path:polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0 calc(100% - 14px), 0 14px);
     box-shadow:
-      0 14px 34px rgba(20,40,90,.34),
-      inset 0 2px 1px rgba(255,255,255,.55),
-      inset 0 -3px 6px rgba(0,20,40,.40),
-      inset 0 0 0 1px rgba(255,255,255,.10);
+      0 16px 36px rgba(10,25,55,.42),
+      inset 0 2px 1px rgba(255,255,255,.45),
+      inset 0 -3px 8px rgba(0,15,35,.5);
   }
-  /* glossy light sweep across the top half of the stone */
+  /* darken stone slightly on the left so the TA + mic read clearly */
   .prompt-bar::before {
-    content:""; position:absolute; left:0; right:0; top:0; height:55%;
-    background:linear-gradient(180deg, rgba(255,255,255,.28), rgba(255,255,255,0));
-    pointer-events:none; border-radius:24px 24px 40% 40%; z-index:2;
+    content:""; position:absolute; inset:0; pointer-events:none; z-index:1;
+    background:linear-gradient(90deg, rgba(4,12,28,.45) 0%, rgba(4,12,28,.12) 45%, rgba(4,12,28,0) 70%);
   }
-  /* stone grain: fractal-noise texture overlaid on the slab */
+  /* top specular sheen */
   .prompt-bar::after {
-    content:""; position:absolute; inset:0; pointer-events:none; border-radius:24px; z-index:0;
-    background-image:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNDAiIGhlaWdodD0iMTMwIj48ZmlsdGVyIGlkPSJuIj48ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iMC42IiBudW1PY3RhdmVzPSIzIiBzdGl0Y2hUaWxlcz0ic3RpdGNoIi8+PC9maWx0ZXI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsdGVyPSJ1cmwoI24pIi8+PC9zdmc+");
-    background-size:240px 130px;
-    mix-blend-mode:soft-light; opacity:.6;
+    content:""; position:absolute; left:0; right:0; top:0; height:48%; pointer-events:none; z-index:1;
+    background:linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,0));
   }
-  /* embossed AETHER watermark chiseled into the stone */
-  .pb-watermark {
-    position:absolute; right:-6px; top:50%; transform:translateY(-50%); z-index:1;
-    width:120px; height:120px; opacity:.16; pointer-events:none;
-    filter:drop-shadow(0 1px 0 rgba(255,255,255,.4)) drop-shadow(0 -1px 1px rgba(0,20,40,.5));
+  .pb-ta {
+    position:relative; z-index:2; font-family:Georgia,'Times New Roman',serif; font-size:18px; font-weight:700;
+    color:rgba(255,255,255,.92); letter-spacing:1px; margin-right:auto;
+    text-shadow:0 1px 2px rgba(0,12,30,.7), 0 -1px 0 rgba(255,255,255,.2);
   }
-  .prompt-bar .mic {
-    position:relative; z-index:1; color:rgba(255,255,255,.92); font-size:18px; flex:0 0 auto;
-    width:38px; height:38px; display:flex; align-items:center; justify-content:center; border-radius:50%;
-    /* carved-in recess for the mic */
-    box-shadow: inset 0 2px 4px rgba(0,15,35,.55), inset 0 -1px 1px rgba(255,255,255,.25);
-    background:rgba(0,20,45,.18);
+  .pb-mic {
+    position:relative; z-index:2; border:none; cursor:pointer;
+    width:50px; height:50px; border-radius:50%; font-size:21px;
+    display:flex; align-items:center; justify-content:center;
+    color:#fff; background:rgba(255,255,255,.14);
+    box-shadow: inset 0 2px 3px rgba(255,255,255,.35), inset 0 -3px 5px rgba(0,15,35,.5), 0 4px 12px rgba(0,15,35,.35);
+    transition:transform .1s;
   }
-  .prompt-bar .ph {
-    position:relative; z-index:1; flex:1; font-size:15.5px; font-weight:500;
-    color:rgba(255,255,255,.9);
-    /* etched text: dark inner + faint light below */
-    text-shadow:0 1px 1px rgba(0,15,35,.45), 0 -1px 0 rgba(255,255,255,.18);
-  }
-  .prompt-bar .av {
-    position:relative; z-index:1; width:32px; height:32px; border-radius:10px;
-    background:rgba(255,255,255,.16); color:#fff; font-size:12px; font-weight:700;
-    display:flex; align-items:center; justify-content:center; flex:0 0 auto;
-    box-shadow: inset 0 1px 2px rgba(255,255,255,.3), inset 0 -2px 3px rgba(0,15,35,.4);
-  }
-  .prompt-bar:active { box-shadow:0 6px 18px rgba(20,40,90,.3), inset 0 2px 5px rgba(0,20,40,.5); }
+  .pb-mic.rec { background:#e53e3e; animation:recpulse 1.1s infinite; }
+  @keyframes recpulse { 0%,100%{box-shadow:0 0 0 0 rgba(229,62,62,.6);} 50%{box-shadow:0 0 0 14px rgba(229,62,62,0);} }
+  .prompt-bar:active { transform:scale(.99); }
 
   .cards { display:flex; gap:12px; margin:18px 0 8px; }
   .fcard { flex:1; background:var(--card); border:1px solid var(--line); border-radius:18px; padding:16px 12px; text-align:center; box-shadow:0 4px 16px rgba(45,55,72,.05); cursor:pointer; transition:transform .1s; }
@@ -217,16 +205,8 @@
         <div class="h2">Ready to innovate?</div>
       </div>
       <div class="prompt-bar" id="homePrompt">
-        <svg class="pb-watermark" viewBox="0 0 100 100" aria-hidden="true">
-          <g fill="none" stroke="#ffffff" stroke-width="9" stroke-linecap="round">
-            <rect x="20" y="34" width="60" height="32" rx="16" transform="rotate(-45 50 50)"/>
-            <rect x="20" y="34" width="60" height="32" rx="16" transform="rotate(45 50 50)"/>
-          </g>
-          <circle cx="50" cy="50" r="11" fill="none" stroke="#ffffff" stroke-width="6"/>
-        </svg>
-        <span class="mic">🎙️</span>
-        <span class="ph">Ask AETHER anything…</span>
-        <span class="av">YL</span>
+        <span class="pb-ta">TA</span>
+        <button class="pb-mic" id="homeMic" title="Hold to talk to AETHER">🎙️</button>
       </div>
       <div class="cards">
         <div class="fcard" data-agent="design" data-q="Help me with design analysis."><div class="ic">👁️</div><div class="lbl">Design Analysis</div></div>
@@ -546,7 +526,22 @@ function renderHistory(){
 }
 
 /* ===== HOME prompt bar + feature cards ===== */
+/* Home prompt bar: the mic records voice and sends straight to the active agent.
+   Tapping the stone (not the mic) opens the chat to type. */
 $('homePrompt').addEventListener('click', ()=>{ goChat(); setTimeout(()=>$('chatInput').focus(),120); });
+$('homeMic').addEventListener('click', (e)=>{
+  e.stopPropagation();
+  if(!SR){ goChat(); setTimeout(()=>$('chatInput').focus(),120); toast('Voice not supported here — type instead.',true); return; }
+  haptic(); goChat();
+  // mark the home mic recording; reuse the same recognizer, which sends on end
+  $('homeMic').classList.add('rec');
+  const stopRec=()=>{ $('homeMic').classList.remove('rec'); };
+  if(listening){ recog.stop(); stopRec(); return; }
+  // hook a one-shot cleanup of the rec indicator
+  const origEnd=recog.onend;
+  recog.onend=function(ev){ stopRec(); recog.onend=origEnd; if(origEnd) origEnd.call(recog,ev); };
+  startListening();
+});
 document.querySelectorAll('.fcard').forEach(c=>{
   c.addEventListener('click', ()=>{
     const a=AGENTS.find(x=>x.id===c.dataset.agent)||activeAgent; switchAgent(a); goChat();
