@@ -1185,12 +1185,18 @@ function renderCredits(){
     else badge.style.display='none';
   }
 }
-function refreshCredits(){
-  // ask the active agent to report usage; Hermes' footer will be sniffed by the poll loop
+async function refreshCredits(){
+  // Use a standalone poll (pollOnce), NOT pollReply, so a balance check does not
+  //  (a) push the agent's answer as a stray bubble into the open conversation, or
+  //  (b) bump the global __pollGen and silently cancel an in-flight chat reply.
+  // We only need to sniff the credit footer, not render the reply as a message.
+  const agent=activeAgent;
   const since=Math.floor(Date.now()/1000)-1;
   toast('Checking credits…');
-  fetch(`${NTFY}/${activeAgent.in}`,{method:'POST',body:'How many credits do I have left this month? One short line.'}).catch(()=>{});
-  pollReply(since, true, activeAgent);
+  try{ await fetch(`${NTFY}/${agent.in}`,{method:'POST',body:'How many credits do I have left this month? One short line.'}); }catch(e){}
+  const reply=await pollOnce(agent.out, since, (m)=>/Credits\s+\d+%\s+used/i.test(m)||/top-?up\s+left/i.test(m), 20000);
+  if(reply){ sniffCredits(reply); renderCredits(); toast('Balance updated.'); }
+  else { toast('No balance reading yet — try again shortly.',true); }
 }
 function openPortalReload(){
   // True top-up happens on the Nous Portal (auth lives there). Deep-link to billing.
@@ -1240,7 +1246,10 @@ function startStream(){
   __streamAgent=activeAgent; __streamSeen.clear();
   __streamSince=Math.floor(Date.now()/1000)-1800; // backfill last 30 min
   const lbl=$('streamSelLabel'); if(lbl) lbl.textContent=activeAgent.label;
-  const feed=$('streamFeed'); if(feed && !feed.children.length) feed.innerHTML='<div class="stream-empty">Listening to '+activeAgent.label+'… activity will appear here in real time.</div>';
+  // Reset the feed on every (re)start. __streamSeen was just cleared and we
+  // backfill the last 30 min, so leaving existing rows in place would re-append
+  // the same items on top of them — duplicates on each tab re-entry.
+  const feed=$('streamFeed'); if(feed) feed.innerHTML='<div class="stream-empty">Listening to '+activeAgent.label+'… activity will appear here in real time.</div>';
   if(__streamTimer) clearInterval(__streamTimer);
   streamTick(); __streamTimer=setInterval(streamTick, 2500);
 }
