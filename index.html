@@ -247,6 +247,16 @@ async function askJarvis(text, silent){
 async function pollReply(sinceTs, silent){
   pollStop = Date.now()+120000; // poll up to 2 min
   const seen=new Set();
+  // noise patterns that land on the shared reply topic but aren't chat answers
+  const isNoise = (m)=>{
+    const t=m.trim();
+    return !t
+      || /top-up left/i.test(t)
+      || /^💾/.test(t)
+      || /Self-improvement review/i.test(t)
+      || /Memory updated/i.test(t)
+      || /^•\s/.test(t);
+  };
   while(Date.now()<pollStop){
     try{
       const r=await fetch(`${NTFY}/${REPLY_TOPIC}/json?poll=1&since=${sinceTs}`,{cache:'no-store'});
@@ -257,7 +267,7 @@ async function pollReply(sinceTs, silent){
         seen.add(o.id);
         if(o.time && o.time < sinceTs) continue;
         const msg=(o.message||'').trim();
-        if(!msg) continue;
+        if(isNoise(msg)) continue;
         hideTyping();
         pushMsg('ai', msg);
         speak(msg);
