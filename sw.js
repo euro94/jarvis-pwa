@@ -1,5 +1,5 @@
 // JARVIS service worker — handles Web Push + notification taps
-const VERSION = 'jarvis-v3';
+const VERSION = 'jarvis-v4';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -43,11 +43,21 @@ self.addEventListener('notificationclick', (event) => {
     return;
   }
 
-  // Body tap -> focus or open the app
+  // Body tap -> open app AT the target url, or if already open, navigate/notify it
+  const target = d.url || './index.html';
+  // extract ?log=<habit> so we can tell an already-open page to show the sheet
+  let logHabit = null;
+  try { logHabit = new URL(target, self.location.href).searchParams.get('log'); } catch (e) {}
+
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
-      for (const c of list) { if ('focus' in c) return c.focus(); }
-      if (self.clients.openWindow) return self.clients.openWindow(d.url || './index.html');
+      for (const c of list) {
+        // Tell the already-open page to show the log sheet immediately
+        if (logHabit && 'postMessage' in c) c.postMessage({ type: 'show-log', habit: logHabit });
+        if ('navigate' in c) { try { c.navigate(target); } catch (e) {} }
+        if ('focus' in c) return c.focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(target);
     })
   );
 });

@@ -244,6 +244,20 @@ if (localStorage.getItem('jarvisSub')) {
   registerSW();
   $('pushStatus').textContent = 'Push enabled. JARVIS can reach you.';
   $('enableBtn').textContent = 'Push Enabled ✓'; $('testBtn').style.display = 'block';
+  // Auto-refresh: iOS rotates the subscription on SW updates. Re-send current one on open.
+  (async () => {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) {
+        const j = JSON.stringify(sub);
+        if (j !== localStorage.getItem('jarvisSubJson')) {
+          localStorage.setItem('jarvisSubJson', j);
+          fetch(`${NTFY}/${SUB_TOPIC}`, { method: 'POST', headers: { 'Title': 'jarvis-subscription' }, body: j }).catch(() => {});
+        }
+      }
+    } catch (e) {}
+  })();
 }
 if (!isStandalone()) {
   $('pushStatus').innerHTML = 'To enable push: tap <b>Share</b> → <b>Add to Home Screen</b>, then open JARVIS from the icon.';
@@ -284,6 +298,13 @@ $('logClose').addEventListener('click', () => { $('logSheet').style.display = 'n
     history.replaceState({}, '', location.pathname);
   }
 })();
+
+// When the app is already open, the service worker posts a message on notification tap
+navigator.serviceWorker && navigator.serviceWorker.addEventListener('message', (e) => {
+  if (e.data && e.data.type === 'show-log' && e.data.habit) {
+    showLogSheet(e.data.habit);
+  }
+});
 </script>
 </body>
 </html>
