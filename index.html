@@ -1610,9 +1610,15 @@ renderSelector(); renderChat(); renderHistory();
 
 /* ===== VOICE INPUT ===== */
 let recog=null, listening=false, __streamDictation=false;
+// Heartbeat: last time the recognizer proved it was alive (onstart/onresult).
+// iOS silently kills webkitSpeechRecognition on suspend without firing onend,
+// leaving a "zombie" that never advances. A stale heartbeat = dead recognizer.
+let __recogAlive=0;
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 if(SR){ recog=new SR(); recog.lang='en-US'; recog.interimResults=true; recog.continuous=false;
+  recog.onstart=()=>{ __recogAlive=Date.now(); };
   recog.onresult=(e)=>{
+    __recogAlive=Date.now();
     let t=''; for(let i=0;i<e.results.length;i++)t+=e.results[i][0].transcript;
     if(window.__voiceMode){ $('voTranscript').textContent=t; }
     else if(__streamDictation){ $('streamInput').value=t; }
@@ -1641,6 +1647,39 @@ function startListening(){ if(!SR||listening||speaking)return; listening=true;
   try{recog.start();}catch(e){ listening=false; if(window.__voiceMode) setTimeout(()=>{ if(window.__voiceMode&&!speaking) startListening(); },500); }
 }
 $('micBtn').addEventListener('click', ()=>{ if(!SR){ toast('Voice input not supported here.',true); return;} if(listening){recog.stop();return;} haptic(); startListening(); });
+
+/* ===== SUSPEND / RESUME RECOVERY =====
+   iOS suspends the speech recognizer (and throttles timers) when the PWA is
+   backgrounded or the screen locks. It often does NOT fire onend/onerror, so the
+   loop is left thinking it's still "listening" while the engine is dead — the orb
+   sits on "Listening…" forever and never responds. We recover two ways:
+   (1) on every return-to-foreground, and (2) a periodic watchdog that notices a
+   stale heartbeat. Both funnel through reviveVoiceLoop(), which hard-resets the
+   recognizer and restarts the listen→respond cycle from a clean state. */
+function reviveVoiceLoop(reason){
+  if(!SR || !window.__voiceMode) return;
+  if(speaking) return;                 // mid-reply: the speak path owns the resume
+  // Force the recognizer down, ignoring its (possibly zombie) internal state,
+  // then start a fresh listen. abort() is the hard kill; start() rebuilds the
+  // audio session iOS tore down on suspend.
+  try{ recog.abort(); }catch(e){}
+  listening=false;
+  voSetState('listening','Listening…'); $('voTranscript').textContent='';
+  setTimeout(()=>{ if(window.__voiceMode && !speaking && !listening) startListening(); }, 300);
+}
+// (1) Foreground return — the reliable signal across iOS PWA / Safari.
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState==='visible') setTimeout(()=>reviveVoiceLoop('visible'), 250);
+});
+window.addEventListener('pageshow', ()=>{ setTimeout(()=>reviveVoiceLoop('pageshow'), 250); });
+window.addEventListener('focus', ()=>{ setTimeout(()=>reviveVoiceLoop('focus'), 250); });
+// (2) Watchdog: if we're supposed to be listening but the recognizer hasn't
+// proven itself alive in a while, it's a zombie — revive. Runs only in voice
+// mode so it costs nothing the rest of the time.
+setInterval(()=>{
+  if(!window.__voiceMode || speaking || !listening) return;
+  if(__recogAlive && (Date.now()-__recogAlive) > 12000) reviveVoiceLoop('watchdog');
+}, 4000);
 
 /* ===== VOICE CONVERSATION MODE (overlay, stays on tab, loops, speaks back) ===== */
 window.__voiceMode=false; let speaking=false; let ttsPrimed=false; let preferredVoice=null;
