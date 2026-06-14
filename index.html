@@ -898,6 +898,7 @@
           <div class="rr-load-msg" id="rrLoadMsg">Reading the workpapers</div>
           <div class="rr-load-bar"><i></i></div>
           <div class="rr-load-sub" id="rrLoadSub">Sent as one connected set so tie-outs across workpapers get caught.</div>
+          <button class="btn rr-soft" id="rrCancelBtn" style="margin-top:18px;">Cancel</button>
         </div>
       </div>
 
@@ -1877,6 +1878,8 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
   let rrFilterSevs = new Set();
   let rrShowResolved = false;
   let rrBusy = false;
+  let rrAbort = null;         // AbortController for the in-flight review run
+  let rrCancelled = false;    // set when the user cancels, so we exit quietly
 
   // ---- helpers ----
   function rrLoad(){ try{ return JSON.parse(localStorage.getItem(RR_STORE)||'[]'); }catch(e){ return []; } }
@@ -1913,10 +1916,24 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
     const bin=atob(b64); const u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
     return new Blob([u],{type:mime});
   }
+  // fetch that (a) self-aborts after `timeoutMs` and (b) honors a user Cancel of
+  // the whole review run. Without this a hung upload/poll leaves the loading view
+  // spinning forever with no way out.
+  function rrFetch(url, opts, timeoutMs){
+    const ctrl=new AbortController();
+    const timer=setTimeout(()=>ctrl.abort(), timeoutMs||45000);
+    let onCancel=null;
+    if(rrAbort){
+      if(rrAbort.signal.aborted) ctrl.abort();
+      else { onCancel=()=>ctrl.abort(); rrAbort.signal.addEventListener('abort', onCancel, {once:true}); }
+    }
+    return fetch(url, Object.assign({}, opts||{}, {signal:ctrl.signal}))
+      .finally(()=>{ clearTimeout(timer); if(onCancel && rrAbort) rrAbort.signal.removeEventListener('abort', onCancel); });
+  }
   async function rrUpload(dataUrl, name){
     const fd=new FormData(); fd.append('reqtype','fileupload'); fd.append('time','24h');
     fd.append('fileToUpload', dataUrlToBlob(dataUrl), (name||'wp')+'.jpg');
-    const r=await fetch('https://litterbox.catbox.moe/resources/internals/api.php',{method:'POST',body:fd});
+    const r=await rrFetch('https://litterbox.catbox.moe/resources/internals/api.php',{method:'POST',body:fd}, 60000);
     const u=(await r.text()).trim(); if(!u.startsWith('http')) throw new Error('upload failed'); return u;
   }
 
@@ -2018,7 +2035,7 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
       toast('Offline — review queued. It runs automatically when you reconnect.');
       return;
     }
-    rrBusy=true; rrSyncCTA(); haptic();
+    rrBusy=true; rrCancelled=false; rrAbort=new AbortController(); rrSyncCTA(); haptic();
     rrShow('loading'); rrStartLoadCycle();
     try{
       // upload all (resized) images
@@ -2026,9 +2043,10 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
       for(const im of rrImages){ const url=await rrUpload(im.dataUrl, im.label||im.name); imgs.push({label:im.label||im.name, url, thumb:im.dataUrl}); }
       const body=rrBuildMessage(imgs);
       const sentAt=Math.floor(Date.now()/1000)-1;
-      await fetch(`${NTFY}/${RR_AGENT.in}`,{method:'POST',body});
+      await rrFetch(`${NTFY}/${RR_AGENT.in}`,{method:'POST',body}, 30000);
       const raw=await rrPollResult(sentAt);
       rrStopLoadCycle();
+      if(rrCancelled){ rrBusy=false; rrSyncCTA(); return; }   // user backed out — stay on compose
       if(raw===null){ rrError("The reviewer didn't respond in time. It may be busy or the photos may be large — try again in a moment.", '', engagement, imgs); rrBusy=false; rrSyncCTA(); return; }
       let parsed;
       try{ parsed=rrParse(raw); }
@@ -2039,16 +2057,18 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
       rrRenderResults();
     }catch(e){
       rrStopLoadCycle(); rrBusy=false; rrSyncCTA();
+      if(rrCancelled) return;   // aborted by the user — error already handled by rrCancelReview
       rrError('Couldn\'t complete the review: '+(e.message||'network error')+'. Check your connection and retry.', '', engagement, null);
-    }
+    }finally{ rrAbort=null; }
   }
 
   // poll the reviewer's out-topic for a JSON-bearing reply (vision review is slow)
   async function rrPollResult(sinceTs){
     const HARD=Date.now()+5*60000; const seen=new Set();
     while(Date.now()<HARD){
+      if(rrCancelled) return null;
       try{
-        const r=await fetch(`${NTFY}/${RR_AGENT.out}/json?poll=1&since=${sinceTs}`,{cache:'no-store'});
+        const r=await rrFetch(`${NTFY}/${RR_AGENT.out}/json?poll=1&since=${sinceTs}`,{cache:'no-store'}, 20000);
         const lines=(await r.text()).trim().split('\n').filter(Boolean);
         for(const ln of lines){ let o; try{o=JSON.parse(ln);}catch(e){continue;}
           if(o.event!=='message'||!o.id||seen.has(o.id))continue; seen.add(o.id);
@@ -2058,7 +2078,7 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
           // accept the first message that looks like our findings JSON
           if(/"findings"\s*:/.test(msg) || (/^[\s`]*\{/.test(msg) && /"summary"/.test(msg))) return msg;
         }
-      }catch(e){}
+      }catch(e){ if(rrCancelled) return null; }
       await new Promise(r=>setTimeout(r,2500));
     }
     return null;
@@ -2073,16 +2093,18 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
     $('rrRetryBtn').onclick=()=>{ if(imgs){ /* re-send same uploaded urls */ rrRetryWith(engagement, imgs); } else { rrShow('compose'); } };
   }
   async function rrRetryWith(engagement, imgs){
-    rrBusy=true; rrShow('loading'); rrStartLoadCycle();
+    rrBusy=true; rrCancelled=false; rrAbort=new AbortController(); rrSyncCTA(); rrShow('loading'); rrStartLoadCycle();
     try{
       const body=rrBuildMessage(imgs); const sentAt=Math.floor(Date.now()/1000)-1;
-      await fetch(`${NTFY}/${RR_AGENT.in}`,{method:'POST',body});
+      await rrFetch(`${NTFY}/${RR_AGENT.in}`,{method:'POST',body}, 30000);
       const raw=await rrPollResult(sentAt); rrStopLoadCycle();
-      if(raw===null){ rrError("Still no response from the reviewer. Try again shortly.", '', engagement, imgs); rrBusy=false; return; }
-      let parsed; try{ parsed=rrParse(raw); }catch(e){ rrError("Reply still wasn't valid JSON ("+e.message+").", raw, engagement, imgs); rrBusy=false; return; }
+      if(rrCancelled){ rrBusy=false; rrSyncCTA(); return; }
+      if(raw===null){ rrError("Still no response from the reviewer. Try again shortly.", '', engagement, imgs); rrBusy=false; rrSyncCTA(); return; }
+      let parsed; try{ parsed=rrParse(raw); }catch(e){ rrError("Reply still wasn't valid JSON ("+e.message+").", raw, engagement, imgs); rrBusy=false; rrSyncCTA(); return; }
       rrReview={ id:uid(), engagement, summary:parsed.summary, findings:parsed.findings, images:imgs.map(x=>({label:x.label,thumb:x.thumb})), createdAt:Date.now() };
-      rrUpsert(rrReview); rrBusy=false; rrRenderResults();
-    }catch(e){ rrStopLoadCycle(); rrBusy=false; rrError('Retry failed: '+(e.message||'network error'), '', engagement, imgs); }
+      rrUpsert(rrReview); rrBusy=false; rrSyncCTA(); rrRenderResults();
+    }catch(e){ rrStopLoadCycle(); rrBusy=false; rrSyncCTA(); if(rrCancelled) return; rrError('Retry failed: '+(e.message||'network error'), '', engagement, imgs); }
+    finally{ rrAbort=null; }
   }
 
   // ---- results render ----
@@ -2217,6 +2239,15 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
   }
   window.addEventListener('online', rrDrainQueue);
 
+  // ---- cancel an in-flight review (abort uploads/send/poll, return to compose) ----
+  function rrCancelReview(){
+    rrCancelled=true;
+    if(rrAbort){ try{ rrAbort.abort(); }catch(e){} }
+    rrStopLoadCycle(); rrBusy=false; rrSyncCTA();
+    rrShow('compose');   // photos are preserved so the user can retry
+    toast('Review cancelled.');
+  }
+
   // ---- new review reset ----
   function rrReset(){ rrImages=[]; rrReview=null; rrFilterCats.clear(); rrFilterSevs.clear(); rrShowResolved=false; $('rrEng').value=''; rrRenderStrip(); rrSyncCTA(); rrRenderSaved(); rrShow('compose'); }
 
@@ -2235,6 +2266,7 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
     dz.addEventListener('drop',(e)=>{ if(e.dataTransfer&&e.dataTransfer.files) rrAddFiles(e.dataTransfer.files); });
 
     $('rrReviewBtn').addEventListener('click', rrRunReview);
+    $('rrCancelBtn') && $('rrCancelBtn').addEventListener('click', rrCancelReview);
     $('rrErrBackBtn').addEventListener('click', ()=>rrShow('compose'));
     $('rrNewBtn').addEventListener('click', rrReset);
     $('rrCopyAllBtn').addEventListener('click', ()=>window.rrCopyAll());
