@@ -240,8 +240,8 @@
   .selbtn:hover { border-color:rgba(110,231,255,.4); }
   .selbtn .chev { color:var(--faint); font-size:11px; }
   .selmenu {
-    position:absolute; right:0; top:46px; background:#0E1830; border:1px solid var(--line);
-    border-radius:16px; box-shadow:0 18px 50px rgba(0,0,0,.6); overflow:hidden; min-width:220px; z-index:40; display:none;
+    position:fixed; right:14px; top:60px; background:#0E1830; border:1px solid var(--line);
+    border-radius:16px; box-shadow:0 18px 50px rgba(0,0,0,.6); overflow:hidden; min-width:220px; max-width:min(300px,86vw); z-index:200; display:none;
   }
   .selmenu.open { display:block; animation:scrIn .18s var(--ease); }
   .selmenu .opt { display:flex; align-items:center; gap:11px; padding:13px 15px; font-size:14px; color:var(--fg); cursor:pointer; border-bottom:1px solid var(--line-2); transition:background var(--t); }
@@ -795,7 +795,7 @@ function renderSelector(){
   add.addEventListener('click', ()=>{ $('selMenu').classList.remove('open'); addAgentFlow(); });
   m.appendChild(add);
 }
-$('selBtn').addEventListener('click', (e)=>{ e.stopPropagation(); $('selMenu').classList.toggle('open'); });
+$('selBtn').addEventListener('click', (e)=>{ e.stopPropagation(); const m=$('selMenu'); const willOpen=!m.classList.contains('open'); if(willOpen){ const b=$('selBtn').getBoundingClientRect(); m.style.top=(b.bottom+8)+'px'; m.style.right=Math.max(8,(window.innerWidth-b.right))+'px'; } m.classList.toggle('open'); });
 document.addEventListener('click', ()=>$('selMenu').classList.remove('open'));
 
 /* ===== MARKDOWN RENDERER (safe: escape, then format) ===== */
