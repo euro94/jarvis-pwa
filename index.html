@@ -689,6 +689,17 @@
   .rr-privacy { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--teal2); background:rgba(45,212,191,.08); border:1px solid rgba(45,212,191,.25); border-radius:var(--r-sm); padding:9px 12px; margin-bottom:14px; }
   .rr-privacy .rr-pv-x { margin-left:auto; cursor:pointer; color:var(--faint); }
 
+  /* ===== crisp SVG line-icon system ===== */
+  svg.ico-svg { display:block; flex:0 0 auto; stroke:currentColor; fill:none;
+    stroke-width:1.85; stroke-linecap:round; stroke-linejoin:round; }
+  .nav button .ico { display:inline-flex; }
+  .nav button .ico svg.ico-svg { width:23px; height:23px; }
+  .fcard .ic { color:var(--blue); }
+  .fcard .ic svg.ico-svg { width:27px; height:27px; margin:0 auto; stroke-width:1.7; }
+  .qa > svg.ico-svg { width:23px; height:23px; color:var(--blue); }
+  .iconbtn svg.ico-svg { width:22px; height:22px; }
+  .iconbtn.attach2 svg.ico-svg, .iconbtn.send2 svg.ico-svg { width:21px; height:21px; }
+  .iconbtn.send2 svg.ico-svg { transform:translateX(.5px); }
 </style>
 </head>
 <body>
@@ -719,16 +730,16 @@
         </div>
       </div>
       <div class="quick-row">
-        <button class="qa" data-qa="brief">🌅<span>Brief</span></button>
-        <button class="qa" data-qa="agenda">📅<span>Agenda</span></button>
-        <button class="qa" data-qa="stream">≋<span>Stream</span></button>
-        <button class="qa" data-qa="new">✦<span>New</span></button>
+        <button class="qa" data-qa="brief"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M12 2.8v3M4.6 8.6 6.7 10.7M19.4 8.6 17.3 10.7M2.5 17h3M18.5 17h3M8 17a4 4 0 0 1 8 0"/><path d="M2.5 21h19"/></svg><span>Brief</span></button>
+        <button class="qa" data-qa="agenda"><svg class="ico-svg" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="16" rx="2.5"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg><span>Agenda</span></button>
+        <button class="qa" data-qa="stream"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M3 12h3.4l2.4-7 4 16 2.4-9H21"/></svg><span>Stream</span></button>
+        <button class="qa" data-qa="new"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/></svg><span>New</span></button>
       </div>
       <div class="cards">
-        <div class="fcard" data-agent="seniorrev" data-q="Senior review mode. Let's walk through a workpaper / control / finding together."><div class="ic">🛠️</div><div class="lbl">Senior Review</div></div>
-        <div class="fcard" data-agent="research" data-q="Help me research a technical accounting / audit question with sources."><div class="ic">⚛️</div><div class="lbl">Research</div></div>
-        <div class="fcard" data-agent="design" data-q="Help me with design, UI, or visuals."><div class="ic">💡</div><div class="lbl">Designer</div></div>
-        <div class="fcard" data-radar="1"><div class="ic">⌖</div><div class="lbl">Review Radar</div></div>
+        <div class="fcard" data-agent="seniorrev" data-q="Senior review mode. Let's walk through a workpaper / control / finding together."><div class="ic"><svg class="ico-svg" viewBox="0 0 24 24"><rect x="5" y="4.5" width="14" height="17" rx="2.5"/><path d="M9 4.5V3.6a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v.9"/><path d="M8.6 13.2l2 2 4-4.6"/></svg></div><div class="lbl">Senior Review</div></div>
+        <div class="fcard" data-agent="research" data-q="Help me research a technical accounting / audit question with sources."><div class="ic"><svg class="ico-svg" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.8"/><path d="M16 16l5 5"/></svg></div><div class="lbl">Research</div></div>
+        <div class="fcard" data-agent="design" data-q="Help me with design, UI, or visuals."><div class="ic"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M4 20l4.4-1 9-9-3.4-3.4-9 9L4 20Z"/><path d="M13.4 6.6l3.4 3.4"/><path d="M15.4 4.6l1.6-1.6a1.5 1.5 0 0 1 2.1 0l1.3 1.3a1.5 1.5 0 0 1 0 2.1L18.4 9.6"/></svg></div><div class="lbl">Designer</div></div>
+        <div class="fcard" data-radar="1"><div class="ic"><svg class="ico-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="3.4"/><path d="M12 1.6v3M12 19.4v3M1.6 12h3M19.4 12h3"/></svg></div><div class="lbl">Review Radar</div></div>
       </div>
 
       <div class="section-h">Today</div>
@@ -761,13 +772,13 @@
     <div id="chatThread"></div>
     <div id="attachPreview"></div>
     <div class="composer">
-      <button class="iconbtn attach2" id="attachBtn">＋</button>
+      <button class="iconbtn attach2" id="attachBtn" aria-label="Attach"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M20 11.3l-7.8 7.8a4.6 4.6 0 0 1-6.5-6.5l8.3-8.3a3 3 0 0 1 4.3 4.3l-8.3 8.3a1.5 1.5 0 0 1-2.2-2.1l7.5-7.5"/></svg></button>
       <div class="field">
-        <button class="iconbtn mic2" id="micBtn">🎙️</button>
+        <button class="iconbtn mic2" id="micBtn" aria-label="Voice input"><svg class="ico-svg" viewBox="0 0 24 24"><rect x="9" y="2.5" width="6" height="11.5" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3.2M9 21.5h6"/></svg></button>
         <textarea id="chatInput" rows="1" placeholder="Type your message…"></textarea>
-        <button class="iconbtn vmode" id="voiceModeBtn" title="Hands-free voice conversation">⇄</button>
+        <button class="iconbtn vmode" id="voiceModeBtn" title="Hands-free voice conversation" aria-label="Hands-free voice"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M4 10v4M8 6.5v11M12 9v6M16 4.5v15M20 10v4"/></svg></button>
       </div>
-      <button class="iconbtn send2" id="sendBtn">➤</button>
+      <button class="iconbtn send2" id="sendBtn" aria-label="Send"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M12 20V5M6 11l6-6 6 6"/></svg></button>
     </div>
     <input type="file" id="fileInput" accept="image/*" multiple style="display:none;">
   </div>
@@ -840,10 +851,10 @@
     <div id="streamFeed" class="stream-feed"></div>
     <div class="composer stream-composer">
       <div class="field">
-        <button class="iconbtn mic2" id="streamMic">🎙️</button>
+        <button class="iconbtn mic2" id="streamMic" aria-label="Voice input"><svg class="ico-svg" viewBox="0 0 24 24"><rect x="9" y="2.5" width="6" height="11.5" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3.2M9 21.5h6"/></svg></button>
         <textarea id="streamInput" rows="1" placeholder="Query AETHER…"></textarea>
       </div>
-      <button class="iconbtn send2" id="streamSend">➤</button>
+      <button class="iconbtn send2" id="streamSend" aria-label="Send"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M12 20V5M6 11l6-6 6 6"/></svg></button>
     </div>
   </div>
   <div id="voiceOverlay">
@@ -968,11 +979,11 @@
 
   <!-- ===== NAV ===== -->
   <div class="nav">
-    <button class="active" data-screen="screenHome"><span class="ico">◈</span>HOME</button>
-    <button data-screen="screenChat" id="talkNav"><span class="ico">⬡</span>TALK</button>
-    <button data-screen="screenStream" id="streamNav"><span class="ico">≋</span>STREAM</button>
-    <button data-screen="screenRadar" id="radarNav"><span class="ico">⌖</span>RADAR</button>
-    <button data-screen="screenSettings"><span class="ico">⚙</span>SETTINGS</button>
+    <button class="active" data-screen="screenHome"><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.6V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.6"/><path d="M9.5 21v-6h5v6"/></svg></span>HOME</button>
+    <button data-screen="screenChat" id="talkNav"><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M20 11.5a7.5 7.5 0 0 1-10.9 6.7L4 19.5l1.3-4.2A7.5 7.5 0 1 1 20 11.5Z"/><path d="M9 11h6M9 14h4"/></svg></span>TALK</button>
+    <button data-screen="screenStream" id="streamNav"><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M3 12h3.4l2.4-7 4 16 2.4-9H21"/></svg></span>STREAM</button>
+    <button data-screen="screenRadar" id="radarNav"><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="3.4"/><path d="M12 1.6v3M12 19.4v3M1.6 12h3M19.4 12h3"/></svg></span>RADAR</button>
+    <button data-screen="screenSettings"><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M4 6.5h16M4 12h16M4 17.5h16"/><circle cx="9" cy="6.5" r="2.3" fill="var(--bg-2)"/><circle cx="15" cy="12" r="2.3" fill="var(--bg-2)"/><circle cx="8" cy="17.5" r="2.3" fill="var(--bg-2)"/></svg></span>SETTINGS</button>
   </div>
 
   <div class="toast" id="toast"></div>
