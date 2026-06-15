@@ -2100,7 +2100,7 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
     }
     lines.push(RR_SYSTEM);
     lines.push('');
-    lines.push('Here are the workpaper photos as a CONNECTED SET. Fetch each image with your vision tool. Each is preceded by its label so you can detect tie-outs that break across workpapers:');
+    lines.push('Here are the workpaper photos as a CONNECTED SET. For EACH image URL below, call your vision tool (vision_analyze) DIRECTLY ON THE URL — pass the https URL straight to the tool. Do NOT download the file, do NOT use the terminal, do NOT convert to a data URL, do NOT use the browser. The vision tool fetches the URL itself. Each image is preceded by its label so you can detect tie-outs that break across workpapers:');
     lines.push('');
     images.forEach((im,i)=>{
       lines.push('--- Workpaper '+(i+1)+': '+(im.label||im.name||('Image '+(i+1)))+' ---');
