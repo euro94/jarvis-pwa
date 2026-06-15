@@ -51,6 +51,33 @@
     -webkit-font-smoothing:antialiased; display:flex; flex-direction:column; height:100dvh;
     background:var(--bg);
   }
+  /* ===== DESKTOP DEVICE FRAME =====
+     This is a phone-first PWA. On a wide screen, instead of stretching the
+     mobile layout edge-to-edge (the #1 "it's just a website" tell), we present
+     it inside a centered device shell: capped width, rounded bezel, floating
+     elevation, on a calm ambient backdrop. On a phone it's untouched, full-bleed. */
+  @media (min-width:768px){
+    html { background:radial-gradient(120% 120% at 50% 0%, #dde6f4 0%, #cdd9ee 45%, #b9c8e6 100%); }
+    body {
+      width:min(440px, 96vw);
+      height:min(940px, 96dvh);
+      margin:auto;
+      border-radius:46px;
+      overflow:hidden;
+      box-shadow:
+        0 2px 6px rgba(16,32,60,.12),
+        0 30px 70px rgba(20,50,110,.28),
+        0 60px 140px rgba(20,50,110,.22),
+        inset 0 0 0 1.5px rgba(255,255,255,.55),
+        inset 0 0 0 8px #0b1220,
+        inset 0 0 0 9.5px rgba(255,255,255,.08);
+    }
+    /* keep the aurora field clipped to the device, not the whole desktop */
+    body::before { border-radius:38px; }
+  }
+  @media (min-width:768px) and (prefers-color-scheme:dark){
+    html { background:radial-gradient(120% 120% at 50% 0%, #0d1830 0%, #0a1224 50%, #070d1a 100%); }
+  }
   /* living aurora field behind everything */
   body::before {
     content:""; position:fixed; inset:0; z-index:0; pointer-events:none;
