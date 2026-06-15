@@ -20,7 +20,15 @@ stdlib-only apart from the `anthropic` SDK, so it runs next to
 1. **Install + key** (on the PC where the repo lives):
    ```
    pip install anthropic
-   set ANTHROPIC_API_KEY=sk-ant-...      # macОS/Linux: export ANTHROPIC_API_KEY=...
+   ```
+   Then set the key for your shell:
+   - **Windows PowerShell:** `$env:ANTHROPIC_API_KEY = "sk-ant-..."`  (this session)
+     — or `setx ANTHROPIC_API_KEY "sk-ant-..."` to persist, then reopen the terminal.
+   - **Windows cmd.exe:** `set ANTHROPIC_API_KEY=sk-ant-...`
+   - **macOS/Linux:** `export ANTHROPIC_API_KEY=sk-ant-...`
+
+   Then run it:
+   ```
    python voice_proxy.py
    ```
    It listens on `127.0.0.1:8848`.
