@@ -15,7 +15,13 @@ The Anthropic API key stays on the PC (never in the browser). The proxy is
 stdlib-only apart from the `anthropic` SDK, so it runs next to
 `builder_bridge.py` today and can move to a serverless host later unchanged.
 
-## Setup (≈3 minutes)
+## Easiest: one-click launcher (Windows)
+
+Double-click **`start_voice.bat`**. It runs from the repo folder, installs the
+SDK if needed, prompts for your Anthropic API key, and starts the proxy. Leave
+the window open. Then do step 2 (Tailscale) and step 3 (toggle) below.
+
+## Setup (manual, ≈3 minutes)
 
 1. **Install + key** (on the PC where the repo lives):
    ```
