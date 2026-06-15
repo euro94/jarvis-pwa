@@ -1147,6 +1147,7 @@ async function startNewChat(){
   try{ await fetch(`${NTFY}/${activeAgent.in}`,{method:'POST',body:'/new'}); }catch(e){}
   curSession = newSessionObj(); sessions = loadSessions(); sessions.unshift(curSession); saveSessions(sessions);
   localStorage.setItem(activeSessKey(), curSession.id);
+  setBoundSession(curSession.id);   // gateway is now bound to this fresh chat
   chatLog = curSession.msgs;
   renderChat(); renderHistory();
   toast('New chat started — '+activeAgent.label+' context reset.');
@@ -1154,10 +1155,10 @@ async function startNewChat(){
 function openSession(id){
   sessions=loadSessions(); const s=sessions.find(x=>x.id===id); if(!s)return;
   curSession=s; localStorage.setItem(activeSessKey(),id); chatLog=curSession.msgs;
-  // re-sync Hermes: a reopened old chat needs a fresh Hermes session (it can't
-  // restore old server context), so reset and replay nothing — the transcript
-  // is readable here; new turns continue from a clean slate.
-  fetch(`${NTFY}/${activeAgent.in}`,{method:'POST',body:'/new'}).catch(()=>{});
+  // Only reset the gateway when this is a DIFFERENT chat than it's bound to.
+  // Reopening the chat you were already in keeps the agent's live context, so it
+  // no longer "forgets everything" just because you came back to the app.
+  bindGatewaySession(id);
   renderChat(); renderHistory(); closeHistory();
 }
 function deleteSession(id){
@@ -1406,6 +1407,67 @@ function markHandled(id){
   if(__handledIds.length>400){ const drop=__handledIds.splice(0,__handledIds.length-400); for(const d of drop) __handledSet.delete(d); }
   try{ localStorage.setItem('aetherHandledIds', JSON.stringify(__handledIds)); }catch(e){}
 }
+// Shared noise filter — interim/system chatter we never show or speak.
+function isNoiseMsg(m){ const t=(m||'').trim(); return !t||/top-up left/i.test(t)||/Credits \d+% used/i.test(t)||/^💾/.test(t)||/^⚠/.test(t)||/Self-improvement review/i.test(t)||/Memory updated/i.test(t)||/^•\s/.test(t)||/^✨ Session reset/i.test(t); }
+
+// ===== PER-AGENT SERVER SESSION BINDING =====
+// Each local chat is tied to a fresh gateway session. We only reset the agent's
+// server-side memory (/new) when we move to a DIFFERENT chat than the one the
+// gateway is currently bound to — NOT every time a chat is reopened. This kills
+// the "it forgets everything when I come back" bug.
+function boundKey(){ return 'aetherBoundSess_'+activeAgent.id; }
+function getBoundSession(){ try{ return localStorage.getItem(boundKey())||''; }catch(e){ return ''; } }
+function setBoundSession(id){ try{ localStorage.setItem(boundKey(), id||''); }catch(e){} }
+// Bind the gateway to a chat. Resets server context ONLY when switching chats.
+function bindGatewaySession(sessId, opts){
+  const force = opts && opts.force;
+  if(!force && getBoundSession()===sessId) return false;   // already bound — keep context
+  fetch(`${NTFY}/${activeAgent.in}`,{method:'POST',body:'/new'}).catch(()=>{});
+  setBoundSession(sessId);
+  return true;
+}
+
+// ===== CATCH-UP: pull replies that arrived while the app was closed/backgrounded.
+// pollReply only listens during a live turn, so an answer that lands after the
+// window ends (or while the PWA is suspended) never reaches the transcript. On
+// load and on every return-to-foreground we sweep each agent's out-topic since
+// the last seen time and fold in anything new (deduped via handled-ids). This is
+// the "responses don't persist" fix.
+function lastSeenKey(aid){ return 'aetherLastSeen_'+aid; }
+function getLastSeen(aid){ const v=parseInt(localStorage.getItem(lastSeenKey(aid))||'0',10); return v||Math.floor(Date.now()/1000)-86400; }
+function setLastSeen(aid, ts){ try{ localStorage.setItem(lastSeenKey(aid), String(ts)); }catch(e){} }
+async function catchUpAgent(agent){
+  // Pull missed messages for one agent into its bound session transcript.
+  const since=getLastSeen(agent.id);
+  let maxTs=since;
+  try{
+    const r=await fetch(`${NTFY}/${agent.out}/json?poll=1&since=${since}`,{cache:'no-store'});
+    const lines=(await r.text()).trim().split('\n').filter(Boolean);
+    // find the local session bound to this agent (so caught-up msgs land in the right chat)
+    const allSess=(function(){ try{ return JSON.parse(localStorage.getItem('aetherSessions_'+agent.id)||'[]'); }catch(e){ return []; } })();
+    const boundId=localStorage.getItem('aetherBoundSess_'+agent.id)||localStorage.getItem('aetherActiveSess_'+agent.id);
+    let sess=allSess.find(s=>s.id===boundId)||allSess[0];
+    let added=false;
+    for(const ln of lines){ let o; try{o=JSON.parse(ln);}catch(e){continue;}
+      if(o.event!=='message'||!o.id)continue;
+      if(o.time&&o.time>maxTs) maxTs=o.time;
+      if(alreadyHandled(o.id)) continue;
+      const msg=(o.message||'').trim();
+      if(isNoiseMsg(msg)) continue;
+      markHandled(o.id);
+      if(sess){ sess.msgs=sess.msgs||[]; sess.msgs.push({role:'ai',text:msg,t:(o.time?o.time*1000:Date.now())}); if(sess.msgs.length>200)sess.msgs=sess.msgs.slice(-200); sess.updated=Date.now(); added=true; }
+    }
+    if(added && sess){
+      const i=allSess.findIndex(s=>s.id===sess.id); if(i>=0)allSess[i]=sess;
+      try{ localStorage.setItem('aetherSessions_'+agent.id, JSON.stringify(allSess)); }catch(e){}
+      // if it's the agent we're currently viewing, refresh the thread
+      if(agent.id===activeAgent.id){ sessions=loadSessions(); curSession=sessions.find(s=>s.id===sess.id)||curSession; if(curSession){ chatLog=curSession.msgs; renderChat(); } }
+    }
+  }catch(e){}
+  setLastSeen(agent.id, maxTs);
+}
+async function catchUpAll(){ for(const a of AGENTS){ try{ await catchUpAgent(a); }catch(e){} } }
+
 async function pollReply(sinceTs, silent, agent){
   const myGen=++__pollGen;     // claim this generation; older loops will see they're stale and exit
   // VOICE MODE: return after the FIRST real reply so the listen→speak→listen
@@ -1419,7 +1481,7 @@ async function pollReply(sinceTs, silent, agent){
   const hardStop=Date.now()+HARD_CAP;
   pollStop = voice ? hardStop : (Date.now()+QUIET_GAP);
   const seen=new Set(); let got=0;
-  const isNoise=(m)=>{ const t=m.trim(); return !t||/top-up left/i.test(t)||/Credits \d+% used/i.test(t)||/^💾/.test(t)||/^⚠/.test(t)||/Self-improvement review/i.test(t)||/Memory updated/i.test(t)||/^•\s/.test(t)||/^✨ Session reset/i.test(t); };
+  const isNoise=isNoiseMsg;
   while(Date.now()<hardStop && (voice || Date.now()<pollStop)){
     if(myGen!==__pollGen){ return; }                      // a newer poll superseded us
     if(agent.id!==activeAgent.id){ hideTyping(); return; } // user switched agent
@@ -1607,8 +1669,11 @@ function clearAttachments(){ pendingImages=[]; renderAttachments(); }
 async function uploadImages(imgs){ const urls=[]; for(const im of imgs){ try{ urls.push(await tailnetUpload(im.file, im.name)); }catch(e){} } return urls; }
 
 renderSelector(); renderChat(); renderHistory();
-
-/* ===== VOICE INPUT ===== */
+// On cold load, assume the gateway still holds the active chat's context — bind
+// to it so reopening the current chat is a no-op (no needless reset). Then sweep
+// for any replies that landed while the app was closed.
+if(typeof curSession!=='undefined' && curSession && !getBoundSession()) setBoundSession(curSession.id);
+setTimeout(()=>{ try{ catchUpAll(); }catch(e){} }, 600);
 let recog=null, listening=false, __streamDictation=false;
 // Heartbeat: last time the recognizer proved it was alive (onstart/onresult).
 // iOS silently kills webkitSpeechRecognition on suspend without firing onend,
@@ -1669,9 +1734,9 @@ function reviveVoiceLoop(reason){
 }
 // (1) Foreground return — the reliable signal across iOS PWA / Safari.
 document.addEventListener('visibilitychange', ()=>{
-  if(document.visibilityState==='visible') setTimeout(()=>reviveVoiceLoop('visible'), 250);
+  if(document.visibilityState==='visible'){ setTimeout(()=>reviveVoiceLoop('visible'), 250); catchUpAll(); }
 });
-window.addEventListener('pageshow', ()=>{ setTimeout(()=>reviveVoiceLoop('pageshow'), 250); });
+window.addEventListener('pageshow', ()=>{ setTimeout(()=>reviveVoiceLoop('pageshow'), 250); catchUpAll(); });
 window.addEventListener('focus', ()=>{ setTimeout(()=>reviveVoiceLoop('focus'), 250); });
 // (2) Watchdog: if we're supposed to be listening but the recognizer hasn't
 // proven itself alive in a while, it's a zombie — revive. Runs only in voice
