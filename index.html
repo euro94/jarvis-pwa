@@ -443,6 +443,12 @@
   #voiceOverlay.speaking .core { animation:voSpeakPulse .42s ease-in-out infinite; }
   #voiceOverlay.speaking .r1 { animation:voEcho 1s ease-out infinite; }
   #voiceOverlay.speaking .r2 { animation:voEcho 1s ease-out .35s infinite; }
+  /* Paused: suspended by iOS, waiting for a tap to reopen the mic. Calm, dimmed,
+     with a slow invite-pulse so it reads as "tap me" not "broken". */
+  #voiceOverlay.paused .halo { animation-duration:6s; opacity:.5; }
+  #voiceOverlay.paused .core { animation:voPausePulse 2.4s ease-in-out infinite; }
+  #voiceOverlay.paused .r1, #voiceOverlay.paused .r2 { opacity:.18; animation-play-state:paused; }
+  @keyframes voPausePulse { 0%,100%{ transform:scale(.94); opacity:.62; } 50%{ transform:scale(1); opacity:.92; } }
   @keyframes voSpin { to{ transform:rotate(360deg); } }
   @keyframes voBreathe { 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.06); } }
   @keyframes voSpeakPulse { 0%,100%{ transform:scale(1.02); } 50%{ transform:scale(1.13); } }
@@ -1757,7 +1763,7 @@ if(SR){ recog=new SR(); recog.lang='en-US'; recog.interimResults=true; recog.con
     if(window.__voiceMode && !speaking){ setTimeout(()=>{ if(window.__voiceMode && !speaking) startListening(); }, 600); }
   };
 }
-function startListening(){ if(!SR||listening||speaking)return; listening=true;
+function startListening(){ if(!SR||listening||speaking)return; listening=true; voPaused=false;
   if(window.__voiceMode){ voSetState('listening','Listening…'); $('voTranscript').textContent=''; }
   else { $('micBtn').classList.add('listening'); $('chatInput').value=''; }
   try{recog.start();}catch(e){ listening=false; if(window.__voiceMode) setTimeout(()=>{ if(window.__voiceMode&&!speaking) startListening(); },500); }
@@ -1772,28 +1778,44 @@ $('micBtn').addEventListener('click', ()=>{ if(!SR){ toast('Voice input not supp
    (1) on every return-to-foreground, and (2) a periodic watchdog that notices a
    stale heartbeat. Both funnel through reviveVoiceLoop(), which hard-resets the
    recognizer and restarts the listen→respond cycle from a clean state. */
+// When the recognizer can't be auto-restarted (iOS requires a user gesture after
+// a suspend), we surface a tappable "Resume" affordance instead of silently
+// failing. voPaused=true means: waiting for the user to tap the orb to continue.
+let voPaused=false;
+function voShowResume(){
+  voPaused=true; listening=false;
+  voSetState('paused','Tap to resume listening');
+  $('voTranscript').textContent='';
+}
 function reviveVoiceLoop(reason){
   if(!SR || !window.__voiceMode) return;
   if(speaking) return;                 // mid-reply: the speak path owns the resume
-  // Force the recognizer down, ignoring its (possibly zombie) internal state,
-  // then start a fresh listen. abort() is the hard kill; start() rebuilds the
-  // audio session iOS tore down on suspend.
+  // Hard-kill the (possibly zombie) recognizer, ignoring its internal state.
   try{ recog.abort(); }catch(e){}
-  listening=false;
+  listening=false; voPaused=false;
   voSetState('listening','Listening…'); $('voTranscript').textContent='';
-  setTimeout(()=>{ if(window.__voiceMode && !speaking && !listening) startListening(); }, 300);
+  const startedAt=Date.now();
+  setTimeout(()=>{ if(window.__voiceMode && !speaking && !listening) startListening(); }, 250);
+  // iOS gesture guard: if the engine didn't actually come alive shortly after we
+  // tried (onstart never stamped a fresh heartbeat), the OS blocked the silent
+  // restart — show the tap-to-resume prompt so the user's tap can reopen the mic.
+  setTimeout(()=>{
+    if(!window.__voiceMode || speaking || voPaused) return;
+    const alive = __recogAlive >= startedAt;   // onstart fired after our attempt
+    if(!alive) voShowResume();
+  }, 1600);
 }
 // (1) Foreground return — the reliable signal across iOS PWA / Safari.
 document.addEventListener('visibilitychange', ()=>{
-  if(document.visibilityState==='visible'){ setTimeout(()=>reviveVoiceLoop('visible'), 250); catchUpAll(); }
+  if(document.visibilityState==='visible'){ setTimeout(()=>reviveVoiceLoop('visible'), 250); try{catchUpAll();}catch(e){} }
 });
-window.addEventListener('pageshow', ()=>{ setTimeout(()=>reviveVoiceLoop('pageshow'), 250); catchUpAll(); });
+window.addEventListener('pageshow', ()=>{ setTimeout(()=>reviveVoiceLoop('pageshow'), 250); try{catchUpAll();}catch(e){} });
 window.addEventListener('focus', ()=>{ setTimeout(()=>reviveVoiceLoop('focus'), 250); });
 // (2) Watchdog: if we're supposed to be listening but the recognizer hasn't
 // proven itself alive in a while, it's a zombie — revive. Runs only in voice
 // mode so it costs nothing the rest of the time.
 setInterval(()=>{
-  if(!window.__voiceMode || speaking || !listening) return;
+  if(!window.__voiceMode || speaking || voPaused || !listening) return;
   if(__recogAlive && (Date.now()-__recogAlive) > 12000) reviveVoiceLoop('watchdog');
 }, 4000);
 
@@ -1801,7 +1823,7 @@ setInterval(()=>{
 window.__voiceMode=false; let speaking=false; let ttsPrimed=false; let preferredVoice=null;
 function pickVoice(){ try{ const vs=window.speechSynthesis.getVoices()||[]; preferredVoice = vs.find(v=>/Samantha|Karen|Daniel|Google US English|Aaron|Evan/i.test(v.name)) || vs.find(v=>v.lang&&v.lang.indexOf('en')===0) || vs[0] || null; }catch(e){} }
 if(window.speechSynthesis){ pickVoice(); window.speechSynthesis.onvoiceschanged=pickVoice; }
-function voSetState(cls,label){ const o=$('voiceOverlay'); o.classList.remove('listening','speaking','thinking'); if(cls)o.classList.add(cls); if(label)$('voStatus').textContent=label; }
+function voSetState(cls,label){ const o=$('voiceOverlay'); o.classList.remove('listening','speaking','thinking','paused'); if(cls)o.classList.add(cls); if(label)$('voStatus').textContent=label; }
 function primeTTS(){ // must run inside a user gesture to unlock iOS speech
   if(ttsPrimed||!window.speechSynthesis) return;
   try{ const u=new SpeechSynthesisUtterance(' '); u.volume=0; window.speechSynthesis.speak(u); ttsPrimed=true; }catch(e){}
@@ -1896,6 +1918,14 @@ function voiceModeAfterReply(msg){
 // session on Safari, so tap is the dependable interrupt).
 function voiceInterrupt(){
   if(!window.__voiceMode) return;
+  if(voPaused){
+    // Paused after a suspend — this tap IS the user gesture iOS needs to reopen
+    // the mic. Re-prime the audio session and start listening cleanly.
+    primeTTS(); primeAudio(); voPaused=false; haptic();
+    try{ recog.abort(); }catch(e){}
+    listening=false; setTimeout(()=>{ if(window.__voiceMode && !speaking) startListening(); }, 80);
+    return;
+  }
   if(speaking){
     __voiceTurn++;            // invalidate the in-flight/playing turn's callbacks
     speaking=false;

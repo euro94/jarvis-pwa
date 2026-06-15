@@ -3,3 +3,6 @@ subscriptions.json
 .builder_session
 __pycache__/
 *.pyc
+.builder_env
+.env
+.builder_bridge.log

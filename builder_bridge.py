@@ -26,7 +26,7 @@ SECURITY — read this:
     permissions grants blanket power; only do that on fully trusted infra.
   * MAX_BUDGET_USD caps spend per request so a runaway can't drain your credits.
 """
-import json, os, subprocess, sys, time, urllib.request, shutil
+import json, os, socket, subprocess, sys, time, urllib.request, shutil
 
 # ---- config ----
 NTFY      = os.environ.get("AETHER_NTFY", "https://yaro.tail6a3c7a.ts.net")
@@ -38,11 +38,31 @@ BUILDER_TOKEN = os.environ.get("BUILDER_TOKEN", "")        # optional shared sec
 MAX_BUDGET_USD = os.environ.get("BUILDER_MAX_USD", "3")    # per-request spend cap
 POLL_SECS = 2
 
-# Resolve claude.exe (not always on PATH on Windows).
-CLAUDE_BIN = (os.environ.get("CLAUDE_BIN")
-              or shutil.which("claude")
-              or shutil.which("claude.exe")
-              or os.path.expanduser(r"~/.local/bin/claude.exe"))
+# Resolve claude executable. On Windows, `shutil.which("claude")` returns the
+# POSIX shell-script shim (from git-bash), which subprocess CANNOT execute
+# (WinError 193). We must use the native claude.exe. Prefer an explicit
+# CLAUDE_BIN, then the packaged .exe, then PATH lookups.
+def _resolve_claude():
+    cand = []
+    if os.environ.get("CLAUDE_BIN"):
+        cand.append(os.environ["CLAUDE_BIN"])
+    # the .exe shipped inside the npm package (most reliable on Windows)
+    npm_root = os.path.expanduser(r"~/AppData/Roaming/npm/node_modules/@anthropic-ai/claude-code/bin/claude.exe")
+    cand.append(npm_root)
+    cand.append(shutil.which("claude.exe") or "")
+    if os.name == "nt":
+        cand.append(shutil.which("claude.cmd") or "")
+    cand.append(shutil.which("claude") or "")
+    cand.append(os.path.expanduser(r"~/.local/bin/claude.exe"))
+    for c in cand:
+        if c and os.path.exists(c):
+            # On Windows, reject the extension-less POSIX shim (can't be spawned).
+            if os.name == "nt" and not c.lower().endswith((".exe", ".cmd", ".bat")):
+                continue
+            return c
+    return cand[0] if cand else "claude"
+
+CLAUDE_BIN = _resolve_claude()
 
 # SCOPED AUTONOMY (hardened default): can read/edit/write files and run git,
 # python, node, npm — enough to build AND ship the app — but cannot run arbitrary
@@ -169,8 +189,25 @@ def run_claude(prompt):
         post("⚠ Claude Code exited with an error.\n" + err[-1500:])
 
 
+# ---- single-instance lock (so a double-start is harmless: loser exits) ----
+_LOCK_SOCK = None
+def acquire_single_instance(port=48762):
+    global _LOCK_SOCK
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.bind(("127.0.0.1", port))
+        s.listen(1)
+        _LOCK_SOCK = s   # keep ref alive for process lifetime
+        return True
+    except OSError:
+        return False
+
+
 # ---- poll the inbound topic for phone messages ----
 def main():
+    if not acquire_single_instance():
+        print("Another builder bridge already holds the lock — exiting.", file=sys.stderr)
+        return
     print(f"Builder bridge up. claude={CLAUDE_BIN}")
     print(f"  listening: {NTFY}/{IN_TOPIC}")
     print(f"  replying:  {NTFY}/{OUT_TOPIC}")
