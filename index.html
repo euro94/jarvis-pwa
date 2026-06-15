@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="AETHER">
@@ -22,6 +22,10 @@
     --usr:rgba(10,110,200,.10);
     /* brand — aether gem + aqua (tuned for light) */
     --teal:#0EA59B; --teal2:#0C9C95; --cyan:#0891B2; --blue:#2563EB; --indigo:#5A6E8C;
+    /* semantic layer — warm hues outside the cool brand band so colour can carry meaning */
+    --warn:#B5730A; --warn-bg:rgba(181,115,10,.12); --warn-line:rgba(181,115,10,.32);
+    --danger:#C73843; --danger-bg:rgba(199,56,67,.12); --danger-line:rgba(199,56,67,.34);
+    --success:#1B9C6E; --success-bg:rgba(27,156,110,.12); --success-line:rgba(27,156,110,.32);
     --gem-0:#0A3D8F; --gem-1:#0A84D6; --gem-2:#21E6FF;
     --safe-b:env(safe-area-inset-bottom);
     /* signature gradients */
@@ -358,8 +362,8 @@
   .credit-bar-fill.low { background:linear-gradient(90deg,#ff6b78,#f1b545); }
   /* low-credit badge (floats over home) */
   #creditBadge { display:none; position:fixed; left:50%; transform:translateX(-50%); top:calc(env(safe-area-inset-top) + 8px); z-index:70;
-    align-items:center; gap:7px; padding:7px 14px; border-radius:var(--r-pill); background:rgba(58,15,24,.92); border:1px solid rgba(255,122,138,.5);
-    color:#ffd7dc; font-size:12px; font-weight:700; box-shadow:0 10px 30px rgba(0,0,0,.5); cursor:pointer; -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); }
+    align-items:center; gap:7px; padding:7px 14px; border-radius:var(--r-pill); background:var(--danger-bg); border:1px solid var(--danger-line);
+    color:var(--danger); font-size:12px; font-weight:700; box-shadow:var(--e2); cursor:pointer; -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); }
 
   /* ===== STREAM mode ===== */
   #screenStream.active { display:flex; flex-direction:column; overflow:hidden; }
@@ -723,7 +727,7 @@
         <div class="pb-waves2"></div>
         <img class="pb-emboss" src="icons/mark-256.png" alt="" aria-hidden="true">
         <div class="pb-pill">
-          <button class="pb-mic" id="homeMic" title="Tap to talk to AETHER">
+          <button class="pb-mic" id="homeMic" title="Tap to talk to AETHER" aria-label="Talk to AETHER">
             <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="currentColor" d="M12 14c1.7 0 3-1.3 3-3V5c0-1.7-1.3-3-3-3S9 3.3 9 5v6c0 1.7 1.3 3 3 3Zm5.3-3c0 3-2.3 5.5-5.3 5.5S6.7 14 6.7 11H5c0 3.6 2.8 6.6 6.2 7v3H8v2h8v-2h-3.2v-3c3.4-.4 6.2-3.4 6.2-7h-1.7Z"/></svg>
           </button>
           <span class="pb-divider"></span>
@@ -763,13 +767,13 @@
   <!-- ===== CHAT ===== -->
   <div class="screen" id="screenChat">
     <div class="chat-top">
-      <button class="topbtn" id="histBtn" title="Chats">☰</button>
+      <button class="topbtn" id="histBtn" title="Chats" aria-label="Chat history">☰</button>
       <div class="nm">AETHER</div>
       <div class="selwrap">
         <div class="selbtn" id="selBtn"><span id="selLabel">Assistant</span><span class="chev">▾</span></div>
         <div class="selmenu" id="selMenu"></div>
       </div>
-      <button class="topbtn" id="newBtn" title="New chat">✎</button>
+      <button class="topbtn" id="newBtn" title="New chat" aria-label="New chat">✎</button>
     </div>
     <div id="chatThread"></div>
     <div id="attachPreview"></div>
@@ -849,7 +853,7 @@
       <div class="selwrap">
         <div class="selbtn" id="streamSelBtn"><span id="streamSelLabel">Assistant</span><span class="chev">▾</span></div>
       </div>
-      <button class="topbtn" id="streamClear" title="Clear">⌦</button>
+      <button class="topbtn" id="streamClear" title="Clear" aria-label="Clear stream">⌦</button>
     </div>
     <div class="stream-sub" id="streamSub">Live feed of everything AETHER is doing — no PC needed.</div>
     <div id="streamFeed" class="stream-feed"></div>
@@ -1012,6 +1016,20 @@ const NTFY = "https://yaro.tail6a3c7a.ts.net";
 // "Live" mode: stream straight to the Claude-direct voice proxy (voice_proxy.py)
 // over the tailnet, bypassing the ntfy poll loop. Empty string = feature off.
 const VOICE_PROXY = "https://yaro.tail6a3c7a.ts.net/aether-voice";
+// Confidential uploads stay on the tailnet. We publish the bytes to ntfy as a
+// native attachment (PUT with the file as the body); ntfy stores it and hands
+// back a URL on this same tailnet host, which the agent can fetch. Client
+// workpapers / financials never touch a public file host. Fail closed — never
+// fall back to an off-tailnet host, or confidentiality is silently lost.
+const UPLOAD_TOPIC = "hermes-yaro-uploads-9d2f41";
+async function tailnetUpload(blob, filename, fetchImpl){
+  const f = fetchImpl || ((u,o)=>fetch(u,o));
+  const r = await f(`${NTFY}/${UPLOAD_TOPIC}`, { method:'PUT', headers:{ 'Filename': filename||'upload' }, body: blob });
+  let o; try{ o = await r.json(); }catch(e){ throw new Error('upload failed'); }
+  const u = o && o.attachment && o.attachment.url;
+  if(!u || !/^https?:/i.test(u)) throw new Error('upload failed');
+  return u;
+}
 
 const AGENTS = [
   { id:"jarvis",    label:"Assistant",  ic:"💧", in:"hermes-yaro-jarvis-in-c4e3ac0f",   out:"hermes-yaro-jarvis-7450b76f",      hint:"Your schedule, calendar, quick tasks." },
@@ -1077,7 +1095,25 @@ async function loadState(){
     if(s.streak!=null)$('streak').textContent=s.streak;
   }catch(e){}
 }
-loadState(); setInterval(loadState,60000);
+let __stateTimer = null;
+function startStatePoll(){ if(!__stateTimer){ loadState(); __stateTimer=setInterval(loadState,60000); } }
+function stopStatePoll(){ if(__stateTimer){ clearInterval(__stateTimer); __stateTimer=null; } }
+startStatePoll();
+
+// Pause background polling while the tab/app is hidden — no radio wakeups or
+// data spend with the screen off — and refresh on return. The stream poller
+// (streamTick) and state poller are the only standing intervals; the chat/TTS
+// loops are bounded and tied to a user action, so they don't need this.
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden){
+    stopStatePoll();
+    if(typeof stopStream==='function') stopStream();
+  }else{
+    startStatePoll();
+    const ss=$('screenStream');
+    if(ss && ss.classList.contains('active') && typeof startStream==='function') startStream();
+  }
+});
 
 /* ===== CHAT (multi-agent + sessions) ===== */
 let pollStop=0, pendingImages=[];
@@ -1116,6 +1152,7 @@ async function startNewChat(){
   try{ await fetch(`${NTFY}/${activeAgent.in}`,{method:'POST',body:'/new'}); }catch(e){}
   curSession = newSessionObj(); sessions = loadSessions(); sessions.unshift(curSession); saveSessions(sessions);
   localStorage.setItem(activeSessKey(), curSession.id);
+  setBoundSession(curSession.id);   // gateway is now bound to this fresh chat
   chatLog = curSession.msgs;
   renderChat(); renderHistory();
   toast('New chat started — '+activeAgent.label+' context reset.');
@@ -1123,10 +1160,10 @@ async function startNewChat(){
 function openSession(id){
   sessions=loadSessions(); const s=sessions.find(x=>x.id===id); if(!s)return;
   curSession=s; localStorage.setItem(activeSessKey(),id); chatLog=curSession.msgs;
-  // re-sync Hermes: a reopened old chat needs a fresh Hermes session (it can't
-  // restore old server context), so reset and replay nothing — the transcript
-  // is readable here; new turns continue from a clean slate.
-  fetch(`${NTFY}/${activeAgent.in}`,{method:'POST',body:'/new'}).catch(()=>{});
+  // Only reset the gateway when this is a DIFFERENT chat than it's bound to.
+  // Reopening the chat you were already in keeps the agent's live context, so it
+  // no longer "forgets everything" just because you came back to the app.
+  bindGatewaySession(id);
   renderChat(); renderHistory(); closeHistory();
 }
 function deleteSession(id){
@@ -1375,6 +1412,67 @@ function markHandled(id){
   if(__handledIds.length>400){ const drop=__handledIds.splice(0,__handledIds.length-400); for(const d of drop) __handledSet.delete(d); }
   try{ localStorage.setItem('aetherHandledIds', JSON.stringify(__handledIds)); }catch(e){}
 }
+// Shared noise filter — interim/system chatter we never show or speak.
+function isNoiseMsg(m){ const t=(m||'').trim(); return !t||/top-up left/i.test(t)||/Credits \d+% used/i.test(t)||/^💾/.test(t)||/^⚠/.test(t)||/Self-improvement review/i.test(t)||/Memory updated/i.test(t)||/^•\s/.test(t)||/^✨ Session reset/i.test(t); }
+
+// ===== PER-AGENT SERVER SESSION BINDING =====
+// Each local chat is tied to a fresh gateway session. We only reset the agent's
+// server-side memory (/new) when we move to a DIFFERENT chat than the one the
+// gateway is currently bound to — NOT every time a chat is reopened. This kills
+// the "it forgets everything when I come back" bug.
+function boundKey(){ return 'aetherBoundSess_'+activeAgent.id; }
+function getBoundSession(){ try{ return localStorage.getItem(boundKey())||''; }catch(e){ return ''; } }
+function setBoundSession(id){ try{ localStorage.setItem(boundKey(), id||''); }catch(e){} }
+// Bind the gateway to a chat. Resets server context ONLY when switching chats.
+function bindGatewaySession(sessId, opts){
+  const force = opts && opts.force;
+  if(!force && getBoundSession()===sessId) return false;   // already bound — keep context
+  fetch(`${NTFY}/${activeAgent.in}`,{method:'POST',body:'/new'}).catch(()=>{});
+  setBoundSession(sessId);
+  return true;
+}
+
+// ===== CATCH-UP: pull replies that arrived while the app was closed/backgrounded.
+// pollReply only listens during a live turn, so an answer that lands after the
+// window ends (or while the PWA is suspended) never reaches the transcript. On
+// load and on every return-to-foreground we sweep each agent's out-topic since
+// the last seen time and fold in anything new (deduped via handled-ids). This is
+// the "responses don't persist" fix.
+function lastSeenKey(aid){ return 'aetherLastSeen_'+aid; }
+function getLastSeen(aid){ const v=parseInt(localStorage.getItem(lastSeenKey(aid))||'0',10); return v||Math.floor(Date.now()/1000)-86400; }
+function setLastSeen(aid, ts){ try{ localStorage.setItem(lastSeenKey(aid), String(ts)); }catch(e){} }
+async function catchUpAgent(agent){
+  // Pull missed messages for one agent into its bound session transcript.
+  const since=getLastSeen(agent.id);
+  let maxTs=since;
+  try{
+    const r=await fetch(`${NTFY}/${agent.out}/json?poll=1&since=${since}`,{cache:'no-store'});
+    const lines=(await r.text()).trim().split('\n').filter(Boolean);
+    // find the local session bound to this agent (so caught-up msgs land in the right chat)
+    const allSess=(function(){ try{ return JSON.parse(localStorage.getItem('aetherSessions_'+agent.id)||'[]'); }catch(e){ return []; } })();
+    const boundId=localStorage.getItem('aetherBoundSess_'+agent.id)||localStorage.getItem('aetherActiveSess_'+agent.id);
+    let sess=allSess.find(s=>s.id===boundId)||allSess[0];
+    let added=false;
+    for(const ln of lines){ let o; try{o=JSON.parse(ln);}catch(e){continue;}
+      if(o.event!=='message'||!o.id)continue;
+      if(o.time&&o.time>maxTs) maxTs=o.time;
+      if(alreadyHandled(o.id)) continue;
+      const msg=(o.message||'').trim();
+      if(isNoiseMsg(msg)) continue;
+      markHandled(o.id);
+      if(sess){ sess.msgs=sess.msgs||[]; sess.msgs.push({role:'ai',text:msg,t:(o.time?o.time*1000:Date.now())}); if(sess.msgs.length>200)sess.msgs=sess.msgs.slice(-200); sess.updated=Date.now(); added=true; }
+    }
+    if(added && sess){
+      const i=allSess.findIndex(s=>s.id===sess.id); if(i>=0)allSess[i]=sess;
+      try{ localStorage.setItem('aetherSessions_'+agent.id, JSON.stringify(allSess)); }catch(e){}
+      // if it's the agent we're currently viewing, refresh the thread
+      if(agent.id===activeAgent.id){ sessions=loadSessions(); curSession=sessions.find(s=>s.id===sess.id)||curSession; if(curSession){ chatLog=curSession.msgs; renderChat(); } }
+    }
+  }catch(e){}
+  setLastSeen(agent.id, maxTs);
+}
+async function catchUpAll(){ for(const a of AGENTS){ try{ await catchUpAgent(a); }catch(e){} } }
+
 async function pollReply(sinceTs, silent, agent){
   const myGen=++__pollGen;     // claim this generation; older loops will see they're stale and exit
   // VOICE MODE: return after the FIRST real reply so the listen→speak→listen
@@ -1388,7 +1486,7 @@ async function pollReply(sinceTs, silent, agent){
   const hardStop=Date.now()+HARD_CAP;
   pollStop = voice ? hardStop : (Date.now()+QUIET_GAP);
   const seen=new Set(); let got=0;
-  const isNoise=(m)=>{ const t=m.trim(); return !t||/top-up left/i.test(t)||/Credits \d+% used/i.test(t)||/^💾/.test(t)||/^⚠/.test(t)||/Self-improvement review/i.test(t)||/Memory updated/i.test(t)||/^•\s/.test(t)||/^✨ Session reset/i.test(t); };
+  const isNoise=isNoiseMsg;
   while(Date.now()<hardStop && (voice || Date.now()<pollStop)){
     if(myGen!==__pollGen){ return; }                      // a newer poll superseded us
     if(agent.id!==activeAgent.id){ hideTyping(); return; } // user switched agent
@@ -1619,15 +1717,24 @@ $('attachBtn').addEventListener('click', ()=>$('fileInput').click());
 $('fileInput').addEventListener('change',(e)=>{ for(const f of e.target.files){ const rd=new FileReader(); rd.onload=ev=>{ pendingImages.push({name:f.name,dataUrl:ev.target.result,file:f}); renderAttachments(); }; rd.readAsDataURL(f);} e.target.value=''; });
 function renderAttachments(){ const p=$('attachPreview'); p.innerHTML=''; pendingImages.forEach((im,i)=>{ const d=document.createElement('div'); d.className='thumb'; d.innerHTML='<img src="'+im.dataUrl+'"><div class="x">×</div>'; d.querySelector('.x').addEventListener('click',()=>{ pendingImages.splice(i,1); renderAttachments(); }); p.appendChild(d); }); }
 function clearAttachments(){ pendingImages=[]; renderAttachments(); }
-async function uploadImages(imgs){ const urls=[]; for(const im of imgs){ try{ const fd=new FormData(); fd.append('reqtype','fileupload'); fd.append('time','24h'); fd.append('fileToUpload',im.file,im.name); const r=await fetch('https://litterbox.catbox.moe/resources/internals/api.php',{method:'POST',body:fd}); const u=(await r.text()).trim(); if(u.startsWith('http'))urls.push(u);}catch(e){} } return urls; }
+async function uploadImages(imgs){ const urls=[]; for(const im of imgs){ try{ urls.push(await tailnetUpload(im.file, im.name)); }catch(e){} } return urls; }
 
 renderSelector(); renderChat(); renderHistory();
-
-/* ===== VOICE INPUT ===== */
+// On cold load, assume the gateway still holds the active chat's context — bind
+// to it so reopening the current chat is a no-op (no needless reset). Then sweep
+// for any replies that landed while the app was closed.
+if(typeof curSession!=='undefined' && curSession && !getBoundSession()) setBoundSession(curSession.id);
+setTimeout(()=>{ try{ catchUpAll(); }catch(e){} }, 600);
 let recog=null, listening=false, __streamDictation=false;
+// Heartbeat: last time the recognizer proved it was alive (onstart/onresult).
+// iOS silently kills webkitSpeechRecognition on suspend without firing onend,
+// leaving a "zombie" that never advances. A stale heartbeat = dead recognizer.
+let __recogAlive=0;
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 if(SR){ recog=new SR(); recog.lang='en-US'; recog.interimResults=true; recog.continuous=false;
+  recog.onstart=()=>{ __recogAlive=Date.now(); };
   recog.onresult=(e)=>{
+    __recogAlive=Date.now();
     let t=''; for(let i=0;i<e.results.length;i++)t+=e.results[i][0].transcript;
     if(window.__voiceMode){ $('voTranscript').textContent=t; }
     else if(__streamDictation){ $('streamInput').value=t; }
@@ -1656,6 +1763,39 @@ function startListening(){ if(!SR||listening||speaking)return; listening=true;
   try{recog.start();}catch(e){ listening=false; if(window.__voiceMode) setTimeout(()=>{ if(window.__voiceMode&&!speaking) startListening(); },500); }
 }
 $('micBtn').addEventListener('click', ()=>{ if(!SR){ toast('Voice input not supported here.',true); return;} if(listening){recog.stop();return;} haptic(); startListening(); });
+
+/* ===== SUSPEND / RESUME RECOVERY =====
+   iOS suspends the speech recognizer (and throttles timers) when the PWA is
+   backgrounded or the screen locks. It often does NOT fire onend/onerror, so the
+   loop is left thinking it's still "listening" while the engine is dead — the orb
+   sits on "Listening…" forever and never responds. We recover two ways:
+   (1) on every return-to-foreground, and (2) a periodic watchdog that notices a
+   stale heartbeat. Both funnel through reviveVoiceLoop(), which hard-resets the
+   recognizer and restarts the listen→respond cycle from a clean state. */
+function reviveVoiceLoop(reason){
+  if(!SR || !window.__voiceMode) return;
+  if(speaking) return;                 // mid-reply: the speak path owns the resume
+  // Force the recognizer down, ignoring its (possibly zombie) internal state,
+  // then start a fresh listen. abort() is the hard kill; start() rebuilds the
+  // audio session iOS tore down on suspend.
+  try{ recog.abort(); }catch(e){}
+  listening=false;
+  voSetState('listening','Listening…'); $('voTranscript').textContent='';
+  setTimeout(()=>{ if(window.__voiceMode && !speaking && !listening) startListening(); }, 300);
+}
+// (1) Foreground return — the reliable signal across iOS PWA / Safari.
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState==='visible'){ setTimeout(()=>reviveVoiceLoop('visible'), 250); catchUpAll(); }
+});
+window.addEventListener('pageshow', ()=>{ setTimeout(()=>reviveVoiceLoop('pageshow'), 250); catchUpAll(); });
+window.addEventListener('focus', ()=>{ setTimeout(()=>reviveVoiceLoop('focus'), 250); });
+// (2) Watchdog: if we're supposed to be listening but the recognizer hasn't
+// proven itself alive in a while, it's a zombie — revive. Runs only in voice
+// mode so it costs nothing the rest of the time.
+setInterval(()=>{
+  if(!window.__voiceMode || speaking || !listening) return;
+  if(__recogAlive && (Date.now()-__recogAlive) > 12000) reviveVoiceLoop('watchdog');
+}, 4000);
 
 /* ===== VOICE CONVERSATION MODE (overlay, stays on tab, loops, speaks back) ===== */
 window.__voiceMode=false; let speaking=false; let ttsPrimed=false; let preferredVoice=null;
@@ -2042,10 +2182,9 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
       .finally(()=>{ clearTimeout(timer); if(onCancel && rrAbort) rrAbort.signal.removeEventListener('abort', onCancel); });
   }
   async function rrUpload(dataUrl, name){
-    const fd=new FormData(); fd.append('reqtype','fileupload'); fd.append('time','24h');
-    fd.append('fileToUpload', dataUrlToBlob(dataUrl), (name||'wp')+'.jpg');
-    const r=await rrFetch('https://litterbox.catbox.moe/resources/internals/api.php',{method:'POST',body:fd}, 60000);
-    const u=(await r.text()).trim(); if(!u.startsWith('http')) throw new Error('upload failed'); return u;
+    // Workpaper photos stay on the tailnet (see tailnetUpload). rrFetch keeps the
+    // per-upload timeout + cancellation behaviour of the rest of Review Radar.
+    return tailnetUpload(dataUrlToBlob(dataUrl), (name||'wp')+'.jpg', (u,o)=>rrFetch(u,o,60000));
   }
 
   // ---- compose: add / render / remove images ----
@@ -2082,7 +2221,7 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
     }
     lines.push(RR_SYSTEM);
     lines.push('');
-    lines.push('Here are the workpaper photos as a CONNECTED SET. Fetch each image with your vision tool. Each is preceded by its label so you can detect tie-outs that break across workpapers:');
+    lines.push('Here are the workpaper photos as a CONNECTED SET. For EACH image URL below, call your vision tool (vision_analyze) DIRECTLY ON THE URL — pass the https URL straight to the tool. Do NOT download the file, do NOT use the terminal, do NOT convert to a data URL, do NOT use the browser. The vision tool fetches the URL itself. Each image is preceded by its label so you can detect tie-outs that break across workpapers:');
     lines.push('');
     images.forEach((im,i)=>{
       lines.push('--- Workpaper '+(i+1)+': '+(im.label||im.name||('Image '+(i+1)))+' ---');
@@ -2149,9 +2288,20 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
     rrBusy=true; rrCancelled=false; rrAbort=new AbortController(); rrSyncCTA(); haptic();
     rrShow('loading'); rrStartLoadCycle();
     try{
-      // upload all (resized) images
-      const imgs=[];
-      for(const im of rrImages){ const url=await rrUpload(im.dataUrl, im.label||im.name); imgs.push({label:im.label||im.name, url, thumb:im.dataUrl}); }
+      // upload all (resized) images IN PARALLEL, with a live progress count so
+      // the user can SEE it working instead of a silent multi-photo wait. Order
+      // is preserved (Promise.all keeps array order) so the connected-set labels
+      // stay correct and cross-workpaper tie-out detection is untouched.
+      const subEl=$('rrLoadSub');
+      const total=rrImages.length; let done=0;
+      const setProg=()=>{ if(subEl) subEl.textContent='Uploaded '+done+' of '+total+' workpaper'+(total>1?'s':'')+'…'; };
+      setProg();
+      const imgs=await Promise.all(rrImages.map(async (im)=>{
+        const url=await rrUpload(im.dataUrl, im.label||im.name);
+        done++; setProg();
+        return {label:im.label||im.name, url, thumb:im.dataUrl};
+      }));
+      if(subEl) subEl.textContent='All workpapers in. Sent as one connected set so tie-outs across them get caught.';
       const body=rrBuildMessage(imgs);
       const sentAt=Math.floor(Date.now()/1000)-1;
       await rrFetch(`${NTFY}/${RR_AGENT.in}`,{method:'POST',body}, 30000);
