@@ -818,6 +818,8 @@
         <h3>Voice</h3>
         <div class="row"><span class="k">Read replies aloud</span><label class="switch"><input type="checkbox" id="ttsToggle"><span class="track"></span></label></div>
         <div class="note">When on, AETHER speaks answers in the Talk tab.</div>
+        <div class="row"><span class="k">⚡ Live mode (Claude-direct)</span><label class="switch"><input type="checkbox" id="liveToggle"><span class="track"></span></label></div>
+        <div class="note">Talk streams straight to Claude for instant replies; actions still go to Hermes. Needs voice_proxy.py running.</div>
       </div>
       <div class="card2">
         <h3>Review Radar · Privacy</h3>
@@ -1007,6 +1009,9 @@ const VAPID_PUBLIC = "BJDnPKy5bxemFNASfGNRCprskjmhnon32m3ksEypcK7RzcT5_6g3mbSEu_
 const SUB_TOPIC   = "hermes-yaro-jarvis-pwa-sub-426e9ec3";
 const STATE_TOPIC = "hermes-yaro-jarvis-state-85ec36fe";
 const NTFY = "https://yaro.tail6a3c7a.ts.net";
+// "Live" mode: stream straight to the Claude-direct voice proxy (voice_proxy.py)
+// over the tailnet, bypassing the ntfy poll loop. Empty string = feature off.
+const VOICE_PROXY = "https://yaro.tail6a3c7a.ts.net/aether-voice";
 
 const AGENTS = [
   { id:"jarvis",    label:"Assistant",  ic:"💧", in:"hermes-yaro-jarvis-in-c4e3ac0f",   out:"hermes-yaro-jarvis-7450b76f",      hint:"Your schedule, calendar, quick tasks." },
@@ -1457,7 +1462,53 @@ async function sendFromInput(){
     const urls=await uploadImages(imgs);
     if(urls.length===0){ toast('Image upload failed.',true); return; }
     askAgent(v||('Please review '+(urls.length>1?'these '+urls.length+' images':'this image')+'.'), false, urls);
-  } else askAgent(v,false);
+  } else if(liveOn()){ liveAsk(v); }
+  else askAgent(v,false);
+}
+
+/* ===== LIVE (Claude-direct) MODE =====
+   Streams straight to voice_proxy.py over the tailnet — Claude answers chat
+   instantly; only real actions are dispatched to Hermes by the proxy. Falls
+   back to the normal ntfy agent path on any failure so nothing is ever lost. */
+const liveOn = ()=> !!VOICE_PROXY && localStorage.getItem('aetherLive')==='1';
+let __liveHist = [];  // {role, content} pairs for proxy continuity (capped)
+async function liveAsk(text, silent){
+  if(!silent) pushMsg('me', text);
+  showTyping();
+  __liveHist.push({role:'user', content:text});
+  if(__liveHist.length>20) __liveHist=__liveHist.slice(-20);
+  let acc='', bubble=null;
+  const ensureBubble=()=>{ if(!bubble){ hideTyping(); bubble=document.createElement('div'); bubble.className='msg ai'; $('chatThread').appendChild(bubble); } };
+  try{
+    const r=await fetch(VOICE_PROXY+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:__liveHist})});
+    if(!r.ok||!r.body) throw new Error('proxy '+r.status);
+    const reader=r.body.getReader(), dec=new TextDecoder(); let buf='';
+    for(;;){
+      const {value,done}=await reader.read(); if(done) break;
+      buf+=dec.decode(value,{stream:true});
+      let i; while((i=buf.indexOf('\n\n'))>=0){
+        const line=buf.slice(0,i).trim(); buf=buf.slice(i+2);
+        if(!line.startsWith('data:')) continue;
+        let ev; try{ ev=JSON.parse(line.slice(5).trim()); }catch(e){ continue; }
+        if(ev.type==='text'){ ensureBubble(); acc+=ev.text; bubble.innerHTML=mdToHtml(acc); scrollChat(); }
+        else if(ev.type==='action'){ toast('⚡ '+(ev.result||ev.tool)); }
+        else if(ev.type==='error'){ throw new Error(ev.error||'proxy error'); }
+        else if(ev.type==='done'){ acc=ev.text||acc; }
+      }
+    }
+    hideTyping();
+    const reply=acc.trim();
+    if(reply){
+      if(bubble) bubble.remove();           // re-add via pushMsg so it persists + gets copy button
+      pushMsg('ai', reply);
+      __liveHist.push({role:'assistant', content:reply});
+      if(window.__voiceMode){ voiceModeAfterReply(reply); } else { enqueueSpeak(reply); }
+    } else if(window.__voiceMode && !speaking){ voSetState('listening','Listening…'); setTimeout(()=>{ if(window.__voiceMode&&!speaking) startListening(); }, 300); }
+  }catch(e){
+    if(bubble) bubble.remove(); hideTyping(); __liveHist.pop();
+    toast('Live proxy unreachable — using '+activeAgent.label+'.', true);
+    askAgent(text, true);                    // graceful fallback to the ntfy path
+  }
 }
 $('clearChat').addEventListener('click', ()=>{ startNewChat(); });
 
@@ -1586,7 +1637,7 @@ if(SR){ recog=new SR(); recog.lang='en-US'; recog.interimResults=true; recog.con
     listening=false; $('micBtn').classList.remove('listening'); $('homeMic')&&$('homeMic').classList.remove('rec'); $('streamMic')&&$('streamMic').classList.remove('listening');
     if(window.__voiceMode){
       const said=($('voTranscript').textContent||'').trim();
-      if(said){ voSetState('thinking','Thinking…'); $('voTranscript').textContent='“'+said+'”'; askAgent(said,false); }
+      if(said){ voSetState('thinking','Thinking…'); $('voTranscript').textContent='“'+said+'”'; if(liveOn()){ liveAsk(said); } else { askAgent(said,false); } }
       else { /* heard nothing — keep listening */ setTimeout(()=>{ if(window.__voiceMode && !speaking) startListening(); }, 500); }
       return;
     }
@@ -1767,6 +1818,11 @@ $('vssCancel').addEventListener('click', closeVoiceSessChooser);
 /* ===== TTS ===== */
 $('ttsToggle').checked = localStorage.getItem('aetherTTS')==='1';
 $('ttsToggle').addEventListener('change', function(){ localStorage.setItem('aetherTTS', this.checked?'1':'0'); if(this.checked) speak('Voice enabled.'); });
+if($('liveToggle')){
+  $('liveToggle').checked = localStorage.getItem('aetherLive')==='1';
+  if(!VOICE_PROXY){ $('liveToggle').disabled=true; }
+  $('liveToggle').addEventListener('change', function(){ localStorage.setItem('aetherLive', this.checked?'1':'0'); toast(this.checked?'⚡ Live mode on — instant Claude replies.':'Live mode off.'); });
+}
 function speak(text){ if(localStorage.getItem('aetherTTS')!=='1'||!window.speechSynthesis)return; const c=text.replace(/[*_`#>]/g,'').slice(0,500); const u=new SpeechSynthesisUtterance(c); u.rate=1.04; u.lang='en-US'; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); }
 
 /* ===== PUSH ===== */
