@@ -2307,6 +2307,26 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
     return lines.join('\n');
   }
 
+  // ---- per-image chunked gateway round-trip ----
+  // Sends each image individually so a slow model can't time out the whole batch.
+  async function rrSendChunked(imgs){
+    const subEl=$('rrLoadSub'); const allFindings=[]; let lastSummary='';
+    for(let ci=0;ci<imgs.length;ci++){
+      if(rrCancelled) return null;
+      const im=imgs[ci]; const imgLabel=im.label||im.name||('Workpaper '+(ci+1));
+      if(subEl) subEl.textContent='Reviewing '+(ci+1)+' of '+imgs.length+': '+imgLabel+'…';
+      try{
+        const body=rrBuildMessage([im]); const sentAt=Math.floor(Date.now()/1000)-1;
+        await rrFetch(`${NTFY}/${RR_AGENT.in}`,{method:'POST',body},30000);
+        const raw=await rrPollResult(sentAt);
+        if(rrCancelled) return null;
+        if(raw){ let p; try{ p=rrParse(raw); }catch(e){} if(p){ p.findings.forEach(f=>{ allFindings.push({...f,id:f.id||uid(),workpaper:f.workpaper||imgLabel}); }); lastSummary=p.summary||lastSummary; } }
+        if(ci<imgs.length-1 && subEl && allFindings.length) subEl.textContent='Found '+allFindings.length+' finding'+(allFindings.length!==1?'s':'')+' so far — reviewing next workpaper…';
+      }catch(e){ if(rrCancelled) return null; }
+    }
+    return allFindings.length ? {summary:lastSummary,findings:allFindings} : null;
+  }
+
   // ---- strict, defensive JSON extraction ----
   function rrParse(raw){
     let t=(raw||'').trim();
@@ -2376,21 +2396,13 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
         done++; setProg();
         return {label:im.label||im.name, url, thumb:im.dataUrl};
       }));
-      if(subEl) subEl.textContent='All workpapers in. Sent as one connected set so tie-outs across them get caught.';
-      const body=rrBuildMessage(imgs);
-      const sentAt=Math.floor(Date.now()/1000)-1;
-      await rrFetch(`${NTFY}/${RR_AGENT.in}`,{method:'POST',body}, 30000);
-      const raw=await rrPollResult(sentAt);
+      if(subEl) subEl.textContent='All workpapers uploaded — sending to reviewer…';
+      const result=await rrSendChunked(imgs);
       rrStopLoadCycle();
-      if(rrCancelled){ rrBusy=false; rrSyncCTA(); return; }   // user backed out — stay on compose
-      if(raw===null){ rrError("The reviewer didn't respond in time. It may be busy or the photos may be large — try again in a moment.", '', engagement, imgs); rrBusy=false; rrSyncCTA(); return; }
-      let parsed;
-      try{ parsed=rrParse(raw); }
-      catch(e){ rrError("The reviewer replied, but the response wasn't valid JSON ("+e.message+"). You can retry, or open the raw reply below.", raw, engagement, imgs); rrBusy=false; rrSyncCTA(); return; }
-      rrReview={ id:uid(), engagement, summary:parsed.summary, findings:parsed.findings, images:imgs.map(x=>({label:x.label,thumb:x.thumb})), createdAt:Date.now() };
-      rrUpsert(rrReview);
-      rrBusy=false; rrSyncCTA();
-      rrRenderResults();
+      if(rrCancelled){ rrBusy=false; rrSyncCTA(); return; }
+      if(!result){ rrError("The reviewer didn't respond for any workpaper. It may be busy or the photos may be large — try again in a moment.", '', engagement, imgs); rrBusy=false; rrSyncCTA(); return; }
+      rrReview={ id:uid(), engagement, summary:result.summary, findings:result.findings, images:imgs.map(x=>({label:x.label,thumb:x.thumb})), createdAt:Date.now() };
+      rrUpsert(rrReview); rrBusy=false; rrSyncCTA(); rrRenderResults();
     }catch(e){
       rrStopLoadCycle(); rrBusy=false; rrSyncCTA();
       if(rrCancelled) return;   // aborted by the user — error already handled by rrCancelReview
@@ -2431,13 +2443,10 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
   async function rrRetryWith(engagement, imgs){
     rrBusy=true; rrCancelled=false; rrAbort=new AbortController(); rrSyncCTA(); rrShow('loading'); rrStartLoadCycle();
     try{
-      const body=rrBuildMessage(imgs); const sentAt=Math.floor(Date.now()/1000)-1;
-      await rrFetch(`${NTFY}/${RR_AGENT.in}`,{method:'POST',body}, 30000);
-      const raw=await rrPollResult(sentAt); rrStopLoadCycle();
+      const result=await rrSendChunked(imgs); rrStopLoadCycle();
       if(rrCancelled){ rrBusy=false; rrSyncCTA(); return; }
-      if(raw===null){ rrError("Still no response from the reviewer. Try again shortly.", '', engagement, imgs); rrBusy=false; rrSyncCTA(); return; }
-      let parsed; try{ parsed=rrParse(raw); }catch(e){ rrError("Reply still wasn't valid JSON ("+e.message+").", raw, engagement, imgs); rrBusy=false; rrSyncCTA(); return; }
-      rrReview={ id:uid(), engagement, summary:parsed.summary, findings:parsed.findings, images:imgs.map(x=>({label:x.label,thumb:x.thumb})), createdAt:Date.now() };
+      if(!result){ rrError("Still no response from the reviewer. Try again shortly.", '', engagement, imgs); rrBusy=false; rrSyncCTA(); return; }
+      rrReview={ id:uid(), engagement, summary:result.summary, findings:result.findings, images:imgs.map(x=>({label:x.label,thumb:x.thumb})), createdAt:Date.now() };
       rrUpsert(rrReview); rrBusy=false; rrSyncCTA(); rrRenderResults();
     }catch(e){ rrStopLoadCycle(); rrBusy=false; rrSyncCTA(); if(rrCancelled) return; rrError('Retry failed: '+(e.message||'network error'), '', engagement, imgs); }
     finally{ rrAbort=null; }
