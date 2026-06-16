@@ -1301,14 +1301,14 @@ document.querySelectorAll('.nav button').forEach(b=>{
     document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
     document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
     b.classList.add('active'); $(b.dataset.screen).classList.add('active'); haptic();
-    if(b.dataset.screen==='screenChat'){ scrollChat(); }
+    if(b.dataset.screen==='screenChat'){ scrollChat(); startAmbient(); } else { stopAmbient(); }
     if(b.dataset.screen==='screenHome'){ loadState(); renderRecent(); }
     if(b.dataset.screen==='screenStream'){ startStream(); } else { stopStream(); }
     if(b.dataset.screen==='screenStudio'){ startStudio(); } else { stopStudio(); }
     if(b.dataset.screen==='screenSettings'){ renderCredits(); }
   });
 });
-function goChat(){ document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active')); document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.querySelector('.nav button[data-screen="screenChat"]').classList.add('active'); $('screenChat').classList.add('active'); scrollChat(); }
+function goChat(){ document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active')); document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.querySelector('.nav button[data-screen="screenChat"]').classList.add('active'); $('screenChat').classList.add('active'); scrollChat(); if(typeof startAmbient==='function') startAmbient(); }
 
 /* ===== STREAM + CREDITS button wiring ===== */
 $('streamClear') && $('streamClear').addEventListener('click', clearStream);
@@ -1358,10 +1358,13 @@ document.addEventListener('visibilitychange', ()=>{
   if(document.hidden){
     stopStatePoll();
     if(typeof stopStream==='function') stopStream();
+    if(typeof stopAmbient==='function') stopAmbient();
   }else{
     startStatePoll();
     const ss=$('screenStream');
     if(ss && ss.classList.contains('active') && typeof startStream==='function') startStream();
+    const sc=$('screenChat');
+    if(sc && sc.classList.contains('active') && typeof startAmbient==='function') startAmbient();
   }
 });
 
@@ -1841,14 +1844,18 @@ function pushMsg(role,text,extra){ const m={id:'m'+Date.now()+'_'+(++__msgSeq),r
 function updateMsgStatus(id,status){ const m=chatLog.find(x=>x.id===id); if(!m)return; if(status==='sent') delete m.status; else m.status=status; curSession.msgs=chatLog; persistSession(); renderChat(); }
 function showTyping(){ if($('typingRow'))return; const d=document.createElement('div'); d.className='typing'; d.id='typingRow'; d.innerHTML='<span></span><span></span><span></span>'; $('chatThread').appendChild(d); scrollChat(); }
 function hideTyping(){ const e=$('typingRow'); if(e)e.remove(); }
-// Transient Claude Code build step (e.g. "• Edit index.html"). Shown live below
-// the conversation but NOT persisted — the next renderChat (final reply) clears
-// these so reopened sessions stay clean. Typing dots stay pinned to the bottom.
+// Live activity line (tool step / build progress). Persisted as a lightweight
+// 'progress' message so you can watch the agent work continuously — the feed
+// stays in Talk until you start a new session (startNewChat clears chatLog).
+// Consecutive progress lines are capped so a long task can't bloat the thread.
 function renderProgressLine(text){
   const t=$('chatThread'); if(!t) return;
   hideTyping();
-  const d=document.createElement('div'); d.className='msg ai progress'; d.textContent=text;
-  t.appendChild(d); showTyping(); scrollChat();
+  // collapse runaway progress: keep at most the last 40 progress lines in a row
+  let run=0; for(let i=chatLog.length-1;i>=0 && chatLog[i].progress;i--) run++;
+  if(run>=40){ const idx=chatLog.findIndex(m=>m.progress); if(idx>=0){ chatLog.splice(idx,1); } }
+  pushMsg('ai', text, {progress:true});
+  showTyping(); scrollChat();
 }
 
 /* ===== CONNECTION STATUS PILL ===== */
@@ -1932,6 +1939,7 @@ async function askAgent(text, silent, imgUrls){
   pollReply(sentAt, silent, agent);
 }
 let __pollGen=0;  // generation token: a new poll cancels any older one
+let __turnActive=false;  // true while a pollReply turn owns the out-topic feed
 // Persistent dedup: remember which reply IDs we've already shown/spoken so a
 // reply cached on the server never gets re-announced when the app reopens.
 let __handledIds = (function(){ try{ return JSON.parse(localStorage.getItem('aetherHandledIds')||'[]'); }catch(e){ return []; } })();
@@ -1945,6 +1953,10 @@ function markHandled(id){
 }
 // Shared noise filter — interim/system chatter we never show or speak.
 function isNoiseMsg(m){ const t=(m||'').trim(); return !t||/top-up left/i.test(t)||/Credits \d+% used/i.test(t)||/^💾/.test(t)||/^⚠/.test(t)||/Self-improvement review/i.test(t)||/Memory updated/i.test(t)||/^•\s/.test(t)||/^✨ Session reset/i.test(t); }
+// Live "working" lines — tool steps / build progress we DO want to surface in Talk
+// as lightweight activity (not a final reply, never spoken). Conservative on
+// purpose: only clear progress markers, so a real sentence reply is never eaten.
+function isActivityLine(m){ const t=(m||'').trim(); return /^[•⌘⚙▸◇◈⬡△↳»]/.test(t)||/^(running|searching|fetching|reading|writing|editing|analy[sz]ing|thinking|scanning|parsing|cross-referenc)/i.test(t); }
 
 // ===== PER-AGENT SERVER SESSION BINDING =====
 // Each local chat is tied to a fresh gateway session. We only reset the agent's
@@ -2006,6 +2018,7 @@ async function catchUpAll(){ for(const a of AGENTS){ try{ await catchUpAgent(a);
 
 async function pollReply(sinceTs, silent, agent){
   const myGen=++__pollGen;     // claim this generation; older loops will see they're stale and exit
+  __turnActive=true;           // ambient poller backs off while a turn owns the feed
   // VOICE MODE: return after the FIRST real reply so the listen→speak→listen
   // loop can advance. TEXT MODE: listen for the whole task (streamed checkpoints)
   // with a quiet-gap window.
@@ -2032,10 +2045,10 @@ async function pollReply(sinceTs, silent, agent){
         if(o.time&&o.time<sinceTs)continue;
         if(alreadyHandled(o.id)) continue;                  // never re-speak across app restarts
         const msg=(o.message||'').trim(); sniffCredits(msg);
-        // Claude Code streams live tool steps ("• Edit index.html", "⌘ On it…").
-        // In Talk/text mode surface them as lightweight progress so you watch it
-        // work in real time instead of staring at a frozen typing dot.
-        const isProgress = agent.id==='builder' && !voice && /^[•⌘]/.test(msg);
+        // Live tool/build steps — surface them in Talk for EVERY agent so you
+        // watch it work in real time instead of staring at a frozen typing dot.
+        // (Was builder-only; now any agent that streams activity lines.)
+        const isProgress = !voice && (isActivityLine(msg) || (agent.id==='builder' && /^[•⌘]/.test(msg)));
         if(isNoise(msg) && !isProgress) continue;
         markHandled(o.id);
         sinceTs=Math.max(sinceTs,(o.time||Math.floor(Date.now()/1000)));
@@ -2055,6 +2068,7 @@ async function pollReply(sinceTs, silent, agent){
     await new Promise(r=>setTimeout(r, voice||agent.id==='builder'?1500:2500));
   }
   if(myGen!==__pollGen) return;
+  __turnActive=false;          // turn over — ambient poller may resume
   hideTyping();
   if(showWait) stopChatWait();
   if(voice && got===0 && !speaking){
@@ -2083,6 +2097,46 @@ function drainSpeakQ(){
   try{ window.speechSynthesis.speak(u); }catch(e){ next(); }
   setTimeout(()=>{ if(__speakBusy && !window.speechSynthesis.speaking){ next(); } }, Math.min(2500+c.length*70, 20000));
 }
+
+/* ===== AMBIENT ACTIVITY POLLER (Talk "always-on" live feed) =====
+   Keeps Talk showing the agent working even BETWEEN turns — e.g. a background
+   or cron task, or checkpoints streamed after you stepped away. Mirrors the
+   Stream poller but folds activity lines into the open Talk thread. Backs off
+   while a normal pollReply turn owns the out-topic (so we don't double-render),
+   and only runs while the Talk screen is visible. Persisted progress lines stay
+   until you start a new session. */
+let __ambTimer=null, __ambSince=0, __ambSeen=new Set(), __ambAgent=null;
+function ambientOn(){ return localStorage.getItem('aetherTalkLive')!=='0'; } // default ON
+async function ambientTick(){
+  if(__turnActive) return;                         // a live turn is already rendering this feed
+  const sc=$('screenChat'); if(!sc||!sc.classList.contains('active')) return;
+  const agent=activeAgent;
+  try{
+    const r=await fetch(`${NTFY}/${agent.out}/json?poll=1&since=${__ambSince}`,{cache:'no-store'});
+    const lines=(await r.text()).trim().split('\n').filter(Boolean);
+    for(const ln of lines){ let o; try{o=JSON.parse(ln);}catch(e){continue;}
+      if(o.event!=='message'||!o.id||__ambSeen.has(o.id))continue; __ambSeen.add(o.id);
+      __ambSince=Math.max(__ambSince,(o.time||Math.floor(Date.now()/1000)));
+      if(alreadyHandled(o.id)) continue;            // already shown/spoken by a turn
+      const msg=(o.message||'').trim(); sniffCredits(msg);
+      // Only fold in live ACTIVITY here. A real sentence reply that arrives with
+      // no active turn is handled by catchUpAgent (so it persists as a normal
+      // bubble + can be spoken), not duplicated here.
+      if(!isActivityLine(msg)) continue;
+      markHandled(o.id);
+      renderProgressLine(msg);
+    }
+  }catch(e){}
+}
+function startAmbient(){
+  if(!ambientOn()) return;
+  __ambAgent=activeAgent;
+  // backfill only a short window so reopening Talk doesn't dump stale steps
+  __ambSince=Math.floor(Date.now()/1000)-120;
+  if(__ambTimer) clearInterval(__ambTimer);
+  __ambTimer=setInterval(ambientTick, 2500);
+}
+function stopAmbient(){ if(__ambTimer){ clearInterval(__ambTimer); __ambTimer=null; } }
 
 $('sendBtn').addEventListener('click', sendFromInput);
 $('chatInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendFromInput(); } });
