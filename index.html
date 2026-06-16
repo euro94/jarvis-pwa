@@ -225,10 +225,11 @@
   .pb-go:active { transform:scale(.92); }
   .prompt-bar:active { transform:scale(.992); }
 
-  .cards { display:flex; gap:11px; margin:18px 0 8px; }
+  .cards { display:grid; grid-template-columns:repeat(3,1fr); gap:11px; margin:18px 0 8px; }
   .fcard {
-    flex:1; background:var(--card); border:1px solid var(--line); border-radius:var(--r-md);
-    padding:17px 10px; text-align:center; cursor:pointer; box-shadow:var(--e1), var(--hair);
+    background:var(--card); border:1px solid var(--line); border-radius:var(--r-md);
+    padding:16px 8px; min-height:96px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; cursor:pointer; box-shadow:var(--e1), var(--hair);
     -webkit-backdrop-filter:blur(14px) saturate(150%); backdrop-filter:blur(14px) saturate(150%);
     transition:transform .2s var(--ease-spring), border-color var(--t), background var(--t), box-shadow var(--t);
   }
