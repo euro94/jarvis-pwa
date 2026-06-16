@@ -494,6 +494,22 @@
 
   .st-seclbl { font-family:'JetBrains Mono',ui-monospace,monospace; font-size:10px; font-weight:700; letter-spacing:1.4px; text-transform:uppercase; color:var(--faint); margin:4px 2px 9px; }
 
+  /* engine selector — pick the coding model that ships the change */
+  .st-engines { display:flex; gap:8px; margin:0 0 18px; }
+  .st-eng { flex:1; display:flex; flex-direction:column; gap:3px; padding:11px 12px; border-radius:var(--r-md); border:1px solid var(--line); background:var(--card);
+    cursor:pointer; transition:all var(--t); text-align:left; position:relative; -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); }
+  .st-eng:hover { border-color:var(--gold2); transform:translateY(-1px); }
+  .st-eng:active { transform:scale(.97); }
+  .st-eng:focus-visible { box-shadow:var(--ring); }
+  .st-eng .st-engn { display:flex; align-items:center; gap:7px; font-size:13px; font-weight:700; color:var(--fg); letter-spacing:.1px; }
+  .st-eng .st-engn .st-engic { font-size:15px; }
+  .st-eng .st-engd { font-size:10.5px; color:var(--faint); line-height:1.35; }
+  .st-eng.sel { border-color:var(--gold); background:linear-gradient(150deg, rgba(243,199,90,.16), var(--card)); box-shadow:0 4px 16px rgba(243,199,90,.16), var(--hair); }
+  .st-eng.sel .st-engn { color:var(--gold); }
+  .st-eng.sel::after { content:"✓"; position:absolute; top:9px; right:11px; color:var(--gold); font-weight:700; font-size:12px; }
+  .st-eng.disabled { opacity:.45; pointer-events:none; }
+  .st-eng.disabled .st-engd { color:var(--danger); }
+
   /* target-screen picker */
   .st-targets { display:flex; gap:7px; overflow-x:auto; -webkit-overflow-scrolling:touch; padding:1px 2px 4px; margin:0 -2px 18px; scrollbar-width:none; }
   .st-targets::-webkit-scrollbar { display:none; }
@@ -1067,6 +1083,9 @@
         <button class="st-reload" id="stReload">Load it ↻</button>
       </div>
 
+      <div class="st-seclbl">Engine</div>
+      <div class="st-engines" id="stEngines"></div>
+
       <div class="st-seclbl">Where</div>
       <div class="st-targets" id="stTargets"></div>
 
@@ -1602,6 +1621,16 @@ const ST_INTENTS = [
 ];
 let __stIntent=null, __stTarget='', __stTimer=null, __stSince=0, __stSeen=new Set(), __stLastShipTs=0;
 
+/* Selectable coding engines. Both genuinely edit + git push the repo via the
+   host builder bridge (which routes on a [engine:X] prefix). 'enabled' lets us
+   grey out an engine the bridge can't run rather than show a fake button. */
+const ST_ENGINES = [
+  { id:'claude', label:'Claude Code', ic:'⌘', d:'Anthropic CLI · multi-turn, streams steps', enabled:true },
+  { id:'hermes', label:'Hermes',      ic:'▣', d:'Your own agent · one-shot, full toolset', enabled:true },
+];
+let __stEngine = localStorage.getItem('aetherStudioEngine') || 'claude';
+if(!ST_ENGINES.some(e=>e.id===__stEngine && e.enabled)) __stEngine='claude';
+
 function stBuildPrompt(){
   const free=($('stInput').value||'').trim();
   const intent=ST_INTENTS.find(i=>i.id===__stIntent);
@@ -1613,19 +1642,38 @@ function stBuildPrompt(){
   if(free) body.push('Specific request: '+free);
   if(!intent && !free) return null;
   const rules=' Honor the existing design system: reuse the CSS custom-property tokens (colors, --r-* radii, --e* elevation, fonts), keep WCAG AA contrast, preserve the desktop device-frame and dark theme, and keep changes surgical. When done, git pull --rebase, commit, and push so GitHub Pages redeploys. Reply in one or two sentences on what changed.';
-  return head+body.join(' ')+rules;
+  // engine prefix is parsed + stripped by the host bridge to pick the model
+  return '[engine:'+__stEngine+'] '+head+body.join(' ')+rules;
 }
+function stEngineLabel(){ const e=ST_ENGINES.find(x=>x.id===__stEngine); return e?e.label:'Claude Code'; }
 function stRefreshNote(){
   const note=$('stNote'); if(!note) return;
   const intent=ST_INTENTS.find(i=>i.id===__stIntent);
   const tgt=ST_TARGETS.find(t=>t.id===__stTarget);
   if(__stIntent || ($('stInput').value||'').trim()){
-    note.innerHTML='<b>'+(intent?intent.t:'Custom')+'</b> · '+(tgt?tgt.label:'Whole app')+' → Claude Code';
+    note.innerHTML='<b>'+(intent?intent.t:'Custom')+'</b> · '+(tgt?tgt.label:'Whole app')+' → '+stEngineLabel();
   } else {
-    note.innerHTML='Pick an intent above, or just describe the change. Ships to <b>Claude Code</b>.';
+    note.innerHTML='Pick an intent above, or just describe the change. Ships to <b>'+stEngineLabel()+'</b>.';
   }
 }
 function renderStudioControls(){
+  const en=$('stEngines');
+  if(en && !en.children.length){
+    for(const e of ST_ENGINES){
+      const b=document.createElement('button');
+      b.className='st-eng'+(e.id===__stEngine?' sel':'')+(e.enabled?'':' disabled');
+      b.dataset.e=e.id;
+      b.innerHTML='<div class="st-engn"><span class="st-engic">'+e.ic+'</span>'+e.label+'</div><div class="st-engd">'+(e.enabled?e.d:'Not available on this host')+'</div>';
+      if(e.enabled){
+        b.addEventListener('click', ()=>{
+          __stEngine=e.id; localStorage.setItem('aetherStudioEngine', e.id);
+          en.querySelectorAll('.st-eng').forEach(x=>x.classList.toggle('sel', x.dataset.e===__stEngine));
+          stRefreshNote(); haptic();
+        });
+      }
+      en.appendChild(b);
+    }
+  }
   const tg=$('stTargets');
   if(tg && !tg.children.length){
     for(const t of ST_TARGETS){
@@ -1710,14 +1758,14 @@ async function shipStudio(){
   const btn=$('stShip'); btn.classList.add('busy'); btn.disabled=true; haptic();
   const echo=(($('stInput').value||'').trim()) || (ST_INTENTS.find(i=>i.id===__stIntent)||{}).t || 'Design change';
   const tgt=ST_TARGETS.find(t=>t.id===__stTarget);
-  renderStudioQuery((tgt&&tgt.id?('['+tgt.label+'] '):'')+echo);
+  renderStudioQuery((tgt&&tgt.id?('['+tgt.label+'] '):'')+echo+'  ·  '+stEngineLabel());
   __stLastShipTs=Math.floor(Date.now()/1000);
   hideStudioDeploy();
   // make sure we're polling the builder feed
   if(!__stTimer) startStudio();
   try{
     await fetch(`${NTFY}/${ST_BUILDER.in}`,{method:'POST',body:prompt});
-    toast('Shipped to Claude Code →');
+    toast('Shipped to '+stEngineLabel()+' →');
     $('stInput').value=''; $('stInput').style.height='auto';
     __stIntent=null; const gr=$('stGrid'); if(gr) gr.querySelectorAll('.st-chip').forEach(x=>x.classList.remove('sel')); stRefreshNote();
   }catch(e){ toast('Could not reach the builder.',true); }

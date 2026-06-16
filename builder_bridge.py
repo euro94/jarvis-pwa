@@ -26,7 +26,7 @@ SECURITY — read this:
     permissions grants blanket power; only do that on fully trusted infra.
   * MAX_BUDGET_USD caps spend per request so a runaway can't drain your credits.
 """
-import json, os, socket, subprocess, sys, time, urllib.request, shutil
+import json, os, re, socket, subprocess, sys, time, urllib.request, shutil
 
 # ---- config ----
 NTFY      = os.environ.get("AETHER_NTFY", "https://yaro.tail6a3c7a.ts.net")
@@ -63,6 +63,28 @@ def _resolve_claude():
     return cand[0] if cand else "claude"
 
 CLAUDE_BIN = _resolve_claude()
+
+# ---- Hermes engine (second shippable engine) ----
+# `hermes -z "<prompt>" --yolo -t terminal,file` runs one-shot in this repo and
+# prints ONLY the final reply to stdout. It can edit files + git push just like
+# Claude Code, so "Send to Hermes" is a REAL engine, not a stub.
+def _resolve_hermes():
+    if os.environ.get("HERMES_BIN"):
+        return os.environ["HERMES_BIN"]
+    cand = [
+        os.path.expanduser(r"~/AppData/Local/hermes/hermes-agent/venv/Scripts/hermes.exe"),
+        shutil.which("hermes.exe") or "",
+        shutil.which("hermes") or "",
+    ]
+    for c in cand:
+        if c and os.path.exists(c):
+            if os.name == "nt" and not c.lower().endswith((".exe", ".cmd", ".bat")):
+                continue
+            return c
+    return cand[0] if cand else "hermes"
+
+HERMES_BIN = _resolve_hermes()
+DEFAULT_ENGINE = os.environ.get("BUILDER_DEFAULT_ENGINE", "claude")  # claude | hermes
 
 # SCOPED AUTONOMY (hardened default): can read/edit/write files and run git,
 # python, node, npm — enough to build AND ship the app — but cannot run arbitrary
@@ -189,6 +211,52 @@ def run_claude(prompt):
         post("⚠ Claude Code exited with an error.\n" + err[-1500:])
 
 
+# ---- run Hermes headlessly (one-shot, edits + ships the repo) ----
+HERMES_SYSTEM = (
+    "You are AETHER's Hermes build engine, invoked from Yaro's phone (Design "
+    "Studio). Your working directory IS the euro94/jarvis-pwa repo — the source "
+    "of this very app. Make the requested DESIGN/code change to index.html, keep "
+    "edits surgical, reuse the existing CSS token system, keep WCAG AA contrast. "
+    "BEFORE pushing run `git pull --rebase origin main`; then commit (clear "
+    "message) and `git push origin main` so GitHub Pages redeploys. Reply in one "
+    "or two sentences on exactly what changed."
+)
+
+def run_hermes(prompt):
+    if not (HERMES_BIN and os.path.exists(HERMES_BIN)):
+        post("⚠ Hermes engine not found — set HERMES_BIN env var.")
+        return
+    full = HERMES_SYSTEM + "\n\n--- TASK ---\n" + prompt
+    cmd = [HERMES_BIN, "-z", full, "--yolo", "-t", "terminal,file"]
+    post("• Hermes engine working in the repo…")
+    try:
+        proc = subprocess.Popen(cmd, cwd=REPO, stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE, text=True)
+    except Exception as e:
+        post("⚠ Couldn't launch Hermes: " + str(e))
+        return
+    try:
+        out, err = proc.communicate(timeout=900)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        post("⚠ Hermes timed out after 15 min.")
+        return
+    out = (out or "").strip()
+    err = (err or "").strip()
+    if out:
+        post(out)
+    if proc.returncode and not out:
+        post("⚠ Hermes exited with an error.\n" + err[-1500:])
+
+
+# ---- dispatch to the selected engine ----
+def dispatch(engine, prompt):
+    if engine == "hermes":
+        run_hermes(prompt)
+    else:
+        run_claude(prompt)
+
+
 # ---- single-instance lock (so a double-start is harmless: loser exits) ----
 _LOCK_SOCK = None
 def acquire_single_instance(port=48762):
@@ -209,11 +277,14 @@ def main():
         print("Another builder bridge already holds the lock — exiting.", file=sys.stderr)
         return
     print(f"Builder bridge up. claude={CLAUDE_BIN}")
+    print(f"  hermes={HERMES_BIN}  default_engine={DEFAULT_ENGINE}")
     print(f"  listening: {NTFY}/{IN_TOPIC}")
     print(f"  replying:  {NTFY}/{OUT_TOPIC}")
     if not (CLAUDE_BIN and os.path.exists(CLAUDE_BIN)):
         print("WARNING: claude binary not found — set CLAUDE_BIN env var.", file=sys.stderr)
-    post("⌘ Claude Code bridge online. Send a message to build.", title="builder-online")
+    if not (HERMES_BIN and os.path.exists(HERMES_BIN)):
+        print("WARNING: hermes binary not found — Hermes engine disabled.", file=sys.stderr)
+    post("⌘ Build bridge online — Claude Code + Hermes engines ready.", title="builder-online")
 
     seen = set()
     since = int(time.time())
@@ -249,9 +320,21 @@ def main():
                         post("✨ Fresh Claude Code session — context reset.")
                         continue
 
-                    print("→", msg[:80])
-                    post("⌘ On it…", title="builder-ack")
-                    run_claude(msg)
+                    # Parse an optional [engine:claude|hermes] prefix from the app.
+                    engine = DEFAULT_ENGINE
+                    m = re.match(r"^\s*\[engine:([a-zA-Z]+)\]\s*", msg)
+                    if m:
+                        engine = m.group(1).lower()
+                        msg = msg[m.end():].strip()
+                    if engine not in ("claude", "hermes"):
+                        engine = "claude"
+                    if not msg:
+                        continue
+
+                    print("→", f"[{engine}]", msg[:80])
+                    label = "⌘ Claude Code on it…" if engine == "claude" else "▣ Hermes on it…"
+                    post(label, title="builder-ack")
+                    dispatch(engine, msg)
         except Exception as e:
             print("poll err:", e, file=sys.stderr)
         # keep the dedup set from growing forever
