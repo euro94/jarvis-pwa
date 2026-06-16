@@ -20,16 +20,18 @@
     --bg:#04070e; --bg-2:#070d18;
     --card:rgba(10,18,32,.62); --card-solid:#0a1320;
     --card-hi:rgba(14,26,44,.82);
-    --fg:#dbe8f6; --dim:#8298b4; --faint:#566c8c;
+    /* neutral text ramp — evenly stepped for clear hierarchy, all AA on the deep navy ground */
+    --fg:#dbe8f6; --dim:#92a9c5; --faint:#6f88aa;
     --line:rgba(60,210,255,.16); --line-2:rgba(60,210,255,.07);
     --usr:rgba(60,210,255,.12);
     /* brand — aether cyan + gold accent */
-    --teal:#3ce6ff; --teal2:#13c4e6; --cyan:#3ce6ff; --blue:#3ce6ff; --indigo:#8298b4;
+    --teal:#3ce6ff; --teal2:#13c4e6; --cyan:#3ce6ff; --blue:#3ce6ff; --indigo:#92a9c5;
     --gold:#f3c75a; --gold2:#dca838;
-    /* semantic layer — warm/red hues outside the cool brand band so colour carries meaning */
+    /* semantic layer — a full meaning-bearing triad: green=go, gold=caution, red=stop;
+       success uses a teal-green analogous to (yet distinct from) the cyan brand band so it reads as its own state */
     --warn:#f3c75a; --warn-bg:rgba(243,199,90,.14); --warn-line:rgba(243,199,90,.34);
     --danger:#ff6173; --danger-bg:rgba(255,97,115,.14); --danger-line:rgba(255,97,115,.36);
-    --success:#3ce6ff; --success-bg:rgba(60,210,255,.12); --success-line:rgba(60,210,255,.34);
+    --success:#34e0b4; --success-bg:rgba(52,224,180,.13); --success-line:rgba(52,224,180,.34);
     --gem-0:#0a3d8f; --gem-1:#0a84d6; --gem-2:#3ce6ff;
     --safe-b:env(safe-area-inset-bottom);
     /* signature gradients */
@@ -579,7 +581,7 @@
   .st-row.k-you  { border-left-color:var(--gold); background:rgba(243,199,90,.08); }
   .st-row.k-tool { border-left-color:#7c8fa2; }
   .st-row.k-msg  { border-left-color:var(--gold2); }
-  .st-row.k-ship { border-left-color:var(--success); background:rgba(60,210,255,.08); }
+  .st-row.k-ship { border-left-color:var(--success); background:var(--success-bg); }
   .st-row.k-warn { border-left-color:var(--danger); }
   .st-ric { font-size:15px; line-height:1.5; flex:0 0 auto; }
   .st-rbody { flex:1; min-width:0; }
