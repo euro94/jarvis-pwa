@@ -4,45 +4,56 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="AETHER">
-<meta name="theme-color" content="#EEF3FA">
+<meta name="theme-color" content="#04070e">
 <title>AETHER</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Saira:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    /* ===== BRIGHT AETHER — luminous white glass design system ===== */
+    /* ===== AETHER-OS — dark navy / cyan cyberpunk HUD design system ===== */
     /* surfaces */
-    --bg:#EEF3FA; --bg-2:#FFFFFF;
-    --card:rgba(255,255,255,.72); --card-solid:#FFFFFF;
-    --card-hi:rgba(255,255,255,.92);
-    --fg:#0C1A2E; --dim:#52647D; --faint:#90A1B8;
-    --line:rgba(12,26,46,.10); --line-2:rgba(12,26,46,.055);
-    --usr:rgba(10,110,200,.10);
-    /* brand — aether gem + aqua (tuned for light) */
-    --teal:#0EA59B; --teal2:#0C9C95; --cyan:#0891B2; --blue:#2563EB; --indigo:#5A6E8C;
-    /* semantic layer — warm hues outside the cool brand band so colour can carry meaning */
-    --warn:#B5730A; --warn-bg:rgba(181,115,10,.12); --warn-line:rgba(181,115,10,.32);
-    --danger:#C73843; --danger-bg:rgba(199,56,67,.12); --danger-line:rgba(199,56,67,.34);
-    --success:#1B9C6E; --success-bg:rgba(27,156,110,.12); --success-line:rgba(27,156,110,.32);
-    --gem-0:#0A3D8F; --gem-1:#0A84D6; --gem-2:#21E6FF;
+    --bg:#04070e; --bg-2:#070d18;
+    --card:rgba(10,18,32,.62); --card-solid:#0a1320;
+    --card-hi:rgba(14,26,44,.82);
+    --fg:#dbe8f6; --dim:#8298b4; --faint:#566c8c;
+    --line:rgba(60,210,255,.16); --line-2:rgba(60,210,255,.07);
+    --usr:rgba(60,210,255,.12);
+    /* brand — aether cyan + gold accent */
+    --teal:#3ce6ff; --teal2:#13c4e6; --cyan:#3ce6ff; --blue:#3ce6ff; --indigo:#8298b4;
+    --gold:#f3c75a; --gold2:#dca838;
+    /* semantic layer — warm/red hues outside the cool brand band so colour carries meaning */
+    --warn:#f3c75a; --warn-bg:rgba(243,199,90,.14); --warn-line:rgba(243,199,90,.34);
+    --danger:#ff6173; --danger-bg:rgba(255,97,115,.14); --danger-line:rgba(255,97,115,.36);
+    --success:#3ce6ff; --success-bg:rgba(60,210,255,.12); --success-line:rgba(60,210,255,.34);
+    --gem-0:#0a3d8f; --gem-1:#0a84d6; --gem-2:#3ce6ff;
     --safe-b:env(safe-area-inset-bottom);
     /* signature gradients */
-    --grad:linear-gradient(105deg,#0A3D8F 0%,#0A84D6 48%,#21E6FF 100%);
-    --grad-soft:linear-gradient(135deg,#16306f 0%,#1E7197 55%,#3aa8b0 100%);
-    --grad-bubble:linear-gradient(150deg,#14B8A6 0%,#2563EB 100%);
-    --glow-teal:rgba(14,165,155,.30); --glow-cyan:rgba(8,145,178,.28);
+    --grad:linear-gradient(105deg,#0a7da0 0%,#13c4e6 48%,#3ce6ff 100%);
+    --grad-soft:linear-gradient(135deg,#072036 0%,#0a3a55 55%,#0d5f6e 100%);
+    --grad-bubble:linear-gradient(150deg,#0d8fb8 0%,#3ce6ff 100%);
+    --glow-teal:rgba(60,210,255,.45); --glow-cyan:rgba(60,210,255,.5);
     /* shape + motion */
     --r-sm:12px; --r-md:18px; --r-lg:24px; --r-xl:32px; --r-pill:999px;
-    /* layered, lightly tinted elevation for real float on white */
-    --e1:0 .5px 1px rgba(16,32,60,.04), 0 2px 5px rgba(16,32,60,.05), 0 10px 22px rgba(20,50,100,.06);
-    --e2:0 1px 2px rgba(16,32,60,.05), 0 8px 20px rgba(16,32,60,.08), 0 26px 56px rgba(20,50,100,.14);
-    --e3:0 2px 8px rgba(16,32,60,.06), 0 34px 80px rgba(20,60,120,.18);
-    --hair:inset 0 1px 0 rgba(255,255,255,.75);
-    --ring:0 0 0 3px rgba(37,99,235,.18);
+    /* layered elevation tuned for deep navy ground */
+    --e1:0 .5px 1px rgba(0,0,0,.3), 0 2px 6px rgba(0,0,0,.4), 0 10px 24px rgba(2,12,28,.5);
+    --e2:0 1px 2px rgba(0,0,0,.4), 0 10px 26px rgba(2,12,28,.55), 0 28px 60px rgba(0,0,0,.6);
+    --e3:0 2px 10px rgba(0,0,0,.5), 0 36px 84px rgba(0,0,0,.66);
+    --hair:inset 0 1px 0 rgba(120,230,255,.14);
+    --ring:0 0 0 3px rgba(60,210,255,.30);
     --ease:cubic-bezier(.22,.9,.3,1); --ease-spring:cubic-bezier(.34,1.56,.64,1); --t:.22s;
   }
+  body { font-family:'Saira',-apple-system,BlinkMacSystemFont,system-ui,sans-serif; }
+  .brandblock .name, .greet .h1, .greet .h2, .chat-top .nm, .stream-title,
+  .vss-h, .rr-head .rr-ttl, .rr-dr-title, .hd-head, .stat .v, .stat.streak .v,
+  #logSheet .ttl { font-family:'Chakra Petch','Saira',sans-serif; }
+  .section-h, .stat .k, .qa span, .fcard .lbl, .card2 h3, .nav button,
+  .vo-status, .rr-row .rr-tag, .si-when, .rr-saved .rr-saved-h, .rr-dr-sec .rr-dr-k,
+  .brandblock .tag, .vss-sub { font-family:'JetBrains Mono',ui-monospace,monospace; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body { margin:0; height:100%; overflow:hidden; }
   body {
@@ -51,21 +62,55 @@
     -webkit-font-smoothing:antialiased; display:flex; flex-direction:column; height:100dvh;
     background:var(--bg);
   }
-  /* living aurora field behind everything */
+  /* ===== DESKTOP DEVICE FRAME =====
+     This is a phone-first PWA. On a wide screen, instead of stretching the
+     mobile layout edge-to-edge (the #1 "it's just a website" tell), we present
+     it inside a centered device shell: capped width, rounded bezel, floating
+     elevation, on a calm ambient backdrop. On a phone it's untouched, full-bleed. */
+  @media (min-width:768px){
+    html { background:radial-gradient(120% 120% at 50% 0%, #0a1424 0%, #060c18 48%, #03060d 100%); }
+    body {
+      width:min(440px, 96vw);
+      height:min(940px, 96dvh);
+      margin:auto;
+      border-radius:46px;
+      overflow:hidden;
+      box-shadow:
+        0 2px 6px rgba(0,0,0,.5),
+        0 30px 70px rgba(0,0,0,.6),
+        0 60px 140px rgba(2,12,28,.55),
+        inset 0 0 0 1.5px rgba(60,210,255,.22),
+        inset 0 0 0 8px #070c16,
+        inset 0 0 0 9.5px rgba(60,210,255,.10);
+    }
+    /* keep the lab field clipped to the device, not the whole desktop */
+    body::before { border-radius:38px; }
+  }
+  @media (min-width:768px) and (prefers-color-scheme:dark){
+    html { background:radial-gradient(120% 120% at 50% 0%, #0d1830 0%, #0a1224 50%, #070d1a 100%); }
+  }
+  /* living lab field behind everything — dark navy + cyan grid */
   body::before {
     content:""; position:fixed; inset:0; z-index:0; pointer-events:none;
     background:
-      radial-gradient(90% 60% at 50% -12%, rgba(255,255,255,.9), transparent 60%),
-      radial-gradient(120% 80% at 10% -8%, rgba(8,145,178,.13), transparent 52%),
-      radial-gradient(120% 80% at 94% 2%, rgba(37,99,235,.12), transparent 50%),
-      radial-gradient(140% 90% at 50% 114%, rgba(14,165,155,.12), transparent 55%),
-      linear-gradient(180deg,#F5F9FE 0%,#EEF3FA 56%,#E5ECF6 100%);
+      radial-gradient(90% 60% at 50% -12%, rgba(60,210,255,.10), transparent 58%),
+      radial-gradient(120% 80% at 8% -8%, rgba(20,140,200,.16), transparent 52%),
+      radial-gradient(120% 80% at 94% 4%, rgba(60,210,255,.10), transparent 50%),
+      radial-gradient(140% 90% at 50% 116%, rgba(190,150,50,.08), transparent 55%),
+      radial-gradient(125% 95% at 50% -12%,#0a1828 0%,#05080f 52%,#03050b 100%);
   }
   body::after {
-    content:""; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.45;
-    background-image:radial-gradient(rgba(12,26,46,.05) 1px, transparent 1px);
-    background-size:3px 3px;
+    content:""; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.5;
+    background-image:
+      linear-gradient(rgba(60,210,255,.05) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(60,210,255,.05) 1px,transparent 1px);
+    background-size:64px 64px;
+    -webkit-mask:radial-gradient(circle at 50% 38%,#000 0%,transparent 74%);
+            mask:radial-gradient(circle at 50% 38%,#000 0%,transparent 74%);
+    animation:gridDrift 28s linear infinite;
   }
+  @keyframes gridDrift { from{background-position:0 0,0 0;} to{background-position:64px 64px,64px 64px;} }
+  @media (prefers-reduced-motion: reduce){ body::after{ animation:none; } }
   .screen { position:relative; z-index:1; flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; display:none; }
   .screen.active { display:block; animation:scrIn .42s var(--ease) both; }
   @keyframes scrIn { from{opacity:0; transform:translateY(10px) scale(.992); filter:blur(2px);} to{opacity:1; transform:none; filter:none;} }
@@ -86,7 +131,7 @@
   @media (prefers-reduced-motion: reduce){ .brandblock img{ animation:none; } }
   .brandblock .name {
     font-weight:800; letter-spacing:10px; font-size:23px; margin:13px 0 0 10px;
-    background:linear-gradient(100deg,#0B2A66,#0A84D6 58%,#0891B2);
+    background:linear-gradient(100deg,#bfe9ff,#3ce6ff 55%,#7fd6ff);
     -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
   }
   .brandblock .tag { font-size:9px; letter-spacing:4px; color:var(--faint); font-weight:700; margin-top:8px; text-transform:uppercase; }
@@ -94,7 +139,7 @@
   .greet .h1 { font-size:27px; font-weight:700; color:var(--fg); line-height:1.22; letter-spacing:-.5px; }
   .greet .h2 {
     font-size:27px; font-weight:700; line-height:1.22; letter-spacing:-.5px;
-    background:linear-gradient(95deg,#0E9E96,#0A84D6);
+    background:linear-gradient(95deg,#3ce6ff,#9bdcff);
     -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
   }
 
@@ -103,9 +148,9 @@
     position:relative; overflow:hidden; cursor:pointer;
     border-radius:var(--r-xl); padding:24px 22px; min-height:132px;
     display:flex; align-items:center; justify-content:center;
-    background:linear-gradient(160deg,#0B2A66 0%,#0E5E97 52%,#1AA6B4 100%);
-    box-shadow:0 10px 24px rgba(11,42,102,.28), 0 30px 64px rgba(11,42,102,.34), inset 0 2px 1px rgba(255,255,255,.32), inset 0 -16px 40px rgba(4,18,48,.28);
-    border:1px solid rgba(120,210,235,.28);
+    background:linear-gradient(155deg,#072036 0%,#0a3a55 50%,#0d5f6e 100%);
+    box-shadow:0 16px 40px rgba(4,18,40,.6), 0 30px 64px rgba(2,12,28,.5), inset 0 1px 0 rgba(120,230,255,.3), inset 0 -18px 44px rgba(2,12,28,.5);
+    border:1px solid rgba(60,210,255,.32);
     transition:transform .2s var(--ease-spring), box-shadow .2s var(--ease);
   }
   .prompt-bar::after {
@@ -215,13 +260,13 @@
   /* ===== CHAT ===== */
   .chat-top {
     display:flex; align-items:center; gap:10px; padding:calc(env(safe-area-inset-top) + 12px) 16px 12px;
-    border-bottom:1px solid var(--line); background:rgba(255,255,255,.72);
+    border-bottom:1px solid var(--line); background:rgba(7,13,22,.78);
     -webkit-backdrop-filter:blur(18px) saturate(140%); backdrop-filter:blur(18px) saturate(140%);
   }
-  .chat-top img { width:28px; height:28px; filter:drop-shadow(0 3px 10px rgba(8,145,178,.35)); }
+  .chat-top img { width:28px; height:28px; filter:drop-shadow(0 3px 10px rgba(60,210,255,.45)); }
   .chat-top .nm {
     font-weight:800; letter-spacing:4px; font-size:15px;
-    background:linear-gradient(90deg,#0B2A66,#0891B2);
+    background:linear-gradient(90deg,#bfe9ff,#3ce6ff);
     -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
   }
   .topbtn {
@@ -237,7 +282,7 @@
   #histScrim.open { opacity:1; pointer-events:auto; }
   #histDrawer {
     position:fixed; top:0; left:0; bottom:0; width:82%; max-width:340px; z-index:91;
-    background:linear-gradient(180deg,#FFFFFF,#F3F7FC); border-right:1px solid var(--line);
+    background:linear-gradient(180deg,#081120,#04070e); border-right:1px solid var(--line);
     transform:translateX(-100%); transition:transform .28s var(--ease); box-shadow:18px 0 50px rgba(16,32,60,.18);
     display:flex; flex-direction:column; padding-top:env(safe-area-inset-top);
   }
@@ -336,7 +381,7 @@
   .btn-ghost { background:var(--card); color:var(--fg); border:1px solid var(--line); box-shadow:var(--e1); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); }
   .btn-ghost:hover { border-color:rgba(37,99,235,.3); }
   .note { color:var(--faint); font-size:12.5px; margin-top:10px; line-height:1.55; }
-  textarea.subbox { width:100%; height:100px; margin-top:10px; background:#F3F7FC; color:var(--dim); border:1px solid var(--line); border-radius:12px; padding:10px; font-size:11px; font-family:ui-monospace,monospace; display:none; }
+  textarea.subbox { width:100%; height:100px; margin-top:10px; background:#070d18; color:var(--dim); border:1px solid var(--line); border-radius:12px; padding:10px; font-size:11px; font-family:ui-monospace,monospace; display:none; }
   #modelSelect, select { width:100%; margin-top:10px; padding:13px; border-radius:12px; border:1px solid var(--line); background:var(--bg-2); color:var(--fg); font-size:14px; }
   #ttsToggle { position:absolute; opacity:0; pointer-events:none; }
   .switch { position:relative; display:inline-block; width:50px; height:30px; cursor:pointer; flex:0 0 auto; }
@@ -368,9 +413,9 @@
   /* ===== STREAM mode ===== */
   #screenStream.active { display:flex; flex-direction:column; overflow:hidden; }
   .stream-top { display:flex; align-items:center; gap:10px; padding:calc(env(safe-area-inset-top) + 14px) 16px 10px;
-    border-bottom:1px solid var(--line); background:rgba(255,255,255,.72); -webkit-backdrop-filter:blur(18px) saturate(140%); backdrop-filter:blur(18px) saturate(140%); }
+    border-bottom:1px solid var(--line); background:rgba(7,13,22,.78); -webkit-backdrop-filter:blur(18px) saturate(140%); backdrop-filter:blur(18px) saturate(140%); }
   .stream-title { font-weight:800; letter-spacing:3px; font-size:15px; display:flex; align-items:center; gap:9px;
-    background:linear-gradient(90deg,#0B2A66,#0891B2); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+    background:linear-gradient(90deg,#bfe9ff,#3ce6ff); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
   .live-dot { width:9px; height:9px; border-radius:50%; background:var(--faint); flex:0 0 auto; transition:background var(--t); }
   .live-dot.on { background:var(--teal); box-shadow:0 0 10px var(--glow-teal); animation:pulse 2s infinite; }
   .stream-sub { padding:8px 16px 4px; color:var(--faint); font-size:12px; }
@@ -399,8 +444,8 @@
   /* ===== NAV ===== */
   .nav {
     position:relative; z-index:1; display:flex; border-top:1px solid var(--line);
-    background:rgba(255,255,255,.78); -webkit-backdrop-filter:blur(24px) saturate(160%); backdrop-filter:blur(24px) saturate(160%);
-    padding-bottom:var(--safe-b); box-shadow:inset 0 1px 0 rgba(255,255,255,.7), 0 -10px 30px rgba(16,32,60,.05);
+    background:rgba(7,13,22,.86); -webkit-backdrop-filter:blur(24px) saturate(160%); backdrop-filter:blur(24px) saturate(160%);
+    padding-bottom:var(--safe-b); box-shadow:inset 0 1px 0 rgba(120,230,255,.12), 0 -10px 30px rgba(0,0,0,.4);
   }
   .nav button { flex:1; background:none; border:none; color:var(--faint); padding:11px 0 9px; font-size:9.5px; font-weight:700; letter-spacing:.6px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:4px; transition:color var(--t); position:relative; }
   .nav button .ico { font-size:20px; line-height:1; transition:transform .26s var(--ease-spring); }
@@ -415,7 +460,7 @@
 
   /* voice overlay */
   #voiceOverlay { position:fixed; inset:0; z-index:120; display:none; flex-direction:column; align-items:center; justify-content:center; gap:26px;
-    background:radial-gradient(circle at 50% 34%, #FFFFFF 0%, #EAF1FB 60%, #DBE6F4 100%); }
+    background:radial-gradient(circle at 50% 36%, #08182c 0%, #04080f 62%, #02050b 100%); }
   #voiceOverlay.open { display:flex; }
   .vo-orb { position:relative; width:264px; height:264px; display:flex; align-items:center; justify-content:center; }
   .vo-orb .ring { position:absolute; border-radius:50%; pointer-events:none; }
@@ -443,6 +488,12 @@
   #voiceOverlay.speaking .core { animation:voSpeakPulse .42s ease-in-out infinite; }
   #voiceOverlay.speaking .r1 { animation:voEcho 1s ease-out infinite; }
   #voiceOverlay.speaking .r2 { animation:voEcho 1s ease-out .35s infinite; }
+  /* Paused: suspended by iOS, waiting for a tap to reopen the mic. Calm, dimmed,
+     with a slow invite-pulse so it reads as "tap me" not "broken". */
+  #voiceOverlay.paused .halo { animation-duration:6s; opacity:.5; }
+  #voiceOverlay.paused .core { animation:voPausePulse 2.4s ease-in-out infinite; }
+  #voiceOverlay.paused .r1, #voiceOverlay.paused .r2 { opacity:.18; animation-play-state:paused; }
+  @keyframes voPausePulse { 0%,100%{ transform:scale(.94); opacity:.62; } 50%{ transform:scale(1); opacity:.92; } }
   @keyframes voSpin { to{ transform:rotate(360deg); } }
   @keyframes voBreathe { 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.06); } }
   @keyframes voSpeakPulse { 0%,100%{ transform:scale(1.02); } 50%{ transform:scale(1.13); } }
@@ -451,16 +502,16 @@
   .vo-status { color:var(--teal2); font-size:13px; letter-spacing:2.5px; text-transform:uppercase; font-weight:700; }
   #voiceSessSheet { position:fixed; inset:0; z-index:130; display:none; align-items:center; justify-content:center; background:rgba(12,20,38,.34); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); }
   #voiceSessSheet.open { display:flex; }
-  .vss-card { width:min(420px,86vw); max-height:80vh; overflow:auto; background:linear-gradient(180deg,#FFFFFF,#F3F7FC); border:1px solid var(--line); border-radius:24px; padding:24px 18px; box-shadow:0 22px 64px rgba(16,32,60,.22); }
+  .vss-card { width:min(420px,86vw); max-height:80vh; overflow:auto; background:linear-gradient(180deg,#081120,#04070e); border:1px solid var(--line); border-radius:24px; padding:24px 18px; box-shadow:0 22px 64px rgba(0,0,0,.6); }
   .vss-h { color:var(--fg); font-size:19px; font-weight:700; text-align:center; margin-bottom:16px; letter-spacing:.4px; }
   .vss-sub { color:var(--faint); font-size:11px; letter-spacing:1.2px; text-transform:uppercase; margin:16px 4px 8px; font-weight:600; }
-  .vss-btn { display:block; width:100%; box-sizing:border-box; text-align:left; padding:15px 16px; margin:8px 0; border-radius:14px; border:1px solid var(--line); background:#F3F7FC; color:var(--fg); font-size:15px; font-weight:600; cursor:pointer; transition:transform .1s var(--ease); }
+  .vss-btn { display:block; width:100%; box-sizing:border-box; text-align:left; padding:15px 16px; margin:8px 0; border-radius:14px; border:1px solid var(--line); background:rgba(10,20,34,.7); color:var(--fg); font-size:15px; font-weight:600; cursor:pointer; transition:transform .1s var(--ease); }
   .vss-btn:active { transform:scale(.98); }
   .vss-primary { background:var(--grad-bubble); border-color:transparent; color:#fff; font-weight:800; }
   .vss-cancel { text-align:center; background:transparent; border-color:var(--line); color:var(--dim); margin-top:14px; }
   .vss-list:empty::after { content:'No past chats yet'; color:var(--faint); font-size:13px; display:block; padding:6px 4px; }
-  .vss-item { display:flex; justify-content:space-between; gap:8px; padding:13px 14px; margin:6px 0; border-radius:12px; background:#F3F7FC; border:1px solid var(--line); color:var(--fg); font-size:14px; cursor:pointer; }
-  .vss-item:active { background:rgba(14,165,155,.14); }
+  .vss-item { display:flex; justify-content:space-between; gap:8px; padding:13px 14px; margin:6px 0; border-radius:12px; background:rgba(10,20,34,.7); border:1px solid var(--line); color:var(--fg); font-size:14px; cursor:pointer; }
+  .vss-item:active { background:rgba(60,210,255,.14); }
   .vss-item .when { color:var(--faint); font-size:11px; white-space:nowrap; }
   .vo-transcript { color:var(--fg); font-size:19px; line-height:1.4; text-align:center; max-width:82%; min-height:28px; opacity:.95; }
   .vo-stop { margin-top:14px; background:rgba(12,26,46,.06); color:var(--fg); border:1px solid var(--line); border-radius:24px; padding:13px 26px; font-size:15px; font-weight:600; cursor:pointer; }
@@ -468,7 +519,7 @@
   .foot { text-align:center; color:var(--faint); font-size:10px; letter-spacing:2.5px; margin:20px 0 6px; }
 
   /* log sheet */
-  #logSheet { display:none; position:fixed; inset:0; background:rgba(240,244,250,.94); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); z-index:100; padding:calc(env(safe-area-inset-top) + 20px) 22px calc(var(--safe-b) + 24px); flex-direction:column; justify-content:center; }
+  #logSheet { display:none; position:fixed; inset:0; background:rgba(4,8,16,.94); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); z-index:100; padding:calc(env(safe-area-inset-top) + 20px) 22px calc(var(--safe-b) + 24px); flex-direction:column; justify-content:center; }
   #logSheet .lbl { text-align:center; color:var(--teal); letter-spacing:3px; font-size:12px; font-weight:700; margin-bottom:6px; }
   #logSheet .ttl { text-align:center; font-size:24px; font-weight:700; color:var(--fg); margin-bottom:24px; }
 
@@ -1757,7 +1808,7 @@ if(SR){ recog=new SR(); recog.lang='en-US'; recog.interimResults=true; recog.con
     if(window.__voiceMode && !speaking){ setTimeout(()=>{ if(window.__voiceMode && !speaking) startListening(); }, 600); }
   };
 }
-function startListening(){ if(!SR||listening||speaking)return; listening=true;
+function startListening(){ if(!SR||listening||speaking)return; listening=true; voPaused=false;
   if(window.__voiceMode){ voSetState('listening','Listening…'); $('voTranscript').textContent=''; }
   else { $('micBtn').classList.add('listening'); $('chatInput').value=''; }
   try{recog.start();}catch(e){ listening=false; if(window.__voiceMode) setTimeout(()=>{ if(window.__voiceMode&&!speaking) startListening(); },500); }
@@ -1772,28 +1823,44 @@ $('micBtn').addEventListener('click', ()=>{ if(!SR){ toast('Voice input not supp
    (1) on every return-to-foreground, and (2) a periodic watchdog that notices a
    stale heartbeat. Both funnel through reviveVoiceLoop(), which hard-resets the
    recognizer and restarts the listen→respond cycle from a clean state. */
+// When the recognizer can't be auto-restarted (iOS requires a user gesture after
+// a suspend), we surface a tappable "Resume" affordance instead of silently
+// failing. voPaused=true means: waiting for the user to tap the orb to continue.
+let voPaused=false;
+function voShowResume(){
+  voPaused=true; listening=false;
+  voSetState('paused','Tap to resume listening');
+  $('voTranscript').textContent='';
+}
 function reviveVoiceLoop(reason){
   if(!SR || !window.__voiceMode) return;
   if(speaking) return;                 // mid-reply: the speak path owns the resume
-  // Force the recognizer down, ignoring its (possibly zombie) internal state,
-  // then start a fresh listen. abort() is the hard kill; start() rebuilds the
-  // audio session iOS tore down on suspend.
+  // Hard-kill the (possibly zombie) recognizer, ignoring its internal state.
   try{ recog.abort(); }catch(e){}
-  listening=false;
+  listening=false; voPaused=false;
   voSetState('listening','Listening…'); $('voTranscript').textContent='';
-  setTimeout(()=>{ if(window.__voiceMode && !speaking && !listening) startListening(); }, 300);
+  const startedAt=Date.now();
+  setTimeout(()=>{ if(window.__voiceMode && !speaking && !listening) startListening(); }, 250);
+  // iOS gesture guard: if the engine didn't actually come alive shortly after we
+  // tried (onstart never stamped a fresh heartbeat), the OS blocked the silent
+  // restart — show the tap-to-resume prompt so the user's tap can reopen the mic.
+  setTimeout(()=>{
+    if(!window.__voiceMode || speaking || voPaused) return;
+    const alive = __recogAlive >= startedAt;   // onstart fired after our attempt
+    if(!alive) voShowResume();
+  }, 1600);
 }
 // (1) Foreground return — the reliable signal across iOS PWA / Safari.
 document.addEventListener('visibilitychange', ()=>{
-  if(document.visibilityState==='visible'){ setTimeout(()=>reviveVoiceLoop('visible'), 250); catchUpAll(); }
+  if(document.visibilityState==='visible'){ setTimeout(()=>reviveVoiceLoop('visible'), 250); try{catchUpAll();}catch(e){} }
 });
-window.addEventListener('pageshow', ()=>{ setTimeout(()=>reviveVoiceLoop('pageshow'), 250); catchUpAll(); });
+window.addEventListener('pageshow', ()=>{ setTimeout(()=>reviveVoiceLoop('pageshow'), 250); try{catchUpAll();}catch(e){} });
 window.addEventListener('focus', ()=>{ setTimeout(()=>reviveVoiceLoop('focus'), 250); });
 // (2) Watchdog: if we're supposed to be listening but the recognizer hasn't
 // proven itself alive in a while, it's a zombie — revive. Runs only in voice
 // mode so it costs nothing the rest of the time.
 setInterval(()=>{
-  if(!window.__voiceMode || speaking || !listening) return;
+  if(!window.__voiceMode || speaking || voPaused || !listening) return;
   if(__recogAlive && (Date.now()-__recogAlive) > 12000) reviveVoiceLoop('watchdog');
 }, 4000);
 
@@ -1801,7 +1868,7 @@ setInterval(()=>{
 window.__voiceMode=false; let speaking=false; let ttsPrimed=false; let preferredVoice=null;
 function pickVoice(){ try{ const vs=window.speechSynthesis.getVoices()||[]; preferredVoice = vs.find(v=>/Samantha|Karen|Daniel|Google US English|Aaron|Evan/i.test(v.name)) || vs.find(v=>v.lang&&v.lang.indexOf('en')===0) || vs[0] || null; }catch(e){} }
 if(window.speechSynthesis){ pickVoice(); window.speechSynthesis.onvoiceschanged=pickVoice; }
-function voSetState(cls,label){ const o=$('voiceOverlay'); o.classList.remove('listening','speaking','thinking'); if(cls)o.classList.add(cls); if(label)$('voStatus').textContent=label; }
+function voSetState(cls,label){ const o=$('voiceOverlay'); o.classList.remove('listening','speaking','thinking','paused'); if(cls)o.classList.add(cls); if(label)$('voStatus').textContent=label; }
 function primeTTS(){ // must run inside a user gesture to unlock iOS speech
   if(ttsPrimed||!window.speechSynthesis) return;
   try{ const u=new SpeechSynthesisUtterance(' '); u.volume=0; window.speechSynthesis.speak(u); ttsPrimed=true; }catch(e){}
@@ -1896,6 +1963,14 @@ function voiceModeAfterReply(msg){
 // session on Safari, so tap is the dependable interrupt).
 function voiceInterrupt(){
   if(!window.__voiceMode) return;
+  if(voPaused){
+    // Paused after a suspend — this tap IS the user gesture iOS needs to reopen
+    // the mic. Re-prime the audio session and start listening cleanly.
+    primeTTS(); primeAudio(); voPaused=false; haptic();
+    try{ recog.abort(); }catch(e){}
+    listening=false; setTimeout(()=>{ if(window.__voiceMode && !speaking) startListening(); }, 80);
+    return;
+  }
   if(speaking){
     __voiceTurn++;            // invalidate the in-flight/playing turn's callbacks
     speaking=false;
@@ -2233,6 +2308,26 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
     return lines.join('\n');
   }
 
+  // ---- per-image chunked gateway round-trip ----
+  // Sends each image individually so a slow model can't time out the whole batch.
+  async function rrSendChunked(imgs){
+    const subEl=$('rrLoadSub'); const allFindings=[]; let lastSummary='';
+    for(let ci=0;ci<imgs.length;ci++){
+      if(rrCancelled) return null;
+      const im=imgs[ci]; const imgLabel=im.label||im.name||('Workpaper '+(ci+1));
+      if(subEl) subEl.textContent='Reviewing '+(ci+1)+' of '+imgs.length+': '+imgLabel+'…';
+      try{
+        const body=rrBuildMessage([im]); const sentAt=Math.floor(Date.now()/1000)-1;
+        await rrFetch(`${NTFY}/${RR_AGENT.in}`,{method:'POST',body},30000);
+        const raw=await rrPollResult(sentAt);
+        if(rrCancelled) return null;
+        if(raw){ let p; try{ p=rrParse(raw); }catch(e){} if(p){ p.findings.forEach(f=>{ allFindings.push({...f,id:f.id||uid(),workpaper:f.workpaper||imgLabel}); }); lastSummary=p.summary||lastSummary; } }
+        if(ci<imgs.length-1 && subEl && allFindings.length) subEl.textContent='Found '+allFindings.length+' finding'+(allFindings.length!==1?'s':'')+' so far — reviewing next workpaper…';
+      }catch(e){ if(rrCancelled) return null; }
+    }
+    return allFindings.length ? {summary:lastSummary,findings:allFindings} : null;
+  }
+
   // ---- strict, defensive JSON extraction ----
   function rrParse(raw){
     let t=(raw||'').trim();
@@ -2302,26 +2397,18 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
         done++; setProg();
         return {label:im.label||im.name, url, thumb:im.dataUrl};
       }));
-      if(subEl) subEl.textContent='All workpapers in. Sent as one connected set so tie-outs across them get caught.';
-      const body=rrBuildMessage(imgs);
-      const sentAt=Math.floor(Date.now()/1000)-1;
-      await rrFetch(`${NTFY}/${RR_AGENT.in}`,{method:'POST',body}, 30000);
-      const raw=await rrPollResult(sentAt);
+      if(subEl) subEl.textContent='All workpapers uploaded — sending to reviewer…';
+      const result=await rrSendChunked(imgs);
       rrStopLoadCycle();
-      if(rrCancelled){ rrBusy=false; rrSyncCTA(); return; }   // user backed out — stay on compose
-      if(raw===null){
+      if(rrCancelled){ rrBusy=false; rrSyncCTA(); return; }
+      if(!result){
         const diag = rrLastSeen
-          ? "The reviewer replied, but never sent a valid findings result. Its last message is shown below — that usually means it couldn't open the workpaper image links, or hit an error."
-          : "No reply came back from the Reviewer at all within 5 minutes. The Reviewer agent (Hermes) may be offline, or it can't reach the uploaded image links. Check that the Reviewer answers in the Talk tab.";
+          ? "The reviewer replied, but never sent a valid result for any workpaper. Its last message is shown below — usually that means it couldn't open the workpaper image links, or hit an error."
+          : "No reply came back from the Reviewer at all. The Reviewer agent (Hermes) may be offline, or it can't reach the uploaded image links. Check that the Reviewer answers in the Talk tab.";
         rrError(diag, rrLastSeen, engagement, imgs); rrBusy=false; rrSyncCTA(); return;
       }
-      let parsed;
-      try{ parsed=rrParse(raw); }
-      catch(e){ rrError("The reviewer replied, but the response wasn't valid JSON ("+e.message+"). You can retry, or open the raw reply below.", raw, engagement, imgs); rrBusy=false; rrSyncCTA(); return; }
-      rrReview={ id:uid(), engagement, summary:parsed.summary, findings:parsed.findings, images:imgs.map(x=>({label:x.label,thumb:x.thumb})), createdAt:Date.now() };
-      rrUpsert(rrReview);
-      rrBusy=false; rrSyncCTA();
-      rrRenderResults();
+      rrReview={ id:uid(), engagement, summary:result.summary, findings:result.findings, images:imgs.map(x=>({label:x.label,thumb:x.thumb})), createdAt:Date.now() };
+      rrUpsert(rrReview); rrBusy=false; rrSyncCTA(); rrRenderResults();
     }catch(e){
       rrStopLoadCycle(); rrBusy=false; rrSyncCTA();
       if(rrCancelled) return;   // aborted by the user — error already handled by rrCancelReview
@@ -2365,13 +2452,10 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
   async function rrRetryWith(engagement, imgs){
     rrBusy=true; rrCancelled=false; rrAbort=new AbortController(); rrSyncCTA(); rrShow('loading'); rrStartLoadCycle();
     try{
-      const body=rrBuildMessage(imgs); const sentAt=Math.floor(Date.now()/1000)-1;
-      await rrFetch(`${NTFY}/${RR_AGENT.in}`,{method:'POST',body}, 30000);
-      const raw=await rrPollResult(sentAt); rrStopLoadCycle();
+      const result=await rrSendChunked(imgs); rrStopLoadCycle();
       if(rrCancelled){ rrBusy=false; rrSyncCTA(); return; }
-      if(raw===null){ rrError(rrLastSeen?"The reviewer replied but still didn't send a valid result — its last message is below.":"Still no response from the Reviewer (it may be offline or can't reach the image links).", rrLastSeen, engagement, imgs); rrBusy=false; rrSyncCTA(); return; }
-      let parsed; try{ parsed=rrParse(raw); }catch(e){ rrError("Reply still wasn't valid JSON ("+e.message+").", raw, engagement, imgs); rrBusy=false; rrSyncCTA(); return; }
-      rrReview={ id:uid(), engagement, summary:parsed.summary, findings:parsed.findings, images:imgs.map(x=>({label:x.label,thumb:x.thumb})), createdAt:Date.now() };
+      if(!result){ rrError(rrLastSeen?"The reviewer replied but still didn't send a valid result — its last message is below.":"Still no response from the Reviewer (it may be offline or can't reach the image links).", rrLastSeen, engagement, imgs); rrBusy=false; rrSyncCTA(); return; }
+      rrReview={ id:uid(), engagement, summary:result.summary, findings:result.findings, images:imgs.map(x=>({label:x.label,thumb:x.thumb})), createdAt:Date.now() };
       rrUpsert(rrReview); rrBusy=false; rrSyncCTA(); rrRenderResults();
     }catch(e){ rrStopLoadCycle(); rrBusy=false; rrSyncCTA(); if(rrCancelled) return; rrError('Retry failed: '+(e.message||'network error'), '', engagement, imgs); }
     finally{ rrAbort=null; }
