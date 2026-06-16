@@ -208,15 +208,19 @@
   @keyframes recpulse { 0%,100%{opacity:1;} 50%{opacity:.45;} }
   .pb-divider { position:relative; z-index:1; flex:0 0 auto; width:1.5px; height:30px; background:rgba(255,255,255,.5); border-radius:2px; }
   .pb-ta {
-    position:relative; z-index:1; margin-left:2px; flex:1;
-    font-size:16px; font-weight:500; color:rgba(255,255,255,.82);
+    position:relative; z-index:1; margin-left:2px; flex:1; min-width:0;
+    background:transparent; border:none; outline:none; -webkit-appearance:none;
+    font-family:inherit; font-size:16px; font-weight:500; color:#fff;
     text-shadow:0 1px 3px rgba(0,15,35,.45); line-height:1.2; letter-spacing:-.1px;
   }
+  .pb-ta::placeholder { color:rgba(255,255,255,.82); }
   .pb-go {
     position:relative; z-index:1; flex:0 0 auto; width:40px; height:40px; border-radius:50%;
     display:flex; align-items:center; justify-content:center; color:#0A3D8F;
     background:rgba(255,255,255,.92); box-shadow:0 4px 12px rgba(0,20,45,.3);
+    border:none; padding:0; cursor:pointer; -webkit-appearance:none; font:inherit;
   }
+  .pb-go:active { transform:scale(.92); }
   .prompt-bar:active { transform:scale(.992); }
 
   .cards { display:flex; gap:11px; margin:18px 0 8px; }
@@ -339,6 +343,31 @@
   .typing span { width:7px; height:7px; border-radius:50%; background:var(--teal); opacity:.7; animation:blink 1.2s infinite; }
   .typing span:nth-child(2){animation-delay:.2s;} .typing span:nth-child(3){animation-delay:.4s;}
   @keyframes blink { 0%,60%,100%{opacity:.35; transform:translateY(0);} 30%{opacity:.9; transform:translateY(-3px);} }
+
+  /* ---- message delivery state ---- */
+  .msg.me.sending { opacity:.6; }
+  .msg-status { align-self:flex-end; font-size:12px; color:var(--faint); margin:-4px 4px 2px; }
+  .msg-status.failed { color:var(--danger); cursor:pointer; font-weight:700; }
+  .msg-status.failed:active { opacity:.6; }
+
+  /* ---- chat wait / cancel bar ---- */
+  #chatWait { align-self:flex-start; display:flex; align-items:center; gap:10px; margin:2px 0;
+    padding:9px 12px; background:var(--card-hi); border:1px solid var(--line); border-radius:14px; box-shadow:var(--e1); }
+  #chatWait .cw-txt { font-size:12.5px; color:var(--dim); font-weight:500; font-variant-numeric:tabular-nums; }
+  #chatWait .cw-cancel { border:1px solid var(--line); background:transparent; color:var(--dim); font-weight:600;
+    font-size:12px; padding:5px 11px; border-radius:999px; cursor:pointer; font-family:inherit; }
+  #chatWait .cw-cancel:active { transform:scale(.94); }
+
+  /* ---- connection status pill ---- */
+  #netPill { display:none; position:fixed; left:50%; transform:translateX(-50%); top:calc(env(safe-area-inset-top) + 8px);
+    z-index:90; padding:7px 15px; border-radius:999px; font-size:12.5px; font-weight:700; letter-spacing:.2px;
+    box-shadow:var(--e2); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); align-items:center; gap:7px; }
+  #netPill.show { display:flex; }
+  #netPill .np-dot { width:8px; height:8px; border-radius:50%; flex:0 0 auto; }
+  #netPill.offline, #netPill.error { background:var(--danger-bg); border:1px solid var(--danger-line); color:var(--danger); }
+  #netPill.offline .np-dot, #netPill.error .np-dot { background:var(--danger); }
+  #netPill.ok { background:var(--success-bg); border:1px solid var(--success-line); color:var(--success); }
+  #netPill.ok .np-dot { background:var(--success); }
 
   #attachPreview { display:flex; flex-wrap:wrap; gap:8px; padding:0 16px; }
   #attachPreview:not(:empty){ padding:8px 16px; }
@@ -782,8 +811,8 @@
             <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="currentColor" d="M12 14c1.7 0 3-1.3 3-3V5c0-1.7-1.3-3-3-3S9 3.3 9 5v6c0 1.7 1.3 3 3 3Zm5.3-3c0 3-2.3 5.5-5.3 5.5S6.7 14 6.7 11H5c0 3.6 2.8 6.6 6.2 7v3H8v2h8v-2h-3.2v-3c3.4-.4 6.2-3.4 6.2-7h-1.7Z"/></svg>
           </button>
           <span class="pb-divider"></span>
-          <span class="pb-ta">Talk to AETHER…</span>
-          <span class="pb-go" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+          <input class="pb-ta" id="homeInput" type="text" enterkeyhint="send" autocomplete="off" placeholder="Talk to AETHER…" aria-label="Message AETHER">
+          <button class="pb-go" id="homeGo" type="button" aria-label="Send"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
         </div>
       </div>
       <div class="quick-row">
@@ -1046,6 +1075,7 @@
   </div>
 
   <div class="toast" id="toast"></div>
+  <div id="netPill" role="status" aria-live="polite"><span class="np-dot"></span><span class="np-txt"></span></div>
   <div id="creditBadge" title="Reload credits"><span class="cb-ic">⚡</span><span class="cb-txt">Low credits</span></div>
 
   <!-- ===== LOG SHEET ===== -->
@@ -1407,23 +1437,34 @@ async function streamSend(){
   pollReply(Math.floor(Date.now()/1000)-1, true, activeAgent);
 }
 function renderChat(){
-  const t=$('chatThread'); t.innerHTML='';
+  const t=$('chatThread');
+  const keepTyping=$('typingRow'), keepWait=$('chatWait');   // survive the re-render
+  t.innerHTML='';
   if(chatLog.length===0){
     const w=document.createElement('div'); w.className='msg ai';
     w.innerHTML='<b>'+activeAgent.label+' ready.</b> '+activeAgent.hint;
     t.appendChild(w);
   }
   for(const m of chatLog){
-    const d=document.createElement('div'); d.className='msg '+(m.role==='me'?'me':'ai')+(m.progress?' progress':'');
+    const d=document.createElement('div'); d.className='msg '+(m.role==='me'?'me':'ai')+(m.progress?' progress':'')+(m.role==='me'&&m.status==='sending'?' sending':'');
     if(m.role==='me'||m.progress){ d.textContent=m.text; } else { d.innerHTML=mdToHtml(m.text); }
     if(!m.progress) attachCopy(d, m.text);
     if(m.imgs&&m.imgs.length){ const ic=document.createElement('div'); ic.className='imgnote'; ic.textContent='📎 '+m.imgs.length+' image'+(m.imgs.length>1?'s':''); d.appendChild(ic); }
     t.appendChild(d);
+    if(m.role==='me' && m.status==='failed'){
+      const s=document.createElement('div'); s.className='msg-status failed'; s.textContent='⚠ Not sent · Tap to resend';
+      s.addEventListener('click', ()=>resendMsg(m.id));
+      t.appendChild(s);
+    }
   }
+  if(keepTyping) t.appendChild(keepTyping);
+  if(keepWait) t.appendChild(keepWait);
   scrollChat();
 }
 function scrollChat(){ const t=$('chatThread'); requestAnimationFrame(()=>{ t.scrollTop=t.scrollHeight; }); }
-function pushMsg(role,text,extra){ const m={role,text,t:Date.now()}; if(extra)Object.assign(m,extra); chatLog.push(m); if(chatLog.length>200)chatLog=chatLog.slice(-200); curSession.msgs=chatLog; persistSession(); saveRecent(); renderChat(); }
+let __msgSeq=0;
+function pushMsg(role,text,extra){ const m={id:'m'+Date.now()+'_'+(++__msgSeq),role,text,t:Date.now()}; if(extra)Object.assign(m,extra); chatLog.push(m); if(chatLog.length>200)chatLog=chatLog.slice(-200); curSession.msgs=chatLog; persistSession(); saveRecent(); renderChat(); return m; }
+function updateMsgStatus(id,status){ const m=chatLog.find(x=>x.id===id); if(!m)return; if(status==='sent') delete m.status; else m.status=status; curSession.msgs=chatLog; persistSession(); renderChat(); }
 function showTyping(){ if($('typingRow'))return; const d=document.createElement('div'); d.className='typing'; d.id='typingRow'; d.innerHTML='<span></span><span></span><span></span>'; $('chatThread').appendChild(d); scrollChat(); }
 function hideTyping(){ const e=$('typingRow'); if(e)e.remove(); }
 // Transient Claude Code build step (e.g. "• Edit index.html"). Shown live below
@@ -1436,19 +1477,84 @@ function renderProgressLine(text){
   t.appendChild(d); showTyping(); scrollChat();
 }
 
+/* ===== CONNECTION STATUS PILL ===== */
+let __netTimer=null;
+function setNet(state,msg){
+  const p=$('netPill'); if(!p) return; clearTimeout(__netTimer);
+  if(!state){ p.classList.remove('show'); return; }
+  p.className=''; p.classList.add(state,'show');
+  const txt=p.querySelector('.np-txt'); if(txt) txt.textContent=msg;
+  if(state==='ok'){ __netTimer=setTimeout(()=>p.classList.remove('show'), 2200); }
+}
+window.addEventListener('offline', ()=>setNet('offline','Offline — messages will queue'));
+window.addEventListener('online',  ()=>{ setNet('ok','Back online'); drainOutbox(); });
+
+/* ===== CHAT OUTBOX (resend / offline queue) ===== */
+let chatOutbox=(function(){ try{ return JSON.parse(localStorage.getItem('aetherOutbox')||'[]'); }catch(e){ return []; } })();
+function saveOutbox(){ try{ localStorage.setItem('aetherOutbox', JSON.stringify(chatOutbox)); }catch(e){} }
+function queueOutbox(job){ if(!chatOutbox.some(j=>j.msgId===job.msgId)){ chatOutbox.push(job); saveOutbox(); } }
+function removeFromOutbox(msgId){ const n=chatOutbox.length; chatOutbox=chatOutbox.filter(j=>j.msgId!==msgId); if(chatOutbox.length!==n) saveOutbox(); }
+async function drainOutbox(){
+  if(!chatOutbox.length || navigator.onLine===false) return;
+  for(const job of chatOutbox.slice()){
+    const agent=AGENTS.find(a=>a.id===job.agentId)||activeAgent;
+    try{
+      await fetch(`${NTFY}/${agent.in}`,{method:'POST',body:job.body});
+      removeFromOutbox(job.msgId);
+      if(chatLog.some(x=>x.id===job.msgId)) updateMsgStatus(job.msgId,'sent');
+    }catch(e){ break; }   // still unreachable — keep the rest queued for next time
+  }
+  if(!chatOutbox.length) setNet('ok','Queued messages sent');
+}
+async function resendMsg(id){
+  const m=chatLog.find(x=>x.id===id); if(!m) return;
+  const agent=AGENTS.find(a=>a.id===m.agentId)||activeAgent;
+  updateMsgStatus(id,'sending'); removeFromOutbox(id); showTyping();
+  try{ await fetch(`${NTFY}/${agent.in}`,{method:'POST',body:m.sendBody||m.text}); }
+  catch(e){ hideTyping(); updateMsgStatus(id,'failed'); queueOutbox({msgId:id,agentId:agent.id,body:m.sendBody||m.text});
+    setNet(navigator.onLine===false?'offline':'error', navigator.onLine===false?'Still offline — queued':'Still can’t reach '+agent.label);
+    toast('Still could not reach '+agent.label+'.',true); return; }
+  updateMsgStatus(id,'sent'); setNet('ok','Sent');
+  pollReply(Math.floor(Date.now()/1000)-1, false, agent);
+}
+
+/* ===== CHAT WAIT BAR (elapsed + cancel) ===== */
+let __waitTimer=null, __waitStart=0, __waitCancelled=false, __waitGen=0;
+function startChatWait(gen){
+  stopChatWait();
+  __waitGen=gen; __waitCancelled=false; __waitStart=Date.now();
+  const w=document.createElement('div'); w.id='chatWait';
+  w.innerHTML='<span class="cw-txt">Working… 0:00</span><button class="cw-cancel" type="button">Cancel</button>';
+  w.querySelector('.cw-cancel').addEventListener('click', ()=>{ __waitCancelled=true; stopChatWait(); hideTyping(); toast('Stopped waiting. The reply may still arrive in Stream.'); });
+  $('chatThread').appendChild(w); scrollChat();
+  __waitTimer=setInterval(updateChatWait, 1000);
+}
+function updateChatWait(){
+  const w=$('chatWait'); if(!w){ clearInterval(__waitTimer); __waitTimer=null; return; }
+  const s=Math.floor((Date.now()-__waitStart)/1000);
+  const mm=Math.floor(s/60), ss=String(s%60).padStart(2,'0');
+  w.querySelector('.cw-txt').textContent=(s<15?'Working… ':'Still working — long task… ')+mm+':'+ss;
+}
+function stopChatWait(){ if(__waitTimer){ clearInterval(__waitTimer); __waitTimer=null; } const w=$('chatWait'); if(w) w.remove(); }
+
 async function askAgent(text, silent, imgUrls){
   const agent=activeAgent;
-  if(!silent) pushMsg('me',text,{imgs:imgUrls||[]});
-  showTyping();
-  const sentAt=Math.floor(Date.now()/1000)-1;
   let body=text;
   if(imgUrls&&imgUrls.length) body=text+"\n\nImages to review (fetch each with your vision tool):\n"+imgUrls.join("\n");
+  let msg=null;
+  if(!silent) msg=pushMsg('me',text,{imgs:imgUrls||[], status:'sending', sendBody:body, agentId:agent.id});
+  showTyping();
+  const sentAt=Math.floor(Date.now()/1000)-1;
   try{ await fetch(`${NTFY}/${agent.in}`,{method:'POST',body}); }
-  catch(e){ hideTyping(); toast('Could not reach '+agent.label+'.',true);
+  catch(e){ hideTyping();
+    if(msg){ updateMsgStatus(msg.id,'failed'); queueOutbox({msgId:msg.id, agentId:agent.id, body}); }
+    setNet(navigator.onLine===false?'offline':'error', navigator.onLine===false?'Offline — message queued':'Couldn’t reach '+agent.label+' — will retry');
+    toast('Could not reach '+agent.label+'.',true);
     // VOICE MODE: a send failure must never leave the orb frozen on "Thinking…".
     // Recover straight back to listening so the conversation can continue.
     if(window.__voiceMode && !speaking){ voSetState('listening','Listening…'); setTimeout(()=>{ if(window.__voiceMode && !speaking) startListening(); }, 400); }
     return; }
+  if(msg) updateMsgStatus(msg.id,'sent');
   pollReply(sentAt, silent, agent);
 }
 let __pollGen=0;  // generation token: a new poll cancels any older one
@@ -1538,9 +1644,12 @@ async function pollReply(sinceTs, silent, agent){
   pollStop = voice ? hardStop : (Date.now()+QUIET_GAP);
   const seen=new Set(); let got=0;
   const isNoise=isNoiseMsg;
+  const showWait = !voice && !silent;                     // a text chat the user is watching
+  if(showWait) startChatWait(myGen);
   while(Date.now()<hardStop && (voice || Date.now()<pollStop)){
     if(myGen!==__pollGen){ return; }                      // a newer poll superseded us
-    if(agent.id!==activeAgent.id){ hideTyping(); return; } // user switched agent
+    if(showWait && __waitCancelled && __waitGen===myGen){ hideTyping(); stopChatWait(); return; } // user tapped Cancel
+    if(agent.id!==activeAgent.id){ hideTyping(); if(showWait) stopChatWait(); return; } // user switched agent
     try{
       const r=await fetch(`${NTFY}/${agent.out}/json?poll=1&since=${sinceTs}`,{cache:'no-store'});
       const lines=(await r.text()).trim().split('\n').filter(Boolean);
@@ -1562,6 +1671,7 @@ async function pollReply(sinceTs, silent, agent){
           continue;                                          // don't speak, don't count as the final reply
         }
         hideTyping(); got++;
+        if(showWait && got===1) stopChatWait();             // first real reply landed — clear the wait bar
         if(agent.id===activeAgent.id){ pushMsg('ai',msg); }
         if(voice){ voiceModeAfterReply(msg); return; }      // first reply → hand off to speak loop
         if(agent.id===activeAgent.id){ enqueueSpeak(msg); }
@@ -1572,6 +1682,7 @@ async function pollReply(sinceTs, silent, agent){
   }
   if(myGen!==__pollGen) return;
   hideTyping();
+  if(showWait) stopChatWait();
   if(voice && got===0 && !speaking){
     // No reply arrived — never leave the orb stuck on "Thinking…". Recover to listening.
     voSetState('listening','Listening…');
@@ -1683,10 +1794,22 @@ function renderHistory(){
 }
 
 /* ===== HOME prompt bar + feature cards ===== */
-/* Tap the stone (not the mic) → opens chat to type.
+/* The bar is a real input now: type and send straight from Home.
    Tap the mic → starts voice conversation (overlay, stays on Home).
    Long-press the mic → agent dropdown to pick which agent you're talking to. */
-$('homePrompt').addEventListener('click', ()=>{ goChat(); setTimeout(()=>$('chatInput').focus(),120); });
+(function(){
+  const inp=$('homeInput'), go=$('homeGo');
+  function homeSubmit(){
+    const v=(inp.value||'').trim();
+    if(!v){ goChat(); setTimeout(()=>$('chatInput').focus(),120); return; }
+    inp.value=''; inp.blur(); goChat(); askAgent(v,false); haptic();
+  }
+  go.addEventListener('click',(e)=>{ e.stopPropagation(); homeSubmit(); });
+  inp.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ e.preventDefault(); homeSubmit(); } });
+  inp.addEventListener('click',(e)=>e.stopPropagation());
+  // tapping the decorative pill (not mic/go/input) focuses the field in place
+  $('homePrompt').addEventListener('click',(e)=>{ if(e.target.closest('#homeMic')||e.target.closest('#homeGo')) return; inp.focus(); });
+})();
 (function(){
   const mic=$('homeMic'); let lp=null, longFired=false;
   function openHomeAgentMenu(){
@@ -1776,6 +1899,8 @@ renderSelector(); renderChat(); renderHistory();
 // for any replies that landed while the app was closed.
 if(typeof curSession!=='undefined' && curSession && !getBoundSession()) setBoundSession(curSession.id);
 setTimeout(()=>{ try{ catchUpAll(); }catch(e){} }, 600);
+// Reflect connection state on load and flush any chat sends queued while offline.
+(function(){ if(navigator.onLine===false) setNet('offline','Offline — messages will queue'); else if(chatOutbox.length) drainOutbox(); })();
 let recog=null, listening=false, __streamDictation=false;
 // Heartbeat: last time the recognizer proved it was alive (onstart/onresult).
 // iOS silently kills webkitSpeechRecognition on suspend without firing onend,
