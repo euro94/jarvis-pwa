@@ -904,6 +904,65 @@
   .iconbtn svg.ico-svg { width:22px; height:22px; }
   .iconbtn.attach2 svg.ico-svg, .iconbtn.send2 svg.ico-svg { width:21px; height:21px; }
   .iconbtn.send2 svg.ico-svg { transform:translateX(.5px); }
+
+  /* ===== PLAN (First Things First — Covey Habit 3) ===== */
+  #screenPlan.active { display:flex; flex-direction:column; overflow:hidden; }
+  .plan-top { display:flex; align-items:center; gap:10px; padding:calc(env(safe-area-inset-top) + 14px) 16px 10px;
+    border-bottom:1px solid var(--line); background:rgba(7,13,22,.78); -webkit-backdrop-filter:blur(18px) saturate(140%); backdrop-filter:blur(18px) saturate(140%); }
+  .plan-top .pt-ttl { font-family:'Chakra Petch','Saira',sans-serif; font-weight:800; letter-spacing:1px; font-size:16px;
+    background:linear-gradient(90deg,#bfe9ff,#3ce6ff); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+  .plan-top .pt-sub { font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:1.5px; color:var(--faint); margin-left:auto; text-transform:uppercase; }
+  .plan-scroll { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:14px 16px calc(var(--safe-b) + 90px); }
+  /* add-task row */
+  .plan-add { display:flex; gap:8px; margin-bottom:16px; }
+  .plan-add input { flex:1; min-width:0; font:inherit; font-size:15px; color:var(--fg); background:var(--card); border:1px solid var(--line);
+    border-radius:var(--r-md); padding:13px 15px; outline:none; transition:border-color var(--t); }
+  .plan-add input::placeholder { color:var(--faint); }
+  .plan-add input:focus { border-color:var(--teal); box-shadow:0 0 0 3px rgba(60,210,255,.18); }
+  .plan-add button { flex:0 0 auto; width:50px; border:none; border-radius:var(--r-md); background:var(--grad-bubble); color:#04263a;
+    font-size:24px; font-weight:800; cursor:pointer; box-shadow:0 0 16px var(--glow-cyan); }
+  .plan-add button:active { transform:scale(.94); }
+  /* prioritize CTA */
+  .plan-cta { width:100%; border:none; border-radius:var(--r-md); padding:15px; font-family:'Chakra Petch',sans-serif; font-size:15px; font-weight:700;
+    letter-spacing:.4px; cursor:pointer; color:#04263a; background:radial-gradient(circle at 40% 30%,#bfeeff,#3ce6ff 60%,#0d8fb8 100%);
+    box-shadow:0 0 20px var(--glow-cyan); margin-bottom:18px; display:flex; align-items:center; justify-content:center; gap:9px; }
+  .plan-cta:active { transform:scale(.98); } .plan-cta:disabled { opacity:.5; }
+  .plan-cta svg { width:18px; height:18px; }
+  /* the prioritized plan card */
+  .plan-card { background:linear-gradient(150deg,rgba(60,210,255,.08),var(--card)); border:1px solid rgba(60,210,255,.28); border-radius:var(--r-lg);
+    padding:16px 17px; margin-bottom:20px; -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); }
+  .plan-card .pc-h { font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:2px; color:var(--gold); margin-bottom:10px; text-transform:uppercase; }
+  .plan-card .pc-sum { font-size:14.5px; line-height:1.5; color:var(--fg); margin-bottom:14px; }
+  .plan-block { display:flex; align-items:flex-start; gap:11px; padding:11px 0; border-top:1px solid var(--line-2); }
+  .plan-block .pb-when { flex:0 0 auto; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--cyan); min-width:64px; padding-top:1px; }
+  .plan-block .pb-task { flex:1; font-size:14px; color:var(--fg); line-height:1.4; }
+  .plan-block .pb-q { flex:0 0 auto; font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700; padding:2px 7px; border-radius:99px; }
+  .plan-block .pb-q.Q1 { color:var(--sev-high); background:var(--sev-high-bg); }
+  .plan-block .pb-q.Q2 { color:var(--teal2); background:rgba(60,210,255,.14); }
+  .plan-block .pb-q.Q3 { color:var(--gold); background:var(--sev-med-bg); }
+  .plan-block .pb-q.Q4 { color:var(--faint); background:rgba(130,152,180,.14); }
+  /* quadrant sections + task rows */
+  .plan-quad-h { display:flex; align-items:center; gap:8px; margin:18px 2px 9px; }
+  .plan-quad-h .pq-dot { width:9px; height:9px; border-radius:50%; flex:0 0 auto; }
+  .plan-quad-h .pq-name { font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1.4px; font-weight:700; text-transform:uppercase; }
+  .plan-quad-h .pq-sub { font-size:11px; color:var(--faint); }
+  .pq-Q1 .pq-dot,.pq-Q1 .pq-name { color:var(--sev-high); } .pq-Q1 .pq-dot{ background:var(--sev-high); box-shadow:0 0 8px var(--sev-high); }
+  .pq-Q2 .pq-dot,.pq-Q2 .pq-name { color:var(--teal2); }    .pq-Q2 .pq-dot{ background:var(--teal); box-shadow:0 0 8px var(--glow-cyan); }
+  .pq-Q3 .pq-dot,.pq-Q3 .pq-name { color:var(--gold); }     .pq-Q3 .pq-dot{ background:var(--gold); }
+  .pq-Q4 .pq-dot,.pq-Q4 .pq-name { color:var(--faint); }    .pq-Q4 .pq-dot{ background:var(--faint); }
+  .pq-none .pq-dot,.pq-none .pq-name { color:var(--dim); }   .pq-none .pq-dot{ background:var(--dim); }
+  .plan-task { display:flex; align-items:center; gap:11px; padding:12px 13px; border-radius:var(--r-sm); background:var(--card); border:1px solid var(--line);
+    margin-bottom:7px; transition:border-color var(--t), background var(--t); }
+  .plan-task .ck { flex:0 0 auto; width:22px; height:22px; border-radius:50%; border:1.6px solid var(--line); cursor:pointer;
+    display:flex; align-items:center; justify-content:center; color:var(--teal); font-size:13px; transition:all var(--t); }
+  .plan-task .ck:hover { border-color:var(--teal); }
+  .plan-task .pt-mid { flex:1; min-width:0; }
+  .plan-task .pt-txt { font-size:14.5px; color:var(--fg); line-height:1.35; }
+  .plan-task .pt-meta { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--faint); margin-top:3px; }
+  .plan-task .pt-due { color:var(--gold); }
+  .plan-task .pt-x { flex:0 0 auto; color:var(--faint); font-size:16px; cursor:pointer; padding:2px 4px; }
+  .plan-task .pt-x:hover { color:var(--sev-high); }
+  .plan-empty { text-align:center; color:var(--faint); font-size:13.5px; line-height:1.6; padding:36px 20px; }
 </style>
 </head>
 <body>
@@ -935,7 +994,7 @@
       </div>
       <div class="quick-row">
         <button class="qa" data-qa="brief"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M12 2.8v3M4.6 8.6 6.7 10.7M19.4 8.6 17.3 10.7M2.5 17h3M18.5 17h3M8 17a4 4 0 0 1 8 0"/><path d="M2.5 21h19"/></svg><span>Brief</span></button>
-        <button class="qa" data-qa="agenda"><svg class="ico-svg" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="16" rx="2.5"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg><span>Agenda</span></button>
+        <button class="qa" data-qa="agenda"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M9 4.5h6M9 4.5a2 2 0 0 0-2 2V8h10V6.5a2 2 0 0 0-2-2M7 8H6a1.5 1.5 0 0 0-1.5 1.5v10A1.5 1.5 0 0 0 6 21h12a1.5 1.5 0 0 0 1.5-1.5v-10A1.5 1.5 0 0 0 18 8h-1"/><path d="M8.5 13l2 2 4-4.5"/></svg><span>Plan</span></button>
         <button class="qa" data-qa="stream"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M3 12h3.4l2.4-7 4 16 2.4-9H21"/></svg><span>Stream</span></button>
         <button class="qa" data-qa="new"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/></svg><span>New</span></button>
       </div>
@@ -1231,6 +1290,25 @@
     </div>
   </div>
 
+  <!-- ===== PLAN (First Things First — Covey Habit 3) ===== -->
+  <div class="screen" id="screenPlan">
+    <div class="plan-top">
+      <span class="pt-ttl">First Things First</span>
+      <span class="pt-sub" id="planUpdated">—</span>
+    </div>
+    <div class="plan-scroll">
+      <div class="plan-add">
+        <input id="planAddInput" type="text" enterkeyhint="done" autocomplete="off" placeholder="Add a to-do…" aria-label="Add a task">
+        <button id="planAddBtn" type="button" aria-label="Add task">+</button>
+      </div>
+      <button class="plan-cta" id="planPrioritizeBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
+        Prioritize with my calendar
+      </button>
+      <div id="planBody"></div>
+    </div>
+  </div>
+
 
   <!-- ===== NAV ===== -->
   <div class="nav">
@@ -1271,6 +1349,7 @@ const VOICE_PROXY = "https://yaro.tail6a3c7a.ts.net/aether-voice";
 // workpapers / financials never touch a public file host. Fail closed — never
 // fall back to an off-tailnet host, or confidentiality is silently lost.
 const UPLOAD_TOPIC = "hermes-yaro-uploads-9d2f41";
+const PLAN_TOPIC = "hermes-yaro-jarvis-plan-7c1f20";  // First Things First planner feed
 async function tailnetUpload(blob, filename, fetchImpl){
   const f = fetchImpl || ((u,o)=>fetch(u,o));
   const r = await f(`${NTFY}/${UPLOAD_TOPIC}`, { method:'PUT', headers:{ 'Filename': filename||'upload' }, body: blob });
@@ -1301,6 +1380,7 @@ document.querySelectorAll('.nav button').forEach(b=>{
     document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
     document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
     b.classList.add('active'); $(b.dataset.screen).classList.add('active'); haptic();
+    stopPlan();
     if(b.dataset.screen==='screenChat'){ scrollChat(); startAmbient(); } else { stopAmbient(); }
     if(b.dataset.screen==='screenHome'){ loadState(); renderRecent(); }
     if(b.dataset.screen==='screenStream'){ startStream(); } else { stopStream(); }
@@ -1359,12 +1439,15 @@ document.addEventListener('visibilitychange', ()=>{
     stopStatePoll();
     if(typeof stopStream==='function') stopStream();
     if(typeof stopAmbient==='function') stopAmbient();
+    if(typeof stopPlan==='function') stopPlan();
   }else{
     startStatePoll();
     const ss=$('screenStream');
     if(ss && ss.classList.contains('active') && typeof startStream==='function') startStream();
     const sc=$('screenChat');
     if(sc && sc.classList.contains('active') && typeof startAmbient==='function') startAmbient();
+    const sp=$('screenPlan');
+    if(sp && sp.classList.contains('active') && typeof startPlan==='function') startPlan();
   }
 });
 
@@ -2138,6 +2221,111 @@ function startAmbient(){
 }
 function stopAmbient(){ if(__ambTimer){ clearInterval(__ambTimer); __ambTimer=null; } }
 
+/* ===== PLAN (First Things First — Covey Habit 3) =====
+   The host firstthings.py owns the data and publishes tasks+plan to PLAN_TOPIC.
+   The screen polls that topic to render, and routes add / check-off / prioritize
+   as natural-language instructions to the jarvis agent (which runs the script).
+   The jarvis agent is the planner regardless of which chat agent is selected. */
+const PLAN_AGENT = AGENTS.find(a=>a.id==='jarvis') || AGENTS[0];
+let __planTimer=null, __planSince=0, __planData=null;
+const QMETA = {
+  Q1:{name:'Q1 · Do now', sub:'Urgent + important'},
+  Q2:{name:'Q2 · Schedule', sub:'Important, not urgent — your leverage'},
+  Q3:{name:'Q3 · Minimize', sub:'Urgent, not important'},
+  Q4:{name:'Q4 · Drop', sub:'Neither'},
+  none:{name:'Unsorted', sub:'Tap Prioritize to sort these'},
+};
+function openPlan(){
+  document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $('screenPlan').classList.add('active');
+  stopStream(); stopAmbient(); stopStudio&&stopStudio();
+  haptic(); startPlan();
+}
+async function planTick(){
+  try{
+    const r=await fetch(`${NTFY}/${PLAN_TOPIC}/json?poll=1&since=${__planSince||'all'}`,{cache:'no-store'});
+    const lines=(await r.text()).trim().split('\n').filter(Boolean);
+    let latest=null;
+    for(const ln of lines){ try{ const o=JSON.parse(ln); if(o.event==='message'&&o.message){ latest=o.message; __planSince=Math.max(__planSince,(o.time||0)); } }catch(e){} }
+    if(latest){ try{ __planData=JSON.parse(latest); renderPlan(); }catch(e){} }
+  }catch(e){}
+}
+function startPlan(){
+  __planSince=0;
+  if($('planBody').innerHTML.trim()===''){ $('planBody').innerHTML='<div class="plan-empty">Loading your list…</div>'; }
+  planTick();
+  if(__planTimer) clearInterval(__planTimer);
+  __planTimer=setInterval(planTick, 2500);
+}
+function stopPlan(){ if(__planTimer){ clearInterval(__planTimer); __planTimer=null; } }
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function renderPlan(){
+  const d=__planData; const body=$('planBody'); if(!body) return;
+  if(d && d.updated_at){ $('planUpdated').textContent='synced '+new Date(d.updated_at).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}); }
+  const tasks=(d&&d.tasks)||[];
+  let html='';
+  // the prioritized plan card (if the agent has built one)
+  if(d&&d.plan&&d.plan.blocks&&d.plan.blocks.length){
+    html+='<div class="plan-card"><div class="pc-h">◈ Today\u2019s plan</div>';
+    if(d.plan.summary) html+='<div class="pc-sum">'+esc(d.plan.summary)+'</div>';
+    for(const b of d.plan.blocks){
+      const q=b.quadrant?('<span class="pb-q '+b.quadrant+'">'+b.quadrant+'</span>'):'';
+      html+='<div class="plan-block"><span class="pb-when">'+esc(b.when||'')+'</span><span class="pb-task">'+esc(b.task||'')+'</span>'+q+'</div>';
+    }
+    html+='</div>';
+  }
+  if(!tasks.length){
+    html+='<div class="plan-empty">No to-dos yet.<br>Add one above, then tap <b>Prioritize</b> and I\u2019ll sort it against your calendar.</div>';
+    body.innerHTML=html; return;
+  }
+  // group by quadrant
+  const order=['Q1','Q2','Q3','Q4','none'];
+  const groups={}; for(const t of tasks){ const q=t.quadrant||'none'; (groups[q]=groups[q]||[]).push(t); }
+  for(const q of order){
+    const g=groups[q]; if(!g||!g.length) continue;
+    const m=QMETA[q];
+    html+='<div class="plan-quad-h pq-'+q+'"><span class="pq-dot"></span><span class="pq-name">'+m.name+'</span><span class="pq-sub">'+m.sub+'</span></div>';
+    for(const t of g){
+      const due=t.due?'<span class="pt-due">⏷ '+esc(t.due)+'</span>':'';
+      const note=t.note?(due?'  ·  ':'')+esc(t.note):'';
+      const meta=(due||note)?'<div class="pt-meta">'+due+note+'</div>':'';
+      html+='<div class="plan-task" data-id="'+t.id+'"><span class="ck" data-done="'+t.id+'" title="Mark done"></span>'+
+            '<div class="pt-mid"><div class="pt-txt">'+esc(t.text)+'</div>'+meta+'</div>'+
+            '<span class="pt-x" data-drop="'+t.id+'" title="Remove">×</span></div>';
+    }
+  }
+  body.innerHTML=html;
+  body.querySelectorAll('[data-done]').forEach(el=>el.addEventListener('click',()=>planDone(el.dataset.done)));
+  body.querySelectorAll('[data-drop]').forEach(el=>el.addEventListener('click',()=>planDrop(el.dataset.drop)));
+}
+// All mutations go through the jarvis agent (it runs firstthings.py, then the
+// publish re-pushes to PLAN_TOPIC and the next tick re-renders).
+function planSendToAgent(body){ try{ fetch(`${NTFY}/${PLAN_AGENT.in}`,{method:'POST',body}); }catch(e){} }
+function planAdd(){
+  const inp=$('planAddInput'); const t=(inp.value||'').trim(); if(!t) return;
+  inp.value=''; haptic();
+  planSendToAgent('Add this to my First Things First list (firstthings.py add): '+t);
+  toast('Added — '+t.slice(0,40));
+  setTimeout(planTick, 2500);
+}
+function planDone(id){ haptic(); planSendToAgent('Mark First Things First task '+id+' done (firstthings.py done --id '+id+').'); toast('Marked done'); setTimeout(planTick,2500); }
+function planDrop(id){ haptic(); planSendToAgent('Drop First Things First task '+id+' (firstthings.py drop --id '+id+').'); toast('Removed'); setTimeout(planTick,2500); }
+function planPrioritize(){
+  haptic();
+  const btn=$('planPrioritizeBtn'); btn.disabled=true; const old=btn.innerHTML;
+  btn.innerHTML='Prioritizing against your calendar…';
+  planSendToAgent('Prioritize my First Things First list now: run firstthings.py context, sort every open task into Covey quadrants (classify each), then build a plan that schedules the Q2 work into real free gaps around my calendar (set-plan). Put first things first.');
+  toast('Prioritizing — watch it sync in a moment.');
+  setTimeout(()=>{ btn.disabled=false; btn.innerHTML=old; }, 12000);
+  // poll a bit faster for the next ~30s so the result lands quickly
+  let n=0; const fast=setInterval(()=>{ planTick(); if(++n>12){ clearInterval(fast); } }, 2500);
+}
+$('planAddBtn') && $('planAddBtn').addEventListener('click', planAdd);
+$('planAddInput') && $('planAddInput').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); planAdd(); } });
+$('planPrioritizeBtn') && $('planPrioritizeBtn').addEventListener('click', planPrioritize);
+
+
 $('sendBtn').addEventListener('click', sendFromInput);
 $('chatInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendFromInput(); } });
 $('chatInput').addEventListener('input', function(){ this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,110)+'px'; });
@@ -2290,7 +2478,7 @@ document.querySelectorAll('.qa').forEach(b=>{
     if(qa==='new'){ goChat(); startNewChat(); return; }
     if(qa==='stream'){ navTo('screenStream'); return; }
     if(qa==='brief'){ goChat(); askAgent('Give me my brief: calendar, reminders, and the most important thing right now. Keep it tight.', false); return; }
-    if(qa==='agenda'){ goChat(); askAgent("What's on my calendar today? Bullet list with times.", false); return; }
+    if(qa==='agenda'){ openPlan(); return; }
   });
 });
 
