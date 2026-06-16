@@ -470,6 +470,108 @@
   .stream-composer { flex:0 0 auto; padding:8px 14px calc(var(--safe-b) + 10px); background:linear-gradient(to top, var(--bg) 72%, transparent); }
   .stream-composer textarea { font-size:16px; }
 
+  /* ===== DESIGN STUDIO ===== */
+  /* Gold-accented "creation surface" — same token system, distinct identity.
+     This is the design front-door to the Claude Code builder pipeline:
+     phone -> ntfy builder topic -> Claude Code edits index.html + git push
+     -> GitHub Pages redeploy -> tap "Load latest build" to pull it in. */
+  #screenStudio.active { display:flex; flex-direction:column; overflow:hidden; }
+  .st-top { display:flex; align-items:center; gap:10px; padding:calc(env(safe-area-inset-top) + 14px) 16px 11px;
+    border-bottom:1px solid var(--line); background:rgba(7,13,22,.78); -webkit-backdrop-filter:blur(18px) saturate(140%); backdrop-filter:blur(18px) saturate(140%); }
+  .st-title { font-family:'Chakra Petch','Saira',sans-serif; font-size:17px; font-weight:600; letter-spacing:.3px; display:flex; align-items:center; gap:9px; flex:1; }
+  .st-title .st-spark { width:22px; height:22px; color:var(--gold); filter:drop-shadow(0 2px 8px rgba(243,199,90,.45)); }
+  .st-bdot { width:8px; height:8px; border-radius:50%; background:var(--faint); box-shadow:0 0 0 0 rgba(243,199,90,.5); transition:background .3s, box-shadow .3s; flex:0 0 auto; }
+  .st-bdot.on { background:var(--gold); box-shadow:0 0 12px 1px rgba(243,199,90,.6); animation:stPulse 1.8s var(--ease) infinite; }
+  @keyframes stPulse { 0%,100%{ box-shadow:0 0 10px 0 rgba(243,199,90,.5);} 50%{ box-shadow:0 0 16px 3px rgba(243,199,90,.75);} }
+  .st-clear { background:none; border:1px solid var(--line); color:var(--dim); width:34px; height:34px; border-radius:10px; font-size:15px; cursor:pointer; transition:border-color var(--t), color var(--t), background var(--t); display:grid; place-items:center; }
+  .st-clear:hover { border-color:var(--gold2); color:var(--gold); }
+  .st-clear:active { transform:scale(.94); }
+  .st-clear:focus-visible { box-shadow:var(--ring); }
+
+  .st-scroll { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:14px 16px calc(var(--safe-b) + 8px); }
+  .st-lede { color:var(--dim); font-size:12.5px; line-height:1.55; margin:0 2px 16px; }
+  .st-lede b { color:var(--gold); font-weight:600; }
+
+  .st-seclbl { font-family:'JetBrains Mono',ui-monospace,monospace; font-size:10px; font-weight:700; letter-spacing:1.4px; text-transform:uppercase; color:var(--faint); margin:4px 2px 9px; }
+
+  /* target-screen picker */
+  .st-targets { display:flex; gap:7px; overflow-x:auto; -webkit-overflow-scrolling:touch; padding:1px 2px 4px; margin:0 -2px 18px; scrollbar-width:none; }
+  .st-targets::-webkit-scrollbar { display:none; }
+  .st-tgt { flex:0 0 auto; padding:8px 14px; border-radius:var(--r-pill); border:1px solid var(--line); background:var(--card);
+    color:var(--dim); font-size:12.5px; font-weight:600; cursor:pointer; white-space:nowrap; transition:all var(--t); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); }
+  .st-tgt:hover { border-color:var(--gold2); color:var(--fg); }
+  .st-tgt:active { transform:scale(.95); }
+  .st-tgt:focus-visible { box-shadow:var(--ring); }
+  .st-tgt.sel { background:linear-gradient(135deg, rgba(243,199,90,.22), rgba(220,168,56,.12)); border-color:var(--gold); color:var(--gold);
+    box-shadow:0 4px 16px rgba(243,199,90,.18), var(--hair); }
+
+  /* intent grid */
+  .st-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:18px; }
+  .st-chip { text-align:left; padding:14px 14px 13px; border-radius:var(--r-md); border:1px solid var(--line); background:var(--card);
+    cursor:pointer; transition:all var(--t); position:relative; overflow:hidden; -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); }
+  .st-chip::after { content:""; position:absolute; inset:0; background:linear-gradient(135deg, rgba(243,199,90,.10), transparent 60%); opacity:0; transition:opacity var(--t); pointer-events:none; }
+  .st-chip:hover { border-color:var(--gold2); transform:translateY(-2px); box-shadow:var(--e2), var(--hair); }
+  .st-chip:hover::after { opacity:1; }
+  .st-chip:active { transform:scale(.97) translateY(0); }
+  .st-chip:focus-visible { box-shadow:var(--ring); }
+  .st-chip.sel { border-color:var(--gold); background:linear-gradient(150deg, rgba(243,199,90,.14), var(--card)); }
+  .st-chip.sel::after { opacity:1; }
+  .st-chip .st-cic { width:26px; height:26px; color:var(--gold); margin-bottom:9px; display:block; }
+  .st-chip .st-ct { font-size:13.5px; font-weight:700; color:var(--fg); letter-spacing:.1px; }
+  .st-chip .st-cs { font-size:11px; color:var(--faint); margin-top:3px; line-height:1.4; }
+
+  /* compose box */
+  .st-compose { border:1px solid var(--line); border-radius:var(--r-md); background:var(--card-hi); padding:4px 4px 4px; -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); box-shadow:var(--e1); }
+  .st-compose textarea { width:100%; border:none; background:none; color:var(--fg); font-size:16px; font-family:inherit; line-height:1.5; resize:none; padding:13px 14px 6px; outline:none; min-height:64px; max-height:180px; }
+  .st-compose textarea::placeholder { color:var(--faint); }
+  .st-cbar { display:flex; align-items:center; gap:8px; padding:4px 8px 8px; }
+  .st-pillnote { flex:1; font-size:10.5px; color:var(--faint); font-family:'JetBrains Mono',ui-monospace,monospace; letter-spacing:.2px; line-height:1.35; }
+  .st-pillnote b { color:var(--gold2); font-weight:600; }
+  .st-ship { flex:0 0 auto; display:inline-flex; align-items:center; gap:7px; padding:10px 18px; border-radius:var(--r-pill); border:none; cursor:pointer;
+    font-family:'Chakra Petch','Saira',sans-serif; font-size:13.5px; font-weight:600; letter-spacing:.4px; color:#1c1405;
+    background:linear-gradient(135deg, var(--gold) 0%, var(--gold2) 100%); box-shadow:0 4px 16px rgba(243,199,90,.34), var(--hair); transition:transform var(--t), box-shadow var(--t), filter var(--t); }
+  .st-ship svg { width:16px; height:16px; }
+  .st-ship:hover { transform:translateY(-1px); box-shadow:0 7px 22px rgba(243,199,90,.46), var(--hair); }
+  .st-ship:active { transform:scale(.96); }
+  .st-ship:focus-visible { box-shadow:var(--ring); }
+  .st-ship:disabled { filter:grayscale(.6) brightness(.7); cursor:not-allowed; transform:none; box-shadow:none; }
+  .st-ship.busy { pointer-events:none; }
+  .st-ship.busy .st-shiptxt { opacity:.85; }
+  .st-spin { width:15px; height:15px; border:2px solid rgba(28,20,5,.35); border-top-color:#1c1405; border-radius:50%; animation:stsp .7s linear infinite; display:none; }
+  .st-ship.busy .st-spin { display:inline-block; }
+  .st-ship.busy .st-shipico { display:none; }
+  @keyframes stsp { to{ transform:rotate(360deg);} }
+
+  /* "load latest build" banner — appears when a deploy is detected */
+  .st-deploy { display:none; align-items:center; gap:11px; margin:16px 0 4px; padding:13px 14px; border-radius:var(--r-md);
+    background:linear-gradient(135deg, rgba(243,199,90,.16), rgba(220,168,56,.07)); border:1px solid var(--gold); box-shadow:0 6px 22px rgba(243,199,90,.2), var(--hair); animation:pop .26s var(--ease-spring); }
+  .st-deploy.show { display:flex; }
+  .st-deploy .st-dtxt { flex:1; font-size:12.5px; line-height:1.45; color:var(--fg); }
+  .st-deploy .st-dtxt b { color:var(--gold); font-weight:700; }
+  .st-reload { flex:0 0 auto; padding:9px 15px; border-radius:var(--r-pill); border:none; cursor:pointer; font-family:'Chakra Petch','Saira',sans-serif;
+    font-size:12.5px; font-weight:600; letter-spacing:.3px; color:#1c1405; background:linear-gradient(135deg, var(--gold), var(--gold2)); box-shadow:var(--e1); transition:transform var(--t); }
+  .st-reload:active { transform:scale(.95); }
+  .st-reload:focus-visible { box-shadow:var(--ring); }
+
+  /* build feed */
+  .st-feedwrap { margin-top:20px; }
+  .st-feedhead { display:flex; align-items:center; justify-content:space-between; margin:0 2px 10px; }
+  .st-feed { display:flex; flex-direction:column; gap:8px; }
+  .st-empty { color:var(--faint); font-size:12.5px; text-align:center; padding:26px 16px; line-height:1.6; border:1px dashed var(--line); border-radius:var(--r-md); }
+  .st-row { display:flex; gap:10px; align-items:flex-start; padding:11px 13px; border-radius:14px; background:var(--card);
+    border:1px solid var(--line-2); border-left:3px solid var(--line); animation:pop .2s var(--ease); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); }
+  .st-row.k-you  { border-left-color:var(--gold); background:rgba(243,199,90,.08); }
+  .st-row.k-tool { border-left-color:#7c8fa2; }
+  .st-row.k-msg  { border-left-color:var(--gold2); }
+  .st-row.k-ship { border-left-color:var(--success); background:rgba(60,210,255,.08); }
+  .st-row.k-warn { border-left-color:var(--danger); }
+  .st-ric { font-size:15px; line-height:1.5; flex:0 0 auto; }
+  .st-rbody { flex:1; min-width:0; }
+  .st-rtext { font-size:13.5px; line-height:1.5; color:var(--fg); word-wrap:break-word; overflow-wrap:anywhere; }
+  .st-rtext code { font-family:'JetBrains Mono',ui-monospace,monospace; font-size:11.5px; background:rgba(60,210,255,.1); padding:1px 5px; border-radius:5px; }
+  .st-rwhen { font-family:'JetBrains Mono',ui-monospace,monospace; font-size:10px; color:var(--faint); margin-top:4px; }
+  .st-row.k-you .st-rwhen { color:var(--gold2); opacity:.85; }
+
   /* ===== NAV ===== */
   .nav {
     position:relative; z-index:1; display:flex; border-top:1px solid var(--line);
@@ -825,6 +927,7 @@
         <div class="fcard" data-agent="seniorrev" data-q="Senior review mode. Let's walk through a workpaper / control / finding together."><div class="ic"><svg class="ico-svg" viewBox="0 0 24 24"><rect x="5" y="4.5" width="14" height="17" rx="2.5"/><path d="M9 4.5V3.6a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v.9"/><path d="M8.6 13.2l2 2 4-4.6"/></svg></div><div class="lbl">Senior Review</div></div>
         <div class="fcard" data-agent="research" data-q="Help me research a technical accounting / audit question with sources."><div class="ic"><svg class="ico-svg" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.8"/><path d="M16 16l5 5"/></svg></div><div class="lbl">Research</div></div>
         <div class="fcard" data-agent="design" data-q="Help me with design, UI, or visuals."><div class="ic"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M4 20l4.4-1 9-9-3.4-3.4-9 9L4 20Z"/><path d="M13.4 6.6l3.4 3.4"/><path d="M15.4 4.6l1.6-1.6a1.5 1.5 0 0 1 2.1 0l1.3 1.3a1.5 1.5 0 0 1 0 2.1L18.4 9.6"/></svg></div><div class="lbl">Designer</div></div>
+        <div class="fcard" data-studio="1"><div class="ic"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M12 3l1.9 5.6L19.5 10.5 13.9 12.4 12 18l-1.9-5.6L4.5 10.5 10.1 8.6 12 3Z"/><path d="M19 4v2.4M20.2 5.2h-2.4"/></svg></div><div class="lbl">Design Studio</div></div>
         <div class="fcard" data-radar="1"><div class="ic"><svg class="ico-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="3.4"/><path d="M12 1.6v3M12 19.4v3M1.6 12h3M19.4 12h3"/></svg></div><div class="lbl">Review Radar</div></div>
       </div>
 
@@ -945,6 +1048,51 @@
       <button class="iconbtn send2" id="streamSend" aria-label="Send"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M12 20V5M6 11l6-6 6 6"/></svg></button>
     </div>
   </div>
+
+  <!-- ===== DESIGN STUDIO (design front-door to the Claude Code builder) ===== -->
+  <div class="screen" id="screenStudio">
+    <div class="st-top">
+      <div class="st-title">
+        <svg class="st-spark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.6L19.5 10.5 13.9 12.4 12 18l-1.9-5.6L4.5 10.5 10.1 8.6 12 3Z"/><path d="M19 3.5v3M20.5 5h-3M5 17.5v2M6 18.5H4"/></svg>
+        Design Studio
+      </div>
+      <span class="st-bdot" id="stDot" title="Builder connection"></span>
+      <button class="st-clear" id="stClear" title="Clear build feed" aria-label="Clear build feed">⌦</button>
+    </div>
+    <div class="st-scroll">
+      <p class="st-lede">Reshape AETHER from your phone. Pick what to change, and it ships through <b>Claude Code</b> — edits the app, pushes, redeploys. Tap <b>Load latest build</b> when it lands.</p>
+
+      <div class="st-deploy" id="stDeploy">
+        <div class="st-dtxt"><b>New build shipped.</b> <span id="stDeploySub">Pull it in to see your changes.</span></div>
+        <button class="st-reload" id="stReload">Load it ↻</button>
+      </div>
+
+      <div class="st-seclbl">Where</div>
+      <div class="st-targets" id="stTargets"></div>
+
+      <div class="st-seclbl">What to change</div>
+      <div class="st-grid" id="stGrid"></div>
+
+      <div class="st-seclbl">Describe it</div>
+      <div class="st-compose">
+        <textarea id="stInput" rows="2" placeholder="e.g. make the Home cards feel lighter — more whitespace, softer borders, a touch more gold on hover"></textarea>
+        <div class="st-cbar">
+          <div class="st-pillnote" id="stNote">Pick an intent above, or just describe the change. Ships to <b>Claude Code</b>.</div>
+          <button class="st-ship" id="stShip" aria-label="Ship change">
+            <span class="st-spin" aria-hidden="true"></span>
+            <svg class="st-shipico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            <span class="st-shiptxt">Ship</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="st-feedwrap">
+        <div class="st-feedhead"><div class="st-seclbl" style="margin:0;">Build feed</div></div>
+        <div class="st-feed" id="stFeed"><div class="st-empty">No builds yet. Describe a change and tap Ship — Claude Code's progress streams here live.</div></div>
+      </div>
+    </div>
+  </div>
+
   <div id="voiceOverlay">
     <div class="vo-orb" id="voOrb">
       <div class="ring halo"></div>
@@ -1070,6 +1218,7 @@
     <button class="active" data-screen="screenHome"><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.6V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.6"/><path d="M9.5 21v-6h5v6"/></svg></span>HOME</button>
     <button data-screen="screenChat" id="talkNav"><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M20 11.5a7.5 7.5 0 0 1-10.9 6.7L4 19.5l1.3-4.2A7.5 7.5 0 1 1 20 11.5Z"/><path d="M9 11h6M9 14h4"/></svg></span>TALK</button>
     <button data-screen="screenStream" id="streamNav"><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M3 12h3.4l2.4-7 4 16 2.4-9H21"/></svg></span>STREAM</button>
+    <button data-screen="screenStudio" id="studioNav"><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M12 3l1.9 5.6L19.5 10.5 13.9 12.4 12 18l-1.9-5.6L4.5 10.5 10.1 8.6 12 3Z"/><path d="M19 4v2.4M20.2 5.2h-2.4"/></svg></span>STUDIO</button>
     <button data-screen="screenRadar" id="radarNav"><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="3.4"/><path d="M12 1.6v3M12 19.4v3M1.6 12h3M19.4 12h3"/></svg></span>RADAR</button>
     <button data-screen="screenSettings"><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M4 6.5h16M4 12h16M4 17.5h16"/><circle cx="9" cy="6.5" r="2.3" fill="var(--bg-2)"/><circle cx="15" cy="12" r="2.3" fill="var(--bg-2)"/><circle cx="8" cy="17.5" r="2.3" fill="var(--bg-2)"/></svg></span>SETTINGS</button>
   </div>
@@ -1136,6 +1285,7 @@ document.querySelectorAll('.nav button').forEach(b=>{
     if(b.dataset.screen==='screenChat'){ scrollChat(); }
     if(b.dataset.screen==='screenHome'){ loadState(); renderRecent(); }
     if(b.dataset.screen==='screenStream'){ startStream(); } else { stopStream(); }
+    if(b.dataset.screen==='screenStudio'){ startStudio(); } else { stopStudio(); }
     if(b.dataset.screen==='screenSettings'){ renderCredits(); }
   });
 });
@@ -1413,6 +1563,182 @@ function startStream(){
 }
 function stopStream(){ if(__streamTimer){ clearInterval(__streamTimer); __streamTimer=null; } }
 function clearStream(){ const feed=$('streamFeed'); if(feed){ feed.innerHTML='<div class="stream-empty">Cleared. Listening…</div>'; } __streamSeen.clear(); haptic(); }
+
+/* ===== DESIGN STUDIO — design front-door to the Claude Code builder ===== *
+ * Reuses the existing `builder` agent + ntfy pipeline. The Studio composes a
+ * design-aware directive from a target + intent + free text, posts it to the
+ * builder INBOUND topic, streams Claude Code's progress in its own feed, and
+ * surfaces a "Load latest build" affordance when a push/deploy is detected. */
+const ST_BUILDER = AGENTS.find(a=>a.id==='builder');
+const ST_TARGETS = [
+  {id:'',         label:'Whole app'},
+  {id:'home',     label:'Home'},
+  {id:'talk',     label:'Talk / chat'},
+  {id:'stream',   label:'Stream'},
+  {id:'studio',   label:'Studio'},
+  {id:'radar',    label:'Review Radar'},
+  {id:'settings', label:'Settings'},
+  {id:'nav',      label:'Nav bar'},
+  {id:'voice',    label:'Voice mode'},
+];
+const ST_TARGET_HINT = {
+  '':'across the whole app', home:'on the Home screen', talk:'in the Talk / chat screen',
+  stream:'on the Stream activity feed', studio:'in this Design Studio screen', radar:'on the Review Radar screen',
+  settings:'on the Settings screen', nav:'in the bottom navigation bar', voice:'in the voice-mode overlay',
+};
+const ST_INTENTS = [
+  { id:'palette', t:'Palette', s:'Color & accents', ic:'M12 3a9 9 0 1 0 0 18h1.5a2.5 2.5 0 0 0 2.3-3.5 2 2 0 0 1 1.8-2.8H19a3 3 0 0 0 3-3A9 9 0 0 0 12 3ZM7.5 12.5h.01M10 8h.01M14 8h.01M16.5 11h.01',
+    p:'Refine the color treatment — tune accent usage, contrast, and surface tints. Keep it tasteful and on-brand; stay within the existing CSS custom-property token system, do not hardcode one-off hex values, and keep all text at WCAG AA contrast (≥4.5:1).' },
+  { id:'space', t:'Spacing', s:'Layout & rhythm', ic:'M4 4h16v16H4zM4 9h16M9 9v11',
+    p:'Improve spacing, alignment, and visual rhythm — use the 4px-based spacing scale, give elements room to breathe, tighten inconsistent gaps, and make the hierarchy clearer through whitespace rather than borders.' },
+  { id:'polish', t:'Polish', s:'States & motion', ic:'M12 3l1.9 5.6L19.5 10.5 13.9 12.4 12 18l-1.9-5.6L4.5 10.5 10.1 8.6 12 3Z',
+    p:'Add finishing polish — make sure every interactive element has designed hover/active/focus-visible/disabled states, motion is fast and eased (120–250ms ease-out, respect prefers-reduced-motion), and empty/loading/error states look intentional.' },
+  { id:'type', t:'Type', s:'Text hierarchy', ic:'M5 6h14M5 6v12M9 6v12M14 9h5M14 9v9M19 9v9',
+    p:'Sharpen the typographic hierarchy — use a deliberate type scale, real weight/size contrast between headings and body, line-height ~1.5 for body and ~1.2 for headings. Do not bold everything.' },
+  { id:'addview', t:'Add view', s:'New section', ic:'M12 5v14M5 12h14',
+    p:'Add a new screen/section. Follow the existing pattern: a .screen div with its own id, a nav entry if appropriate, start/stop wiring, and match the established AETHER visual language (tokens, radii, elevation, fonts). Build it complete with empty/loading/error states.' },
+  { id:'fix', t:'Fix it', s:'Something off', ic:'M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.1-2.1 2.6-2.4Z',
+    p:'Something looks or behaves wrong. Diagnose it, then fix it surgically without regressing the rest of the app. Describe what you changed.' },
+];
+let __stIntent=null, __stTarget='', __stTimer=null, __stSince=0, __stSeen=new Set(), __stLastShipTs=0;
+
+function stBuildPrompt(){
+  const free=($('stInput').value||'').trim();
+  const intent=ST_INTENTS.find(i=>i.id===__stIntent);
+  const where=ST_TARGET_HINT[__stTarget]||'across the whole app';
+  // Design directive wrapper — makes Claude Code treat this as a visual/UX change.
+  const head='[DESIGN STUDIO] Make a DESIGN change to the AETHER PWA (index.html), '+where+'. ';
+  const body=[];
+  if(intent) body.push(intent.p);
+  if(free) body.push('Specific request: '+free);
+  if(!intent && !free) return null;
+  const rules=' Honor the existing design system: reuse the CSS custom-property tokens (colors, --r-* radii, --e* elevation, fonts), keep WCAG AA contrast, preserve the desktop device-frame and dark theme, and keep changes surgical. When done, git pull --rebase, commit, and push so GitHub Pages redeploys. Reply in one or two sentences on what changed.';
+  return head+body.join(' ')+rules;
+}
+function stRefreshNote(){
+  const note=$('stNote'); if(!note) return;
+  const intent=ST_INTENTS.find(i=>i.id===__stIntent);
+  const tgt=ST_TARGETS.find(t=>t.id===__stTarget);
+  if(__stIntent || ($('stInput').value||'').trim()){
+    note.innerHTML='<b>'+(intent?intent.t:'Custom')+'</b> · '+(tgt?tgt.label:'Whole app')+' → Claude Code';
+  } else {
+    note.innerHTML='Pick an intent above, or just describe the change. Ships to <b>Claude Code</b>.';
+  }
+}
+function renderStudioControls(){
+  const tg=$('stTargets');
+  if(tg && !tg.children.length){
+    for(const t of ST_TARGETS){
+      const b=document.createElement('button'); b.className='st-tgt'+(t.id===__stTarget?' sel':''); b.textContent=t.label; b.dataset.t=t.id;
+      b.addEventListener('click', ()=>{ __stTarget=t.id; tg.querySelectorAll('.st-tgt').forEach(x=>x.classList.toggle('sel', x.dataset.t===__stTarget)); stRefreshNote(); haptic(); });
+      tg.appendChild(b);
+    }
+  }
+  const gr=$('stGrid');
+  if(gr && !gr.children.length){
+    for(const i of ST_INTENTS){
+      const b=document.createElement('button'); b.className='st-chip'; b.dataset.i=i.id;
+      b.innerHTML='<svg class="st-cic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="'+i.ic+'"/></svg><div class="st-ct">'+i.t+'</div><div class="st-cs">'+i.s+'</div>';
+      b.addEventListener('click', ()=>{
+        __stIntent = (__stIntent===i.id)? null : i.id;
+        gr.querySelectorAll('.st-chip').forEach(x=>x.classList.toggle('sel', x.dataset.i===__stIntent));
+        stRefreshNote(); haptic();
+      });
+      gr.appendChild(b);
+    }
+  }
+}
+function stKind(t){
+  if(/^✓|✅|shipped|pushed|deployed|redeploy|git push|live now/i.test(t)) return {k:'ship', ic:'✅'};
+  if(/^⚠|error|failed|denied|exited/i.test(t)) return {k:'warn', ic:'⚠️'};
+  if(/^[•⌘]|^\s*(Edit|Write|Read|Bash|Grep|Glob|git |python |node |npm )/i.test(t)) return {k:'tool', ic:'⚙️'};
+  return {k:'msg', ic:'💬'};
+}
+function renderStudioItem(o){
+  const feed=$('stFeed'); if(!feed) return;
+  const t=(o.message||'').trim(); if(!t) return;
+  const empty=feed.querySelector('.st-empty'); if(empty) empty.remove();
+  const f=stKind(t);
+  const row=document.createElement('div'); row.className='st-row k-'+f.k;
+  const when=new Date((o.time||Date.now()/1000)*1000).toLocaleTimeString([], {hour:'numeric',minute:'2-digit',second:'2-digit'});
+  row.innerHTML='<span class="st-ric">'+f.ic+'</span><div class="st-rbody"><div class="st-rtext"></div><div class="st-rwhen">'+when+'</div></div>';
+  row.querySelector('.st-rtext').innerHTML=mdToHtml(t);
+  feed.appendChild(row);
+  while(feed.children.length>200) feed.removeChild(feed.firstChild);
+  requestAnimationFrame(()=>{ const sc=feed.closest('.st-scroll'); if(sc) sc.scrollTop=sc.scrollHeight; });
+  // detect a successful ship -> offer reload (only for builds we triggered this session)
+  if(f.k==='ship' && __stLastShipTs && (o.time||0)>=__stLastShipTs-2){ showStudioDeploy(); }
+}
+function renderStudioQuery(text){
+  const feed=$('stFeed'); if(!feed) return;
+  const empty=feed.querySelector('.st-empty'); if(empty) empty.remove();
+  const row=document.createElement('div'); row.className='st-row k-you';
+  const when=new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit',second:'2-digit'});
+  row.innerHTML='<span class="st-ric">🎨</span><div class="st-rbody"><div class="st-rtext"></div><div class="st-rwhen">you · '+when+'</div></div>';
+  row.querySelector('.st-rtext').textContent=text;
+  feed.appendChild(row); requestAnimationFrame(()=>{ const sc=feed.closest('.st-scroll'); if(sc) sc.scrollTop=sc.scrollHeight; });
+}
+async function studioTick(){
+  if(!ST_BUILDER) return;
+  try{
+    const r=await fetch(`${NTFY}/${ST_BUILDER.out}/json?poll=1&since=${__stSince}`,{cache:'no-store'});
+    const lines=(await r.text()).trim().split('\n').filter(Boolean);
+    for(const ln of lines){ let o; try{o=JSON.parse(ln);}catch(e){continue;}
+      if(o.event!=='message'||!o.id||__stSeen.has(o.id))continue; __stSeen.add(o.id);
+      __stSince=Math.max(__stSince,(o.time||Math.floor(Date.now()/1000)));
+      sniffCredits(o.message||''); renderStudioItem(o);
+    }
+    const d=$('stDot'); if(d) d.classList.add('on');
+  }catch(e){ const d=$('stDot'); if(d) d.classList.remove('on'); }
+}
+function startStudio(){
+  renderStudioControls(); stRefreshNote();
+  if(!ST_BUILDER){ const f=$('stFeed'); if(f) f.innerHTML='<div class="st-empty">Builder agent not configured.</div>'; return; }
+  __stSeen.clear(); __stSince=Math.floor(Date.now()/1000)-1800;
+  const feed=$('stFeed'); if(feed) feed.innerHTML='<div class="st-empty">Listening to Claude Code… describe a change and tap Ship.</div>';
+  if(__stTimer) clearInterval(__stTimer);
+  studioTick(); __stTimer=setInterval(studioTick, 1500);
+}
+function stopStudio(){ if(__stTimer){ clearInterval(__stTimer); __stTimer=null; } }
+function clearStudioFeed(){ const f=$('stFeed'); if(f) f.innerHTML='<div class="st-empty">Cleared. Listening…</div>'; __stSeen.clear(); hideStudioDeploy(); haptic(); }
+function showStudioDeploy(){ const d=$('stDeploy'); if(d) d.classList.add('show'); }
+function hideStudioDeploy(){ const d=$('stDeploy'); if(d) d.classList.remove('show'); }
+async function shipStudio(){
+  if(!ST_BUILDER){ toast('Builder not configured.',true); return; }
+  const prompt=stBuildPrompt();
+  if(!prompt){ toast('Pick an intent or describe the change.',true); $('stInput').focus(); return; }
+  const btn=$('stShip'); btn.classList.add('busy'); btn.disabled=true; haptic();
+  const echo=(($('stInput').value||'').trim()) || (ST_INTENTS.find(i=>i.id===__stIntent)||{}).t || 'Design change';
+  const tgt=ST_TARGETS.find(t=>t.id===__stTarget);
+  renderStudioQuery((tgt&&tgt.id?('['+tgt.label+'] '):'')+echo);
+  __stLastShipTs=Math.floor(Date.now()/1000);
+  hideStudioDeploy();
+  // make sure we're polling the builder feed
+  if(!__stTimer) startStudio();
+  try{
+    await fetch(`${NTFY}/${ST_BUILDER.in}`,{method:'POST',body:prompt});
+    toast('Shipped to Claude Code →');
+    $('stInput').value=''; $('stInput').style.height='auto';
+    __stIntent=null; const gr=$('stGrid'); if(gr) gr.querySelectorAll('.st-chip').forEach(x=>x.classList.remove('sel')); stRefreshNote();
+  }catch(e){ toast('Could not reach the builder.',true); }
+  finally{ setTimeout(()=>{ btn.classList.remove('busy'); btn.disabled=false; }, 600); }
+}
+function reloadToLatest(){
+  haptic();
+  // bust SW + http caches so the freshly-pushed index.html is fetched
+  try{
+    if('serviceWorker' in navigator){ navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.update())); }
+    if(window.caches && caches.keys){ caches.keys().then(ks=>Promise.all(ks.map(k=>caches.delete(k)))).finally(()=>{ location.reload(true); }); return; }
+  }catch(e){}
+  location.reload(true);
+}
+/* Studio button wiring */
+$('stShip') && $('stShip').addEventListener('click', shipStudio);
+$('stClear') && $('stClear').addEventListener('click', clearStudioFeed);
+$('stReload') && $('stReload').addEventListener('click', reloadToLatest);
+$('stInput') && $('stInput').addEventListener('input', function(){ this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,180)+'px'; stRefreshNote(); });
+$('stInput') && $('stInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)){ e.preventDefault(); shipStudio(); } });
+
 /* render a "you" query line in the stream feed (distinct from agent items) */
 function renderStreamQuery(text){
   const feed=$('streamFeed'); if(!feed) return;
@@ -1847,6 +2173,7 @@ function renderHistory(){
 document.querySelectorAll('.fcard').forEach(c=>{
   c.addEventListener('click', ()=>{
     if(c.dataset.radar){ haptic(); navTo('screenRadar'); return; }
+    if(c.dataset.studio){ haptic(); navTo('screenStudio'); return; }
     const a=AGENTS.find(x=>x.id===c.dataset.agent)||activeAgent; switchAgent(a); goChat();
     $('chatInput').value=c.dataset.q; $('chatInput').focus(); haptic();
   });
