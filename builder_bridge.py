@@ -28,6 +28,16 @@ SECURITY — read this:
 """
 import json, os, re, socket, subprocess, sys, time, urllib.request, shutil
 
+# Windows console defaults to cp1252; our progress prints contain Unicode (→, ⌘,
+# •, ✨). Printing those raised UnicodeEncodeError, which the poll loop caught as
+# a "poll err" — so dispatch() never ran and the Studio silently shipped nothing.
+# Force UTF-8 (and never let a logging glyph kill the run).
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
 # ---- config ----
 NTFY      = os.environ.get("AETHER_NTFY", "https://yaro.tail6a3c7a.ts.net")
 IN_TOPIC  = "hermes-yaro-builder-in-c7b4c5ae80"
@@ -331,7 +341,10 @@ def main():
                     if not msg:
                         continue
 
-                    print("→", f"[{engine}]", msg[:80])
+                    try:
+                        print("->", f"[{engine}]", msg[:80])
+                    except Exception:
+                        pass
                     label = "⌘ Claude Code on it…" if engine == "claude" else "▣ Hermes on it…"
                     post(label, title="builder-ack")
                     dispatch(engine, msg)
