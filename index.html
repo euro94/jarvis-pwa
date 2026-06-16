@@ -2131,6 +2131,7 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
   let rrBusy = false;
   let rrAbort = null;         // AbortController for the in-flight review run
   let rrCancelled = false;    // set when the user cancels, so we exit quietly
+  let rrLastSeen = '';        // last reviewer reply we saw that wasn't valid findings JSON (for diagnostics on timeout)
 
   // ---- helpers ----
   function rrLoad(){ try{ return JSON.parse(localStorage.getItem(RR_STORE)||'[]'); }catch(e){ return []; } }
@@ -2308,7 +2309,12 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
       const raw=await rrPollResult(sentAt);
       rrStopLoadCycle();
       if(rrCancelled){ rrBusy=false; rrSyncCTA(); return; }   // user backed out — stay on compose
-      if(raw===null){ rrError("The reviewer didn't respond in time. It may be busy or the photos may be large — try again in a moment.", '', engagement, imgs); rrBusy=false; rrSyncCTA(); return; }
+      if(raw===null){
+        const diag = rrLastSeen
+          ? "The reviewer replied, but never sent a valid findings result. Its last message is shown below — that usually means it couldn't open the workpaper image links, or hit an error."
+          : "No reply came back from the Reviewer at all within 5 minutes. The Reviewer agent (Hermes) may be offline, or it can't reach the uploaded image links. Check that the Reviewer answers in the Talk tab.";
+        rrError(diag, rrLastSeen, engagement, imgs); rrBusy=false; rrSyncCTA(); return;
+      }
       let parsed;
       try{ parsed=rrParse(raw); }
       catch(e){ rrError("The reviewer replied, but the response wasn't valid JSON ("+e.message+"). You can retry, or open the raw reply below.", raw, engagement, imgs); rrBusy=false; rrSyncCTA(); return; }
@@ -2325,7 +2331,7 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
 
   // poll the reviewer's out-topic for a JSON-bearing reply (vision review is slow)
   async function rrPollResult(sinceTs){
-    const HARD=Date.now()+5*60000; const seen=new Set();
+    const HARD=Date.now()+5*60000; const seen=new Set(); rrLastSeen='';
     while(Date.now()<HARD){
       if(rrCancelled) return null;
       try{
@@ -2338,6 +2344,9 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
           if(typeof sniffCredits==='function') sniffCredits(msg);
           // accept the first message that looks like our findings JSON
           if(/"findings"\s*:/.test(msg) || (/^[\s`]*\{/.test(msg) && /"summary"/.test(msg))) return msg;
+          // otherwise remember it — on timeout we show the reviewer's actual reply
+          // (an error, a progress note, non-JSON prose) instead of a blank "no response".
+          if(msg) rrLastSeen=msg;
         }
       }catch(e){ if(rrCancelled) return null; }
       await new Promise(r=>setTimeout(r,2500));
@@ -2360,7 +2369,7 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
       await rrFetch(`${NTFY}/${RR_AGENT.in}`,{method:'POST',body}, 30000);
       const raw=await rrPollResult(sentAt); rrStopLoadCycle();
       if(rrCancelled){ rrBusy=false; rrSyncCTA(); return; }
-      if(raw===null){ rrError("Still no response from the reviewer. Try again shortly.", '', engagement, imgs); rrBusy=false; rrSyncCTA(); return; }
+      if(raw===null){ rrError(rrLastSeen?"The reviewer replied but still didn't send a valid result — its last message is below.":"Still no response from the Reviewer (it may be offline or can't reach the image links).", rrLastSeen, engagement, imgs); rrBusy=false; rrSyncCTA(); return; }
       let parsed; try{ parsed=rrParse(raw); }catch(e){ rrError("Reply still wasn't valid JSON ("+e.message+").", raw, engagement, imgs); rrBusy=false; rrSyncCTA(); return; }
       rrReview={ id:uid(), engagement, summary:parsed.summary, findings:parsed.findings, images:imgs.map(x=>({label:x.label,thumb:x.thumb})), createdAt:Date.now() };
       rrUpsert(rrReview); rrBusy=false; rrSyncCTA(); rrRenderResults();
