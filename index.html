@@ -469,6 +469,12 @@
   .si-when { font-family:ui-monospace,monospace; font-size:10px; color:var(--faint); margin-top:4px; }
   .stream-item.k-you { border-left-color:var(--cyan); background:rgba(125,180,235,.1); }
   .stream-item.k-you .si-when { color:var(--cyan); opacity:.8; }
+  /* live "model working" indicator — Claude-chat-style thinking row */
+  .stream-item.k-working { border-left-color:var(--teal); background:var(--card-hi); }
+  .stream-item.k-working .si-text { color:var(--dim); font-weight:500; display:flex; align-items:center; gap:9px; }
+  .sw-dots { display:inline-flex; gap:4px; flex:0 0 auto; }
+  .sw-dots i { width:6px; height:6px; border-radius:50%; background:var(--teal); opacity:.7; animation:blink 1.2s infinite; }
+  .sw-dots i:nth-child(2){ animation-delay:.2s; } .sw-dots i:nth-child(3){ animation-delay:.4s; }
   .stream-composer { flex:0 0 auto; padding:8px 14px calc(var(--safe-b) + 10px); background:linear-gradient(to top, var(--bg) 72%, transparent); }
   .stream-composer textarea { font-size:16px; }
 
@@ -1707,6 +1713,7 @@ function renderStreamItem(o){
   const f=streamFmt(o.message||'');
   if(!f.text) return;
   const empty=feed.querySelector('.stream-empty'); if(empty) empty.remove();
+  clearStreamWorking(); // a real agent line arrived → stop the "working" indicator
   const row=document.createElement('div'); row.className='stream-item k-'+f.kind;
   const when=new Date((o.time||Date.now()/1000)*1000).toLocaleTimeString([], {hour:'numeric',minute:'2-digit',second:'2-digit'});
   row.innerHTML='<span class="si-ic">'+f.icon+'</span><div class="si-body"><div class="si-text"></div><div class="si-when">'+when+'</div></div>';
@@ -1729,7 +1736,7 @@ async function streamTick(){
   }catch(e){ const d=$('streamDot'); if(d) d.classList.remove('on'); }
 }
 function startStream(){
-  __streamAgent=activeAgent; __streamSeen.clear();
+  __streamAgent=activeAgent; __streamSeen.clear(); clearStreamWorking();
   __streamSince=Math.floor(Date.now()/1000)-1800; // backfill last 30 min
   const lbl=$('streamSelLabel'); if(lbl) lbl.textContent=activeAgent.label;
   // Reset the feed on every (re)start. __streamSeen was just cleared and we
@@ -1742,7 +1749,7 @@ function startStream(){
   streamTick(); __streamTimer=setInterval(streamTick, tickMs);
 }
 function stopStream(){ if(__streamTimer){ clearInterval(__streamTimer); __streamTimer=null; } }
-function clearStream(){ const feed=$('streamFeed'); if(feed){ feed.innerHTML='<div class="stream-empty">Cleared. Listening…</div>'; } __streamSeen.clear(); haptic(); }
+function clearStream(){ const feed=$('streamFeed'); if(feed){ feed.innerHTML='<div class="stream-empty">Cleared. Listening…</div>'; } __streamSeen.clear(); clearStreamWorking(); haptic(); }
 
 /* ===== DESIGN STUDIO — design front-door to the Claude Code builder ===== *
  * Reuses the existing `builder` agent + ntfy pipeline. The Studio composes a
@@ -1948,6 +1955,25 @@ $('stReload') && $('stReload').addEventListener('click', reloadToLatest);
 $('stInput') && $('stInput').addEventListener('input', function(){ this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,180)+'px'; stRefreshNote(); });
 $('stInput') && $('stInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)){ e.preventDefault(); shipStudio(); } });
 
+/* live "model working" indicator (Claude-chat style): a persistent thinking row
+   pinned to the bottom of the feed while we await the agent's reply. Cleared the
+   moment any real agent line arrives (renderStreamItem) or the stream resets. */
+let __streamWorkEl=null;
+function showStreamWorking(label){
+  const feed=$('streamFeed'); if(!feed) return;
+  const empty=feed.querySelector('.stream-empty'); if(empty) empty.remove();
+  if(__streamWorkEl && __streamWorkEl.isConnected){ feed.appendChild(__streamWorkEl); }
+  else {
+    const row=document.createElement('div'); row.className='stream-item k-working'; row.id='streamWorking';
+    row.innerHTML='<span class="si-ic">⚙️</span><div class="si-body"><div class="si-text"><span class="sw-label"></span><span class="sw-dots"><i></i><i></i><i></i></span></div></div>';
+    __streamWorkEl=row; feed.appendChild(row);
+  }
+  __streamWorkEl.querySelector('.sw-label').textContent=(label||activeAgent.label)+' is working';
+  requestAnimationFrame(()=>{ feed.scrollTop=feed.scrollHeight; });
+}
+function clearStreamWorking(){
+  if(__streamWorkEl){ __streamWorkEl.remove(); __streamWorkEl=null; }
+}
 /* render a "you" query line in the stream feed (distinct from agent items) */
 function renderStreamQuery(text){
   const feed=$('streamFeed'); if(!feed) return;
@@ -1968,6 +1994,7 @@ async function streamSend(){
   try{ pushMsg('me', text); }catch(e){}
   try{ await fetch(`${NTFY}/${activeAgent.in}`,{method:'POST',body:text}); }
   catch(e){ toast('Could not reach '+activeAgent.label+'.',true); return; }
+  showStreamWorking(activeAgent.label); // show the model "thinking" until its reply lands
   // the reply lands in the live feed via streamTick; also drive a chat poll so Talk stays in sync
   pollReply(Math.floor(Date.now()/1000)-1, true, activeAgent);
 }
