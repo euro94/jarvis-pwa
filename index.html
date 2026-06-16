@@ -905,6 +905,54 @@
   .iconbtn.attach2 svg.ico-svg, .iconbtn.send2 svg.ico-svg { width:21px; height:21px; }
   .iconbtn.send2 svg.ico-svg { transform:translateX(.5px); }
 
+  /* ===== LEARN (spaced-repetition tutor — Habit 2) ===== */
+  #screenLearn.active { display:flex; flex-direction:column; overflow:hidden; }
+  .learn-scroll { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:14px 16px calc(var(--safe-b) + 90px); }
+  /* hero: today's recall stats */
+  .lrn-hero { background:linear-gradient(150deg,rgba(60,210,255,.10),var(--card)); border:1px solid rgba(60,210,255,.28);
+    border-radius:var(--r-lg); padding:16px 17px; margin-bottom:16px; -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); }
+  .lrn-hero .lh-h { font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:2px; color:var(--gold); text-transform:uppercase; margin-bottom:12px; }
+  .lrn-hero .lh-stats { display:flex; gap:18px; }
+  .lrn-hero .lh-stat { flex:0 0 auto; }
+  .lrn-hero .lh-num { font-family:'Chakra Petch',sans-serif; font-weight:800; font-size:30px; line-height:1; color:var(--cyan); }
+  .lrn-hero .lh-k { font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:1.2px; color:var(--faint); text-transform:uppercase; margin-top:5px; }
+  /* big drill CTA */
+  .lrn-cta { width:100%; border:none; border-radius:var(--r-md); padding:16px; font-family:'Chakra Petch',sans-serif; font-size:16px; font-weight:700;
+    letter-spacing:.4px; cursor:pointer; color:#04263a; background:radial-gradient(circle at 40% 30%,#bfeeff,#3ce6ff 60%,#0d8fb8 100%);
+    box-shadow:0 0 20px var(--glow-cyan); margin-bottom:20px; display:flex; align-items:center; justify-content:center; gap:9px; }
+  .lrn-cta:active { transform:scale(.98); } .lrn-cta:disabled { opacity:.5; }
+  .lrn-cta svg { width:19px; height:19px; }
+  /* deck rows */
+  .lrn-sec { font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1.6px; color:var(--faint); text-transform:uppercase; margin:6px 2px 10px; }
+  .lrn-deck { display:flex; align-items:center; gap:13px; padding:14px 14px; border-radius:var(--r-md); background:var(--card); border:1px solid var(--line);
+    margin-bottom:9px; cursor:pointer; transition:border-color var(--t), transform var(--t); }
+  .lrn-deck:active { transform:scale(.99); } .lrn-deck:hover { border-color:var(--teal); }
+  .lrn-deck .ld-ring { flex:0 0 auto; width:46px; height:46px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; color:var(--cyan);
+    background:conic-gradient(var(--teal) calc(var(--p,0)*1%), var(--line-2) 0); position:relative; }
+  .lrn-deck .ld-ring::before { content:''; position:absolute; inset:4px; border-radius:50%; background:var(--card); }
+  .lrn-deck .ld-ring span { position:relative; z-index:1; }
+  .lrn-deck .ld-mid { flex:1; min-width:0; }
+  .lrn-deck .ld-name { font-size:14.5px; font-weight:600; color:var(--fg); line-height:1.3; }
+  .lrn-deck .ld-meta { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--faint); margin-top:4px; }
+  .lrn-deck .ld-due { flex:0 0 auto; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; padding:4px 9px; border-radius:99px; }
+  .lrn-deck .ld-due.has { color:var(--cyan); background:rgba(60,210,255,.14); }
+  .lrn-deck .ld-due.clear { color:var(--faint); background:rgba(130,152,180,.12); }
+  /* due topic chips */
+  .lrn-due-list { margin-top:4px; }
+  .lrn-chip { display:inline-flex; align-items:center; gap:6px; padding:7px 11px; margin:0 7px 7px 0; border-radius:99px;
+    background:var(--card); border:1px solid var(--line); font-size:12.5px; color:var(--fg); }
+  .lrn-chip .lc-dot { width:7px; height:7px; border-radius:50%; flex:0 0 auto; }
+  .lrn-chip .lc-dot.m0 { background:var(--sev-high); } .lrn-chip .lc-dot.m1 { background:var(--gold); }
+  .lrn-chip .lc-dot.m2 { background:var(--teal); } .lrn-chip .lc-dot.m3,.lrn-chip .lc-dot.m4 { background:#5fe39a; }
+  /* error log */
+  .lrn-err { padding:11px 13px; border-radius:var(--r-sm); background:rgba(255,90,90,.06); border:1px solid var(--sev-high-bg); margin-bottom:8px; }
+  .lrn-err .le-top { display:flex; gap:8px; align-items:center; margin-bottom:5px; }
+  .lrn-err .le-topic { font-size:13px; font-weight:600; color:var(--fg); }
+  .lrn-err .le-cat { font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700; padding:2px 7px; border-radius:99px; color:var(--sev-high); background:var(--sev-high-bg); text-transform:uppercase; }
+  .lrn-err .le-why { font-size:12.5px; color:var(--faint); line-height:1.45; }
+  .lrn-empty { text-align:center; color:var(--faint); font-size:13.5px; line-height:1.6; padding:34px 20px; }
+
   /* ===== PLAN (First Things First — Covey Habit 3) ===== */
   #screenPlan.active { display:flex; flex-direction:column; overflow:hidden; }
   .plan-top { display:flex; align-items:center; gap:10px; padding:calc(env(safe-area-inset-top) + 14px) 16px 10px;
@@ -996,6 +1044,7 @@
         <button class="qa" data-qa="brief"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M12 2.8v3M4.6 8.6 6.7 10.7M19.4 8.6 17.3 10.7M2.5 17h3M18.5 17h3M8 17a4 4 0 0 1 8 0"/><path d="M2.5 21h19"/></svg><span>Brief</span></button>
         <button class="qa" data-qa="agenda"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M9 4.5h6M9 4.5a2 2 0 0 0-2 2V8h10V6.5a2 2 0 0 0-2-2M7 8H6a1.5 1.5 0 0 0-1.5 1.5v10A1.5 1.5 0 0 0 6 21h12a1.5 1.5 0 0 0 1.5-1.5v-10A1.5 1.5 0 0 0 18 8h-1"/><path d="M8.5 13l2 2 4-4.5"/></svg><span>Plan</span></button>
         <button class="qa" data-qa="stream"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M3 12h3.4l2.4-7 4 16 2.4-9H21"/></svg><span>Stream</span></button>
+        <button class="qa" data-qa="learn"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H19v13H6.5A2.5 2.5 0 0 0 4 19.5z"/><path d="M4 6.5V19.5A2.5 2.5 0 0 0 6.5 22H19v-3"/></svg><span>Learn</span></button>
         <button class="qa" data-qa="new"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/></svg><span>New</span></button>
       </div>
       <div class="cards">
@@ -1003,6 +1052,7 @@
         <div class="fcard" data-agent="research" data-q="Help me research a technical accounting / audit question with sources."><div class="ic"><svg class="ico-svg" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.8"/><path d="M16 16l5 5"/></svg></div><div class="lbl">Research</div></div>
         <div class="fcard" data-agent="design" data-q="Help me with design, UI, or visuals."><div class="ic"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M4 20l4.4-1 9-9-3.4-3.4-9 9L4 20Z"/><path d="M13.4 6.6l3.4 3.4"/><path d="M15.4 4.6l1.6-1.6a1.5 1.5 0 0 1 2.1 0l1.3 1.3a1.5 1.5 0 0 1 0 2.1L18.4 9.6"/></svg></div><div class="lbl">Designer</div></div>
         <div class="fcard" data-studio="1"><div class="ic"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M12 3l1.9 5.6L19.5 10.5 13.9 12.4 12 18l-1.9-5.6L4.5 10.5 10.1 8.6 12 3Z"/><path d="M19 4v2.4M20.2 5.2h-2.4"/></svg></div><div class="lbl">Design Studio</div></div>
+        <div class="fcard" data-learn="1"><div class="ic"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H19v13H6.5A2.5 2.5 0 0 0 4 19.5z"/><path d="M4 6.5V19.5A2.5 2.5 0 0 0 6.5 22H19v-3"/></svg></div><div class="lbl">Tutor</div></div>
         <div class="fcard" data-radar="1"><div class="ic"><svg class="ico-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="3.4"/><path d="M12 1.6v3M12 19.4v3M1.6 12h3M19.4 12h3"/></svg></div><div class="lbl">Review Radar</div></div>
       </div>
 
@@ -1290,6 +1340,29 @@
     </div>
   </div>
 
+  <!-- ===== LEARN (spaced-repetition tutor — Habit 2) ===== -->
+  <div class="screen" id="screenLearn">
+    <div class="plan-top">
+      <span class="pt-ttl">Tutor</span>
+      <span class="pt-sub" id="learnUpdated">—</span>
+    </div>
+    <div class="learn-scroll">
+      <div class="lrn-hero">
+        <div class="lh-h">◈ Active recall · today</div>
+        <div class="lh-stats">
+          <div class="lh-stat"><div class="lh-num" id="lrnDue">0</div><div class="lh-k">Due now</div></div>
+          <div class="lh-stat"><div class="lh-num" id="lrnReviewed">0</div><div class="lh-k">Reviewed</div></div>
+          <div class="lh-stat"><div class="lh-num" id="lrnCorrect">0</div><div class="lh-k">Correct</div></div>
+        </div>
+      </div>
+      <button class="lrn-cta" id="lrnDrillBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.6L19.5 10.5 13.9 12.4 12 18l-1.9-5.6L4.5 10.5 10.1 8.6 12 3Z"/></svg>
+        Drill my due cards
+      </button>
+      <div id="learnBody"></div>
+    </div>
+  </div>
+
   <!-- ===== PLAN (First Things First — Covey Habit 3) ===== -->
   <div class="screen" id="screenPlan">
     <div class="plan-top">
@@ -1380,7 +1453,7 @@ document.querySelectorAll('.nav button').forEach(b=>{
     document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
     document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
     b.classList.add('active'); $(b.dataset.screen).classList.add('active'); haptic();
-    stopPlan();
+    stopPlan(); if(typeof stopLearn==='function') stopLearn();
     if(b.dataset.screen==='screenChat'){ scrollChat(); startAmbient(); } else { stopAmbient(); }
     if(b.dataset.screen==='screenHome'){ loadState(); renderRecent(); }
     if(b.dataset.screen==='screenStream'){ startStream(); } else { stopStream(); }
@@ -2240,6 +2313,7 @@ function openPlan(){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   $('screenPlan').classList.add('active');
   stopStream(); stopAmbient(); stopStudio&&stopStudio();
+  if(typeof stopLearn==='function') stopLearn();
   haptic(); startPlan();
 }
 async function planTick(){
@@ -2324,6 +2398,94 @@ function planPrioritize(){
 $('planAddBtn') && $('planAddBtn').addEventListener('click', planAdd);
 $('planAddInput') && $('planAddInput').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); planAdd(); } });
 $('planPrioritizeBtn') && $('planPrioritizeBtn').addEventListener('click', planPrioritize);
+
+/* ===== LEARN (spaced-repetition tutor — Habit 2) =====
+   The host tutor.py owns the cards/schedule and publishes due state to LEARN_TOPIC.
+   The screen polls that to render; tapping a deck or "Drill" routes a natural-language
+   instruction to the jarvis agent, which runs tutor.py context and tutors live in chat
+   (MCQ-first, grades each answer, logs misses, updates the schedule). */
+const LEARN_TOPIC = "hermes-yaro-jarvis-learn-5d8a93";
+const LEARN_AGENT = AGENTS.find(a=>a.id==='jarvis') || AGENTS[0];
+let __learnTimer=null, __learnSince=0, __learnData=null;
+function openLearn(){
+  document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $('screenLearn').classList.add('active');
+  stopStream(); stopAmbient(); stopStudio&&stopStudio(); stopPlan&&stopPlan();
+  haptic(); startLearn();
+}
+async function learnTick(){
+  try{
+    const r=await fetch(`${NTFY}/${LEARN_TOPIC}/json?poll=1&since=${__learnSince||'all'}`,{cache:'no-store'});
+    const lines=(await r.text()).trim().split('\n').filter(Boolean);
+    let latest=null;
+    for(const ln of lines){ try{ const o=JSON.parse(ln); if(o.event==='message'&&o.message){ latest=o.message; __learnSince=Math.max(__learnSince,(o.time||0)); } }catch(e){} }
+    if(latest){ try{ __learnData=JSON.parse(latest); renderLearn(); }catch(e){} }
+  }catch(e){}
+}
+function startLearn(){
+  __learnSince=0;
+  if($('learnBody').innerHTML.trim()===''){ $('learnBody').innerHTML='<div class="lrn-empty">Loading your decks…</div>'; }
+  learnTick();
+  if(__learnTimer) clearInterval(__learnTimer);
+  __learnTimer=setInterval(learnTick, 3000);
+}
+function stopLearn(){ if(__learnTimer){ clearInterval(__learnTimer); __learnTimer=null; } }
+function renderLearn(){
+  const d=__learnData; const body=$('learnBody'); if(!body) return;
+  if(d && d.updated_at){ $('learnUpdated').textContent='synced '+new Date(d.updated_at).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}); }
+  const st=(d&&d.stats)||{};
+  $('lrnDue').textContent=(d&&d.due_total)||0;
+  $('lrnReviewed').textContent=st.reviewed_today||0;
+  $('lrnCorrect').textContent=st.correct_today||0;
+  const decks=(d&&d.decks)||[];
+  let html='';
+  if(!decks.length){
+    html='<div class="lrn-empty">No study decks yet.<br>Say <b>"tutor me on …"</b> or <b>"make me a deck for …"</b> and I\u2019ll build cards and start the spaced-repetition loop.</div>';
+    body.innerHTML=html; return;
+  }
+  html+='<div class="lrn-sec">Decks</div>';
+  for(const dk of decks){
+    const dueCls=dk.due>0?'has':'clear';
+    const dueTxt=dk.due>0?(dk.due+' due'):'clear';
+    html+='<div class="lrn-deck" data-deck="'+dk.id+'" style="--p:'+(dk.mastery_pct||0)+'">'+
+      '<div class="ld-ring"><span>'+(dk.mastery_pct||0)+'</span></div>'+
+      '<div class="ld-mid"><div class="ld-name">'+esc(dk.name)+'</div>'+
+      '<div class="ld-meta">'+dk.total+' cards · '+dk.mastered+' mastered · '+esc(dk.subject||'')+'</div></div>'+
+      '<span class="ld-due '+dueCls+'">'+dueTxt+'</span></div>';
+  }
+  // due topics preview
+  const due=(d&&d.due_preview)||[];
+  if(due.length){
+    html+='<div class="lrn-sec" style="margin-top:18px;">Due to review now</div><div class="lrn-due-list">';
+    for(const c of due){ html+='<span class="lrn-chip"><span class="lc-dot m'+(c.mastery||0)+'"></span>'+esc(c.topic)+'</span>'; }
+    html+='</div>';
+  }
+  // recent misses (the error log — the highest-leverage view)
+  const errs=(d&&d.recent_errors)||[];
+  if(errs.length){
+    html+='<div class="lrn-sec" style="margin-top:18px;">Recent misses · re-test queue</div>';
+    for(const e of errs.slice().reverse()){
+      html+='<div class="lrn-err"><div class="le-top"><span class="le-topic">'+esc(e.topic||'')+'</span><span class="le-cat">'+esc(e.category||'')+'</span></div>'+
+        (e.why?'<div class="le-why">'+esc(e.why)+'</div>':'')+'</div>';
+    }
+  }
+  body.innerHTML=html;
+  body.querySelectorAll('[data-deck]').forEach(el=>el.addEventListener('click',()=>learnDrill(el.dataset.deck)));
+}
+function learnSendToAgent(body){ if(!__streamTimer || __streamAgent!==LEARN_AGENT){} try{ fetch(`${NTFY}/${LEARN_AGENT.in}`,{method:'POST',body}); }catch(e){} }
+function learnDrill(deck){
+  haptic();
+  if(activeAgent.id!==LEARN_AGENT.id){ switchAgent(LEARN_AGENT); }
+  const scope=deck?(' for the '+deck+' deck'):'';
+  const body='Tutor me now'+scope+'. Run: py -3.14 ~/.hermes/scripts/tutor.py context'+(deck?' --deck '+deck:'')+
+    '. Then quiz me MCQ-first on what is due (one exam-style question at a time, four options). After each of my answers: grade it, explain the why grounded in the source material, run tutor.py grade --card <id> --result right|wrong, and on a miss run tutor.py log-error. Keep it tight and spoken-friendly.';
+  // hand off to the Talk screen so the tutoring conversation happens in chat
+  goChat();
+  if(typeof askAgent==='function'){ askAgent(body, false); }
+  else { learnSendToAgent(body); toast('Starting your drill…'); }
+}
+$('lrnDrillBtn') && $('lrnDrillBtn').addEventListener('click', ()=>learnDrill(null));
 
 
 $('sendBtn').addEventListener('click', sendFromInput);
@@ -2464,6 +2626,7 @@ document.querySelectorAll('.fcard').forEach(c=>{
   c.addEventListener('click', ()=>{
     if(c.dataset.radar){ haptic(); navTo('screenRadar'); return; }
     if(c.dataset.studio){ haptic(); navTo('screenStudio'); return; }
+    if(c.dataset.learn){ haptic(); openLearn(); return; }
     const a=AGENTS.find(x=>x.id===c.dataset.agent)||activeAgent; switchAgent(a); goChat();
     $('chatInput').value=c.dataset.q; $('chatInput').focus(); haptic();
   });
@@ -2477,6 +2640,7 @@ document.querySelectorAll('.qa').forEach(b=>{
     const qa=b.dataset.qa;
     if(qa==='new'){ goChat(); startNewChat(); return; }
     if(qa==='stream'){ navTo('screenStream'); return; }
+    if(qa==='learn'){ openLearn(); return; }
     if(qa==='brief'){ goChat(); askAgent('Give me my brief: calendar, reminders, and the most important thing right now. Keep it tight.', false); return; }
     if(qa==='agenda'){ openPlan(); return; }
   });
