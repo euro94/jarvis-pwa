@@ -628,11 +628,18 @@
   .toast { position:fixed; left:20px; right:20px; bottom:calc(var(--safe-b) + 76px); background:#0C1A2E; color:#fff; padding:14px 16px; border-radius:14px; text-align:center; font-size:14px; opacity:0; transform:translateY(10px); transition:.3s var(--ease); pointer-events:none; z-index:80; border:1px solid rgba(255,255,255,.08); box-shadow:0 16px 40px rgba(16,32,60,.30); }
   .toast.show { opacity:1; transform:translateY(0); } .toast.err { background:#B42334; border-color:rgba(255,122,138,.5); }
 
-  /* voice overlay */
-  #voiceOverlay { position:fixed; inset:0; z-index:120; display:none; flex-direction:column; align-items:center; justify-content:center; gap:26px;
-    background:radial-gradient(circle at 50% 36%, #08182c 0%, #04080f 62%, #02050b 100%); }
+  /* voice overlay — a centered floating popup (not a full-screen takeover) over a
+     blurred, dimmed backdrop, matching the session-chooser sheet's popup language. */
+  #voiceOverlay { position:fixed; inset:0; z-index:120; display:none; align-items:center; justify-content:center; padding:20px;
+    background:rgba(4,8,16,.5); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); }
   #voiceOverlay.open { display:flex; }
-  .vo-orb { position:relative; width:264px; height:264px; display:flex; align-items:center; justify-content:center; }
+  .vo-card { display:flex; flex-direction:column; align-items:center; gap:22px;
+    width:min(360px,90vw); padding:30px 24px calc(26px + var(--safe-b)); box-sizing:border-box;
+    background:linear-gradient(180deg,#081120,#04070e); border:1px solid var(--line);
+    border-radius:var(--r-xl); box-shadow:var(--e3), var(--hair);
+    animation:voPop .32s var(--ease-spring); }
+  @keyframes voPop { from{ transform:translateY(16px) scale(.92); opacity:0; } to{ transform:translateY(0) scale(1); opacity:1; } }
+  .vo-orb { position:relative; width:228px; height:228px; display:flex; align-items:center; justify-content:center; }
   .vo-orb .ring { position:absolute; border-radius:50%; pointer-events:none; }
   .vo-orb .halo { inset:0;
     background:conic-gradient(from 0deg, transparent 0deg, rgba(45,212,191,0) 40deg, rgba(45,212,191,.55) 130deg, rgba(110,231,255,.9) 180deg, rgba(45,212,191,.55) 230deg, transparent 320deg, transparent 360deg);
@@ -1248,15 +1255,17 @@
   </div>
 
   <div id="voiceOverlay">
-    <div class="vo-orb" id="voOrb">
-      <div class="ring halo"></div>
-      <div class="ring r1"></div>
-      <div class="ring r2"></div>
-      <div class="core"></div>
+    <div class="vo-card" id="voCard">
+      <div class="vo-orb" id="voOrb">
+        <div class="ring halo"></div>
+        <div class="ring r1"></div>
+        <div class="ring r2"></div>
+        <div class="core"></div>
+      </div>
+      <div class="vo-status" id="voStatus">Listening…</div>
+      <div class="vo-transcript" id="voTranscript"></div>
+      <button class="vo-stop" id="voStop">End voice mode</button>
     </div>
-    <div class="vo-status" id="voStatus">Listening…</div>
-    <div class="vo-transcript" id="voTranscript"></div>
-    <button class="vo-stop" id="voStop">End voice mode</button>
   </div>
 
   <!-- ===== VOICE SESSION CHOOSER (shown before voice mode starts) ===== -->
