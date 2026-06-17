@@ -2003,6 +2003,7 @@ function startStudioVoice(){
   primeTTS(); primeAudio();               // unlock iOS speech/audio inside this tap
   startStudio();                          // begin polling the builder OUT feed
   window.__voiceMode=true; window.__studioVoice=true;
+  acquireWakeLock();                      // keep the screen awake hands-free
   $('voiceOverlay').classList.add('open');
   $('voiceModeBtn') && $('voiceModeBtn').classList.add('on');
   voSetState('listening','Studio · listening'); $('voTranscript').textContent='Describe a change — I keep listening.';
@@ -2931,7 +2932,7 @@ function reviveVoiceLoop(reason){
 }
 // (1) Foreground return — the reliable signal across iOS PWA / Safari.
 document.addEventListener('visibilitychange', ()=>{
-  if(document.visibilityState==='visible'){ setTimeout(()=>reviveVoiceLoop('visible'), 250); try{catchUpAll();}catch(e){} }
+  if(document.visibilityState==='visible'){ acquireWakeLock(); setTimeout(()=>reviveVoiceLoop('visible'), 250); try{catchUpAll();}catch(e){} }
 });
 window.addEventListener('pageshow', ()=>{ setTimeout(()=>reviveVoiceLoop('pageshow'), 250); try{catchUpAll();}catch(e){} });
 window.addEventListener('focus', ()=>{ setTimeout(()=>reviveVoiceLoop('focus'), 250); });
@@ -3062,11 +3063,25 @@ function voiceInterrupt(){
     startListening();
   }
 }
+// SCREEN WAKE LOCK — the make-or-break for hands-free driving. Without it the
+// phone screen dims then locks, iOS suspends the mic, and the loop dies until you
+// physically tap. Holding the lock for the whole session keeps the screen awake so
+// the listen→respond cycle runs untouched the entire commute. Re-acquired on every
+// foreground return (the OS drops the lock when the app is backgrounded).
+let __wakeLock=null;
+async function acquireWakeLock(){
+  try{ if('wakeLock' in navigator && window.__voiceMode && document.visibilityState==='visible'){
+    __wakeLock = await navigator.wakeLock.request('screen');
+    __wakeLock.addEventListener('release', ()=>{ __wakeLock=null; });
+  } }catch(e){ /* denied / unsupported — non-fatal, loop still self-revives on tap */ }
+}
+function releaseWakeLock(){ try{ if(__wakeLock){ __wakeLock.release(); __wakeLock=null; } }catch(e){} }
 function startVoiceConversation(){
   if(!SR){ toast('Voice mode not supported on this browser.',true); return; }
   primeTTS();                 // unlock iOS speech inside this tap
   primeAudio();               // unlock <audio> autoplay for the AI voice
   window.__voiceMode=true; window.__studioVoice=false;
+  acquireWakeLock();          // keep the screen awake for the whole drive
   $('voiceOverlay').classList.add('open');     // overlay — does NOT change tab
   $('voiceModeBtn') && $('voiceModeBtn').classList.add('on');
   voSetState('listening','Listening…'); $('voTranscript').textContent='';
@@ -3074,6 +3089,7 @@ function startVoiceConversation(){
 }
 function stopVoiceConversation(){
   window.__voiceMode=false; window.__studioVoice=false; speaking=false;
+  releaseWakeLock();          // let the screen sleep again
   $('voiceOverlay').classList.remove('open');
   $('voiceModeBtn') && $('voiceModeBtn').classList.remove('on');
   if(listening){ try{recog.stop();}catch(e){} }
