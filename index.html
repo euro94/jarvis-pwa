@@ -69,7 +69,8 @@
   body {
     color:var(--fg);
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter",system-ui,sans-serif;
-    -webkit-font-smoothing:antialiased; display:flex; flex-direction:column; height:var(--real-vh,100dvh);
+    -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; text-rendering:optimizeLegibility;
+    display:flex; flex-direction:column; height:var(--real-vh,100dvh);
     background:var(--bg);
     line-height:var(--lh-body); font-weight:var(--w-body);
   }
@@ -122,11 +123,12 @@
   }
   @keyframes gridDrift { from{background-position:0 0,0 0;} to{background-position:64px 64px,64px 64px;} }
   @media (prefers-reduced-motion: reduce){ body::after{ animation:none; } }
-  .screen { position:relative; z-index:1; flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; display:none; }
+  .screen { position:relative; z-index:1; flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior-y:contain; display:none; }
   .screen.active { display:block; animation:scrIn .42s var(--ease) both; }
   @keyframes scrIn { from{opacity:0; transform:translateY(10px) scale(.992); filter:blur(2px);} to{opacity:1; transform:none; filter:none;} }
   #screenChat.active { display:flex; flex-direction:column; overflow:hidden; }
   ::selection { background:rgba(60,210,255,.24); color:var(--fg); }
+  #chatThread, #hdList, .stream-feed { overscroll-behavior-y:contain; }
   .screen, #chatThread, #hdList, .stream-feed { scroll-behavior:smooth; }
   @media (prefers-reduced-motion: reduce){ .screen, #chatThread, #hdList, .stream-feed { scroll-behavior:auto; } }
   /* premium focus + scrollbars */
