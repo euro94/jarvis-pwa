@@ -551,6 +551,17 @@
   .st-chip .st-ct { font-size:13.5px; font-weight:700; color:var(--fg); letter-spacing:.1px; }
   .st-chip .st-cs { font-size:11px; color:var(--faint); margin-top:3px; line-height:1.4; }
 
+  /* talk-in-voice-mode launcher — full-width primary CTA into the voice overlay */
+  .st-voicebtn { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; margin:2px 0 18px;
+    padding:14px 18px; border-radius:var(--r-md); border:1px solid var(--teal); cursor:pointer;
+    font-family:'Chakra Petch','Saira',sans-serif; font-size:14px; font-weight:700; letter-spacing:.5px; text-transform:uppercase;
+    color:var(--teal2); background:linear-gradient(135deg, rgba(60,210,255,.16), rgba(45,212,191,.06));
+    box-shadow:0 4px 18px rgba(60,210,255,.16), var(--hair); transition:transform var(--t), box-shadow var(--t), border-color var(--t); }
+  .st-voicebtn svg { width:18px; height:18px; }
+  .st-voicebtn:hover { transform:translateY(-1px); box-shadow:0 7px 24px rgba(60,210,255,.26), var(--hair); border-color:var(--teal2); }
+  .st-voicebtn:active { transform:scale(.97); }
+  .st-voicebtn:focus-visible { box-shadow:var(--ring); }
+
   /* compose box */
   .st-compose { border:1px solid var(--line); border-radius:var(--r-md); background:var(--card-hi); padding:4px 4px 4px; -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); box-shadow:var(--e1); }
   .st-compose textarea { width:100%; border:none; background:none; color:var(--fg); font-size:16px; font-family:inherit; line-height:1.5; resize:none; padding:13px 14px 6px; outline:none; min-height:64px; max-height:180px; }
@@ -1216,6 +1227,11 @@
     </div>
     <div class="st-scroll">
       <p class="st-lede">Reshape AETHER from your phone. Talk it through or type — describe a change, and the designer can ask you smart follow-ups in the feed below. It ships through <b>Claude Code</b>, pushes, redeploys. Tap <b>Load latest build</b> when it lands.</p>
+
+      <button class="st-voicebtn" id="stVoiceBtn" aria-label="Talk to the designer in voice mode">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2.5" width="6" height="11.5" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3.2M9 21.5h6"/></svg>
+        <span>Talk in voice mode</span>
+      </button>
 
       <div class="st-deploy" id="stDeploy">
         <div class="st-dtxt"><b>New build shipped.</b> <span id="stDeploySub">Pull it in to see your changes.</span></div>
@@ -1979,6 +1995,10 @@ function reloadToLatest(){
 $('stShip') && $('stShip').addEventListener('click', shipStudio);
 $('stClear') && $('stClear').addEventListener('click', clearStudioFeed);
 $('stReload') && $('stReload').addEventListener('click', reloadToLatest);
+$('stVoiceBtn') && $('stVoiceBtn').addEventListener('click', ()=>{
+  if(!SR){ toast('Voice mode not supported on this browser.',true); return; }
+  haptic(); primeTTS(); primeAudio(); openVoiceSessChooser();
+});
 $('stMic') && $('stMic').addEventListener('click', ()=>{
   if(!SR){ toast('Voice input not supported here.',true); return; }
   if(listening){ recog.stop(); return; }
