@@ -3211,29 +3211,46 @@ function voiceModeAfterReply(msg){
   speaking=true;
   const clean=msg.replace(/[*_`#>\[\]]/g,'').replace(/https?:\/\/\S+/g,'link').slice(0,700);
   const showText=()=>{ $('voTranscript').textContent=clean.slice(0,160)+(clean.length>160?'…':''); };
-  const fallback=()=>{ if(!live())return; voSetState('speaking','AETHER · tap to interrupt'); showText(); speakPhoneVoice(clean, resume); };
-  // LOCAL NEURAL VOICE (Yaro asked for this): Kokoro runs fully on-device, so it
-  // streams sentence-by-sentence with no network round-trip — the words on screen
-  // and the spoken audio land together, fast, even with no signal in the car. We
-  // reveal the text immediately, then speak via Kokoro. If Kokoro can't run on
-  // this device (old iOS / no WebGPU+wasm), we fall back to the on-device Safari
-  // voice so the loop never goes silent.
+  const fallbackLocal=()=>{ // local on-device voices, last resort
+    if(!live())return;
+    voSetState('speaking','AETHER · tap to interrupt'); showText();
+    if(window.KokoroVoice && window.KokoroVoice.available()){
+      let spoke=false;
+      window.KokoroVoice.speak(clean, {
+        onstart:()=>{ if(!live())return; spoke=true; voSetState('speaking','AETHER · tap to interrupt'); },
+        onend:()=>{ resume(); }
+      }).then(h=>{
+        if(h===false){ if(!spoke) speakPhoneVoice(clean, resume); return; }
+        __kokoroHandle=h; if(!live() && h && h.stop) h.stop();
+      }).catch(()=>{ if(!spoke) speakPhoneVoice(clean, resume); });
+      return;
+    }
+    speakPhoneVoice(clean, resume);
+  };
+  // SERVER NEURAL VOICE (primary): the host bridge generates the real AETHER
+  // voice (local Kokoro on the host, ~2s) and posts an mp3 URL back. We play it
+  // through the <audio> element that was primed inside the start gesture, so iOS
+  // allows autoplay. This is the reliable path on iPhone — in-browser WebGPU
+  // Kokoro can't load on Safari, so it stays a fallback only. Text shows
+  // immediately; audio follows a beat later.
   showText();
-  if(window.KokoroVoice && window.KokoroVoice.available()){
-    let spoke=false;
-    window.KokoroVoice.speak(clean, {
-      onstart:()=>{ if(!live())return; spoke=true; voSetState('speaking','AETHER · tap to interrupt'); },
-      onend:()=>{ resume(); }
-    }).then(h=>{
-      if(h===false){ if(!spoke) fallback(); return; }   // Kokoro unavailable → Safari
-      __kokoroHandle = h;
-      if(!live() && h && h.stop) h.stop();               // a newer turn already superseded us
-    }).catch(()=>{ if(!spoke) fallback(); });
+  voSetState('speaking','AETHER · tap to interrupt');
+  if(aiVoiceOn){
+    fetchAIVoiceUrl(clean).then(url=>{
+      if(!live()){ return; }
+      if(!url){ fallbackLocal(); return; }   // bridge failed → local voice
+      try{
+        const a=ensureAudioEl();
+        a.src=url; a.muted=false; a.currentTime=0;
+        a.onended=()=>{ resume(); };
+        a.onerror=()=>{ if(live()) fallbackLocal(); };
+        const p=a.play();
+        if(p && p.catch) p.catch(()=>{ if(live()) fallbackLocal(); });
+      }catch(e){ fallbackLocal(); }
+    }).catch(()=>{ if(live()) fallbackLocal(); });
     return;
   }
-  // No Kokoro at all → on-device Safari voice.
-  voSetState('speaking','AETHER · tap to interrupt');
-  speakPhoneVoice(clean, resume);
+  fallbackLocal();
 }
 // Barge-in: tap the orb (or anywhere on the overlay) while AETHER is speaking
 // to cut it off and start listening immediately. iOS-reliable alternative to
