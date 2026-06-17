@@ -1212,6 +1212,16 @@
     #voiceOverlay .ao-rays, #voiceOverlay .ao-floor, #voiceOverlay .vo-orb,
     #voiceOverlay.listening .vo-orb{ animation:none; }
   }
+  /* Voice is AETHER's landing/home screen. On desktop, keep the full-bleed voice
+     screen INSIDE the device frame instead of covering the whole viewport. */
+  @media (min-width:768px){
+    #voiceOverlay{ inset:auto; left:50%; top:50%; transform:translate(-50%,-50%);
+      width:min(440px,96vw); height:min(940px,96dvh); border-radius:46px; overflow:hidden; }
+  }
+  /* idle landing state — calm breathing orb + a gentle invitation to talk */
+  #voiceOverlay.idle .vo-orb{ animation:aoBreathe 6s ease-in-out infinite; transform:none; }
+  #voiceOverlay.idle .vo-hint{ opacity:.85; max-height:60px; transform:translateY(0); }
+
 </style>
 </head>
 <body>
@@ -1700,7 +1710,7 @@ document.querySelectorAll('.nav button').forEach(b=>{
     b.classList.add('active'); $(b.dataset.screen).classList.add('active'); haptic();
     stopPlan(); if(typeof stopLearn==='function') stopLearn();
     if(b.dataset.screen==='screenChat'){ scrollChat(); startAmbient(); } else { stopAmbient(); }
-    if(b.dataset.screen==='screenHome'){ loadState(); renderRecent(); }
+    if(b.dataset.screen==='screenHome'){ loadState(); renderRecent(); if(window.__voiceHome) window.__voiceHome(); }
     if(b.dataset.screen==='screenStream'){ startStream(); } else { stopStream(); }
     if(b.dataset.screen==='screenStudio'){ startStudio(); } else { stopStudio(); }
     if(b.dataset.screen==='screenSettings'){ renderCredits(); }
@@ -3230,6 +3240,10 @@ function voiceModeAfterReply(msg){
 // true voice barge-in (the recognizer + synthesizer fight over the audio
 // session on Safari, so tap is the dependable interrupt).
 function voiceInterrupt(){
+  const o=$('voiceOverlay');
+  // Idle landing state (voice is the home screen): the first tap IS the user
+  // gesture iOS needs — prime audio/speech and start a real conversation.
+  if(o.classList.contains('idle')){ primeTTS(); primeAudio(); startVoiceConversation(); return; }
   if(!window.__voiceMode) return;
   if(voPaused){
     // Paused after a suspend — this tap IS the user gesture iOS needs to reopen
@@ -3276,7 +3290,7 @@ function startVoiceConversation(){
   if(window.KokoroVoice){ window.KokoroVoice.resume(); window.KokoroVoice.init().catch(()=>{}); }
   window.__voiceMode=true; window.__studioVoice=false;
   acquireWakeLock();          // keep the screen awake for the whole drive
-  $('voiceOverlay').classList.add('open');     // overlay — does NOT change tab
+  const o=$('voiceOverlay'); o.classList.remove('idle'); o.classList.add('open');     // overlay — does NOT change tab
   if(window.AO){ window.AO.start(); window.AO.micStart(); }
   $('voiceModeBtn') && $('voiceModeBtn').classList.add('on');
   voSetState('listening','Listening…'); $('voTranscript').textContent='';
@@ -3285,7 +3299,7 @@ function startVoiceConversation(){
 function stopVoiceConversation(){
   window.__voiceMode=false; window.__studioVoice=false; speaking=false;
   releaseWakeLock();          // let the screen sleep again
-  $('voiceOverlay').classList.remove('open');
+  $('voiceOverlay').classList.remove('open','idle');   // X reveals the app underneath
   $('voiceModeBtn') && $('voiceModeBtn').classList.remove('on');
   if(listening){ try{recog.stop();}catch(e){} }
   if(window.speechSynthesis) window.speechSynthesis.cancel();
@@ -4340,6 +4354,34 @@ const KokoroVoice = {
   resume(){ resumeCtx(); }
 };
 window.KokoroVoice = KokoroVoice;
+</script>
+
+<script>
+/* ===== VOICE AS HOME SCREEN =====================================================
+   AETHER opens straight into the full-bleed voice screen (the orb) — voice IS the
+   landing screen. It shows in an idle state (calm breathing orb, "Tap to talk");
+   tapping the orb starts a real hands-free conversation. The X reveals the rest of
+   the app (dashboard + tabs) underneath. Reuses #voiceOverlay + its --ao-* tokens,
+   safe-area insets and the desktop device-frame, so nothing else regresses. */
+(function(){
+  const o=document.getElementById('voiceOverlay'); if(!o) return;
+  function showVoiceHome(){
+    if(window.__voiceMode) return;                 // a live session owns the screen
+    o.classList.remove('listening','speaking','thinking','paused','longwait');
+    o.classList.add('idle','open');
+    const st=document.getElementById('voStatus'); if(st) st.textContent='Tap to talk';
+    const tr=document.getElementById('voTranscript'); if(tr) tr.textContent='';
+    try{ if(window.AO){ window.AO.setEnergy(0.16); window.AO.start(); } }catch(e){}
+  }
+  // Land on the voice home as soon as the orb renderer is ready.
+  if(document.readyState==='complete') showVoiceHome();
+  else window.addEventListener('load', showVoiceHome);
+  // Returning to the foreground with no active session → restore the voice home.
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.visibilityState==='visible' && !window.__voiceMode && !o.classList.contains('open')) showVoiceHome();
+  });
+  window.__voiceHome=showVoiceHome;
+})();
 </script>
 
 </body>
