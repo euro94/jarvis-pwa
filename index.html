@@ -692,15 +692,30 @@
   #voiceSessSheet.open { display:flex; }
   .vss-card { width:min(420px,86vw); max-height:80vh; overflow:auto; background:linear-gradient(180deg,#081120,#04070e); border:1px solid var(--line); border-radius:24px; padding:24px 18px; box-shadow:0 22px 64px rgba(0,0,0,.6); }
   .vss-h { color:var(--fg); font-size:19px; font-weight:700; text-align:center; margin-bottom:16px; letter-spacing:.4px; }
-  .vss-sub { color:var(--faint); font-size:11px; letter-spacing:1.2px; text-transform:uppercase; margin:16px 4px 8px; font-weight:600; }
-  .vss-btn { display:block; width:100%; box-sizing:border-box; text-align:left; padding:15px 16px; margin:8px 0; border-radius:14px; border:1px solid var(--line); background:rgba(10,20,34,.7); color:var(--fg); font-size:15px; font-weight:600; cursor:pointer; transition:transform .1s var(--ease); }
+  .vss-sub { color:var(--faint); font-size:11px; letter-spacing:1.2px; text-transform:uppercase; margin:18px 4px 6px; font-weight:600; }
+  .vss-btn { display:block; width:100%; box-sizing:border-box; text-align:center; padding:15px 16px; margin:8px 0; border-radius:14px; border:1px solid var(--line); background:rgba(10,20,34,.7); color:var(--fg); font-size:15px; font-weight:600; cursor:pointer; transition:transform .1s var(--ease); }
   .vss-btn:active { transform:scale(.98); }
-  .vss-primary { background:var(--grad-bubble); border-color:transparent; color:#fff; font-weight:800; }
-  .vss-cancel { text-align:center; background:transparent; border-color:var(--line); color:var(--dim); margin-top:14px; }
-  .vss-list:empty::after { content:'No past chats yet'; color:var(--faint); font-size:13px; display:block; padding:6px 4px; }
-  .vss-item { display:flex; justify-content:space-between; gap:8px; padding:13px 14px; margin:6px 0; border-radius:12px; background:rgba(10,20,34,.7); border:1px solid var(--line); color:var(--fg); font-size:14px; cursor:pointer; }
-  .vss-item:active { background:rgba(60,210,255,.14); }
-  .vss-item .when { color:var(--faint); font-size:11px; white-space:nowrap; }
+  .vss-cancel { text-align:center; background:transparent; border-color:var(--line); color:var(--dim); margin-top:16px; }
+  /* ===== HIVE COMB — sessions as octagon nodes chained to the previous one ===== */
+  .vss-hive { --oct:polygon(18px 0,calc(100% - 18px) 0,100% 18px,100% calc(100% - 18px),calc(100% - 18px) 100%,18px 100%,0 calc(100% - 18px),0 18px);
+    display:flex; flex-direction:column; align-items:stretch; }
+  .vss-list:empty::after { content:'No threads in the hive yet'; color:var(--faint); font-size:13px; display:block; text-align:center; padding:10px 4px; }
+  /* the thread connecting one cell to the one above it */
+  .vss-link { width:2px; height:16px; margin:1px auto; position:relative; background:linear-gradient(180deg,var(--teal),rgba(60,210,255,.12)); }
+  .vss-link::before { content:''; position:absolute; left:50%; top:50%; width:7px; height:7px; transform:translate(-50%,-50%) rotate(45deg); background:var(--teal2); box-shadow:0 0 9px var(--glow-teal); }
+  .vss-cell { display:block; width:100%; box-sizing:border-box; padding:1.5px; margin:0; border:0; cursor:pointer; clip-path:var(--oct,polygon(0 0,100% 0,100% 100%,0 100%));
+    background:linear-gradient(160deg,rgba(60,210,255,.32),rgba(60,210,255,.08)); transition:transform .1s var(--ease), filter var(--t) var(--ease); }
+  .vss-cell:active { transform:scale(.985); }
+  .vss-cell > .vss-oct { display:flex; flex-direction:column; gap:3px; align-items:flex-start; text-align:left; padding:14px 18px;
+    background:linear-gradient(165deg,#0c1a2c,#070f1c); clip-path:var(--oct,polygon(0 0,100% 0,100% 100%,0 100%)); }
+  .vss-oct b { color:var(--fg); font-size:15px; font-weight:700; line-height:1.2; }
+  .vss-oct i { color:var(--faint); font-size:11px; font-style:normal; letter-spacing:.3px; }
+  .vss-oct i.when { font-family:'JetBrains Mono',ui-monospace,monospace; }
+  /* the fresh-thread node glows brightest at the top of the comb */
+  .vss-new { background:linear-gradient(160deg,var(--teal),var(--teal2)); filter:drop-shadow(0 0 16px rgba(60,210,255,.4)); }
+  .vss-new > .vss-oct { background:var(--grad-bubble); }
+  .vss-new .vss-oct b { color:#04121c; }
+  .vss-new .vss-oct i { color:#063040; }
   .vo-transcript { color:var(--fg); font-size:19px; line-height:1.4; text-align:center; max-width:82%; min-height:28px; opacity:.95; }
   .vo-actions { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:10px; margin-top:14px; }
   .vo-convo { display:inline-flex; align-items:center; gap:8px; background:rgba(45,212,191,.12); color:var(--teal2); border:1px solid var(--line); border-radius:24px; padding:13px 20px; font-size:15px; font-weight:700; cursor:pointer; transition:transform .1s var(--ease), background var(--t) var(--ease); }
@@ -1297,11 +1312,14 @@
   <!-- ===== VOICE SESSION CHOOSER (shown before voice mode starts) ===== -->
   <div id="voiceSessSheet">
     <div class="vss-card">
-      <div class="vss-h">Start voice with…</div>
-      <button class="vss-btn vss-primary" id="vssNew">✨ New conversation</button>
-      <button class="vss-btn" id="vssContinue">↩︎ Continue current chat</button>
-      <div class="vss-sub">Or pick a past chat</div>
-      <div class="vss-list" id="vssList"></div>
+      <div class="vss-h">Enter the hive</div>
+      <div class="vss-hive">
+        <button class="vss-cell vss-new" id="vssNew"><span class="vss-oct"><b>✦ New thread</b><i>Spin up a fresh cell</i></span></button>
+        <div class="vss-link"></div>
+        <button class="vss-cell" id="vssContinue"><span class="vss-oct"><b>↩︎ Continue</b><i>Pick up the current thread</i></span></button>
+      </div>
+      <div class="vss-sub">Past cells in the hive</div>
+      <div class="vss-list vss-hive" id="vssList"></div>
       <button class="vss-btn vss-cancel" id="vssCancel">Cancel</button>
     </div>
   </div>
@@ -3029,17 +3047,18 @@ $('voiceModeBtn').addEventListener('click', ()=>{
 
 /* ===== VOICE SESSION CHOOSER ===== */
 function openVoiceSessChooser(){
-  // populate past-chat list (most recent first, excluding the current one)
+  // populate past-chat list as a chained hive of octagon cells (most recent first)
   const list=$('vssList'); list.innerHTML='';
   const ss=loadSessions().filter(s=>s.id!==(curSession&&curSession.id) && (s.msgs&&s.msgs.length));
-  for(const s of ss.slice(0,12)){
-    const it=document.createElement('div'); it.className='vss-item';
+  ss.slice(0,12).forEach((s,idx)=>{
+    if(idx>0){ const ln=document.createElement('div'); ln.className='vss-link'; list.appendChild(ln); }
+    const it=document.createElement('button'); it.className='vss-cell';
     const title=(s.title&&s.title!=='New chat')?s.title:(s.msgs[0]?.text||'Chat').slice(0,40);
     const when=new Date(s.updated||s.created).toLocaleDateString([], {month:'short',day:'numeric'});
-    it.innerHTML='<span>'+title.replace(/[<>]/g,'')+'</span><span class="when">'+when+'</span>';
+    it.innerHTML='<span class="vss-oct"><b>'+title.replace(/[<>]/g,'')+'</b><i class="when">'+s.msgs.length+' msgs · '+when+'</i></span>';
     it.addEventListener('click', ()=>{ closeVoiceSessChooser(); openSession(s.id); startVoiceConversation(); });
     list.appendChild(it);
-  }
+  });
   $('voiceSessSheet').classList.add('open');
 }
 function closeVoiceSessChooser(){ $('voiceSessSheet').classList.remove('open'); }
