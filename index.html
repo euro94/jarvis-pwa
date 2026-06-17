@@ -123,7 +123,9 @@
   .screen.active { display:block; animation:scrIn .42s var(--ease) both; }
   @keyframes scrIn { from{opacity:0; transform:translateY(10px) scale(.992); filter:blur(2px);} to{opacity:1; transform:none; filter:none;} }
   #screenChat.active { display:flex; flex-direction:column; overflow:hidden; }
-  ::selection { background:rgba(8,145,178,.22); color:var(--fg); }
+  ::selection { background:rgba(60,210,255,.24); color:var(--fg); }
+  .screen, #chatThread, #hdList, .stream-feed { scroll-behavior:smooth; }
+  @media (prefers-reduced-motion: reduce){ .screen, #chatThread, #hdList, .stream-feed { scroll-behavior:auto; } }
   /* premium focus + scrollbars */
   :focus-visible { outline:none; box-shadow:var(--ring); border-radius:6px; }
   .screen::-webkit-scrollbar, #chatThread::-webkit-scrollbar, #hdList::-webkit-scrollbar, .stream-feed::-webkit-scrollbar { width:8px; height:8px; }
