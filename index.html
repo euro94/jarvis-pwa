@@ -282,8 +282,10 @@
   .fcard:hover .ic { border-color:rgba(60,210,255,.40); background:linear-gradient(150deg,rgba(60,210,255,.24),rgba(60,210,255,.08)); transform:scale(1.05); }
   .fcard .lbl { font-size:11.5px; font-weight:700; color:var(--fg); margin-top:12px; line-height:1.3; letter-spacing:.1px; }
 
-  .section-h { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; color:var(--dim); letter-spacing:1.4px; text-transform:uppercase; margin:24px 4px 12px; }
+  .section-h { display:flex; align-items:center; gap:10px; font-size:12px; font-weight:700; color:var(--dim); letter-spacing:1.4px; text-transform:uppercase; margin:24px 4px 12px; }
   .section-h::before { content:""; flex:0 0 auto; width:3px; height:12px; border-radius:var(--r-pill); background:var(--grad-bubble); box-shadow:0 0 8px var(--glow-teal); }
+  /* trailing HUD rule — fades the brand line out to the right edge of every section header */
+  .section-h::after { content:""; flex:1 1 auto; height:1px; border-radius:var(--r-pill); background:linear-gradient(90deg,var(--line) 0%,var(--line-2) 60%,transparent 100%); }
   .stat-row { display:flex; gap:11px; margin-bottom:11px; }
   .stat {
     flex:1; background:var(--card); border:1px solid var(--line); border-radius:var(--r-md); padding:15px 16px;
