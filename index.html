@@ -1249,7 +1249,7 @@
 
       <button class="st-voicebtn" id="stVoiceBtn" aria-label="Talk to the designer in voice mode">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2.5" width="6" height="11.5" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3.2M9 21.5h6"/></svg>
-        <span>Talk in voice mode</span>
+        <span>Hands-free voice</span>
       </button>
 
       <div class="st-deploy" id="stDeploy">
@@ -1965,6 +1965,41 @@ function renderStudioQuery(text){
   row.querySelector('.st-rtext').textContent=text;
   feed.appendChild(row); requestAnimationFrame(()=>{ const sc=feed.closest('.st-scroll'); if(sc) sc.scrollTop=sc.scrollHeight; });
 }
+
+/* ===== HANDS-FREE STUDIO VOICE =====
+   Tap the Studio voice button → drop straight into a continuous listening loop:
+   every finalized utterance ships a build to the engine (fire-and-forget) and
+   AETHER immediately returns to listening, so you can stack changes back-to-back
+   while driving without tapping between turns. No session chooser. The build
+   runs on the host; its progress streams into the Studio feed underneath. */
+function stPromptFromText(free){
+  const where=ST_TARGET_HINT[__stTarget]||'across the whole app';
+  const head='[DESIGN STUDIO] Make a DESIGN change to the AETHER PWA (index.html), '+where+'. ';
+  const rules=' Honor the existing design system: reuse the CSS custom-property tokens (colors, --r-* radii, --e* elevation, fonts), keep WCAG AA contrast, preserve the desktop device-frame and dark theme, and keep changes surgical. When done, git pull --rebase, commit, and push so GitHub Pages redeploys. Reply in one or two sentences on what changed.';
+  return '[engine:'+__stEngine+'] '+head+'Specific request: '+free+rules;
+}
+const __stAcks=['On it.','Got it — shipping that.','On it, next.','Working on it.','Got it.'];
+function studioAck(){ return __stAcks[Math.floor(Math.random()*__stAcks.length)]; }
+async function studioVoiceDispatch(said){
+  if(!ST_BUILDER) return;
+  if(!__stTimer) startStudio();           // make sure we're streaming the builder feed
+  const prompt=stPromptFromText(said);
+  renderStudioQuery(said+'  ·  '+stEngineLabel());
+  __stLastShipTs=Math.floor(Date.now()/1000);
+  try{ await fetch(`${NTFY}/${ST_BUILDER.in}`,{method:'POST',body:prompt}); }
+  catch(e){ /* fire-and-forget — never block the mic */ }
+}
+function startStudioVoice(){
+  if(!SR){ toast('Voice mode not supported on this browser.',true); return; }
+  if(!ST_BUILDER){ toast('Builder agent not configured.',true); return; }
+  primeTTS(); primeAudio();               // unlock iOS speech/audio inside this tap
+  startStudio();                          // begin polling the builder OUT feed
+  window.__voiceMode=true; window.__studioVoice=true;
+  $('voiceOverlay').classList.add('open');
+  $('voiceModeBtn') && $('voiceModeBtn').classList.add('on');
+  voSetState('listening','Studio · listening'); $('voTranscript').textContent='Describe a change — I keep listening.';
+  haptic(); startListening();
+}
 async function studioTick(){
   if(!ST_BUILDER) return;
   try{
@@ -2025,7 +2060,7 @@ $('stClear') && $('stClear').addEventListener('click', clearStudioFeed);
 $('stReload') && $('stReload').addEventListener('click', reloadToLatest);
 $('stVoiceBtn') && $('stVoiceBtn').addEventListener('click', ()=>{
   if(!SR){ toast('Voice mode not supported on this browser.',true); return; }
-  haptic(); primeTTS(); primeAudio(); openVoiceSessChooser();
+  haptic(); startStudioVoice();
 });
 $('stMic') && $('stMic').addEventListener('click', ()=>{
   if(!SR){ toast('Voice input not supported here.',true); return; }
@@ -2820,6 +2855,12 @@ if(SR){ recog=new SR(); recog.lang='en-US'; recog.interimResults=true; recog.con
     listening=false; $('micBtn').classList.remove('listening'); $('homeMic')&&$('homeMic').classList.remove('rec'); $('streamMic')&&$('streamMic').classList.remove('listening'); $('stMic')&&$('stMic').classList.remove('listening');
     if(window.__voiceMode){
       const said=($('voTranscript').textContent||'').trim();
+      if(window.__studioVoice){
+        // Hands-free Studio: ship each utterance as a build, ack briefly, keep listening.
+        if(said){ $('voTranscript').textContent='“'+said+'”'; studioVoiceDispatch(said); voiceModeAfterReply(studioAck()); }
+        else { setTimeout(()=>{ if(window.__voiceMode && !speaking) startListening(); }, 500); }
+        return;
+      }
       if(said){ voSetState('thinking','Thinking…'); $('voTranscript').textContent='“'+said+'”'; if(liveOn()){ liveAsk(said); } else { askAgent(said,false); } }
       else { /* heard nothing — keep listening */ setTimeout(()=>{ if(window.__voiceMode && !speaking) startListening(); }, 500); }
       return;
@@ -3013,14 +3054,14 @@ function startVoiceConversation(){
   if(!SR){ toast('Voice mode not supported on this browser.',true); return; }
   primeTTS();                 // unlock iOS speech inside this tap
   primeAudio();               // unlock <audio> autoplay for the AI voice
-  window.__voiceMode=true;
+  window.__voiceMode=true; window.__studioVoice=false;
   $('voiceOverlay').classList.add('open');     // overlay — does NOT change tab
   $('voiceModeBtn') && $('voiceModeBtn').classList.add('on');
   voSetState('listening','Listening…'); $('voTranscript').textContent='';
   haptic(); startListening();
 }
 function stopVoiceConversation(){
-  window.__voiceMode=false; speaking=false;
+  window.__voiceMode=false; window.__studioVoice=false; speaking=false;
   $('voiceOverlay').classList.remove('open');
   $('voiceModeBtn') && $('voiceModeBtn').classList.remove('on');
   if(listening){ try{recog.stop();}catch(e){} }
