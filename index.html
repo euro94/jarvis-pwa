@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="AETHER">
-<meta name="theme-color" content="#04070e">
+<meta name="theme-color" content="#021014">
 <title>AETHER</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
@@ -20,11 +20,13 @@
   :root {
     /* ===== AETHER-OS — dark navy / cyan cyberpunk HUD design system ===== */
     /* surfaces */
-    --bg:#04070e; --bg-2:#070d18;
-    --card:rgba(10,18,32,.62); --card-solid:#0a1320;
-    --card-hi:rgba(14,26,44,.82);
-    /* neutral text ramp — evenly stepped for clear hierarchy, all AA on the deep navy ground */
-    --fg:#dbe8f6; --dim:#92a9c5; --faint:#6f88aa;
+    /* ground retuned to the voice-mode "water world" — deep teal-black instead of
+       blue-navy, so the whole app sits in the same ambiance as the voice overlay */
+    --bg:#021014; --bg-2:#04171c;
+    --card:rgba(8,26,32,.62); --card-solid:#08191f;
+    --card-hi:rgba(12,32,40,.82);
+    /* neutral text ramp — teal-tinted to match the voice screen, all AA on the deep teal ground */
+    --fg:#d8e8e5; --dim:#90b1ad; --faint:#6c8e8a;
     --line:rgba(60,210,255,.16); --line-2:rgba(60,210,255,.07);
     --usr:rgba(60,210,255,.12);
     /* brand — aether cyan + gold accent */
@@ -80,7 +82,7 @@
      it inside a centered device shell: capped width, rounded bezel, floating
      elevation, on a calm ambient backdrop. On a phone it's untouched, full-bleed. */
   @media (min-width:768px){
-    html { background:radial-gradient(120% 120% at 50% 0%, #0a1424 0%, #060c18 48%, #03060d 100%); }
+    html { background:radial-gradient(120% 120% at 50% 0%, #062229 0%, #03161b 48%, #010c10 100%); }
     body {
       width:min(440px, 96vw);
       height:min(940px, 96dvh);
@@ -99,17 +101,17 @@
     body::before { border-radius:38px; }
   }
   @media (min-width:768px) and (prefers-color-scheme:dark){
-    html { background:radial-gradient(120% 120% at 50% 0%, #0d1830 0%, #0a1224 50%, #070d1a 100%); }
+    html { background:radial-gradient(120% 120% at 50% 0%, #07282f 0%, #042029 50%, #02151a 100%); }
   }
-  /* living lab field behind everything — dark navy + cyan grid */
+  /* living lab field behind everything — deep teal water-world ground, voice-mode glow */
   body::before {
     content:""; position:fixed; inset:0; z-index:0; pointer-events:none;
     background:
       radial-gradient(90% 60% at 50% -12%, rgba(60,210,255,.10), transparent 58%),
-      radial-gradient(120% 80% at 8% -8%, rgba(20,140,200,.16), transparent 52%),
+      radial-gradient(120% 80% at 8% -8%, rgba(7,185,177,.18), transparent 52%),
       radial-gradient(120% 80% at 94% 4%, rgba(60,210,255,.10), transparent 50%),
-      radial-gradient(140% 90% at 50% 116%, rgba(190,150,50,.08), transparent 55%),
-      radial-gradient(125% 95% at 50% -12%,#0a1828 0%,#05080f 52%,#03050b 100%);
+      radial-gradient(140% 90% at 50% 116%, rgba(7,185,177,.12), transparent 55%),
+      radial-gradient(125% 95% at 50% -12%,#06222a 0%,#03141a 52%,#010b0f 100%);
   }
   body::after {
     content:""; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.5;
@@ -329,7 +331,7 @@
   #histScrim.open { opacity:1; pointer-events:auto; }
   #histDrawer {
     position:fixed; top:0; left:0; bottom:0; width:82%; max-width:340px; z-index:91;
-    background:linear-gradient(180deg,#081120,#04070e); border-right:1px solid var(--line);
+    background:linear-gradient(180deg,#06222a,#021014); border-right:1px solid var(--line);
     transform:translateX(-100%); transition:transform .28s var(--ease); box-shadow:18px 0 50px rgba(16,32,60,.18);
     display:flex; flex-direction:column; padding-top:env(safe-area-inset-top);
   }
@@ -453,7 +455,7 @@
   .btn-ghost { background:var(--card); color:var(--fg); border:1px solid var(--line); box-shadow:var(--e1); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); }
   .btn-ghost:hover { border-color:rgba(60,210,255,.3); }
   .note { color:var(--faint); font-size:12.5px; margin-top:10px; line-height:1.55; }
-  textarea.subbox { width:100%; height:100px; margin-top:10px; background:#070d18; color:var(--dim); border:1px solid var(--line); border-radius:12px; padding:10px; font-size:11px; font-family:ui-monospace,monospace; display:none; }
+  textarea.subbox { width:100%; height:100px; margin-top:10px; background:#04171c; color:var(--dim); border:1px solid var(--line); border-radius:12px; padding:10px; font-size:11px; font-family:ui-monospace,monospace; display:none; }
   #modelSelect, select { width:100%; margin-top:10px; padding:13px; border-radius:12px; border:1px solid var(--line); background:var(--bg-2); color:var(--fg); font-size:14px; }
   #ttsToggle { position:absolute; opacity:0; pointer-events:none; }
   .switch { position:relative; display:inline-block; width:50px; height:30px; cursor:pointer; flex:0 0 auto; }
@@ -681,7 +683,7 @@
   #voiceOverlay.open { display:flex; }
   .vo-card { display:flex; flex-direction:column; align-items:center; gap:22px;
     width:min(360px,90vw); padding:30px 24px calc(26px + var(--safe-b)); box-sizing:border-box;
-    background:linear-gradient(180deg,#081120,#04070e); border:1px solid var(--line);
+    background:linear-gradient(180deg,#06222a,#021014); border:1px solid var(--line);
     border-radius:var(--r-xl); box-shadow:var(--e3), var(--hair);
     animation:voPop .32s var(--ease-spring); }
   @keyframes voPop { from{ transform:translateY(16px) scale(.92); opacity:0; } to{ transform:translateY(0) scale(1); opacity:1; } }
@@ -725,7 +727,7 @@
   .vo-status { color:var(--teal2); font-size:13px; letter-spacing:2.5px; text-transform:uppercase; font-weight:700; }
   #voiceSessSheet { position:fixed; inset:0; z-index:130; display:none; align-items:center; justify-content:center; background:rgba(12,20,38,.34); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); }
   #voiceSessSheet.open { display:flex; }
-  .vss-card { width:min(420px,86vw); max-height:80vh; overflow:auto; background:linear-gradient(180deg,#081120,#04070e); border:1px solid var(--line); border-radius:24px; padding:24px 18px; box-shadow:0 22px 64px rgba(0,0,0,.6); }
+  .vss-card { width:min(420px,86vw); max-height:80vh; overflow:auto; background:linear-gradient(180deg,#06222a,#021014); border:1px solid var(--line); border-radius:24px; padding:24px 18px; box-shadow:0 22px 64px rgba(0,0,0,.6); }
   .vss-h { color:var(--fg); font-size:19px; font-weight:700; text-align:center; margin-bottom:16px; letter-spacing:.4px; }
   .vss-sub { color:var(--faint); font-size:11px; letter-spacing:1.2px; text-transform:uppercase; margin:18px 4px 6px; font-weight:600; }
   .vss-btn { display:block; width:100%; box-sizing:border-box; text-align:center; padding:15px 16px; margin:8px 0; border-radius:14px; border:1px solid var(--line); background:rgba(10,20,34,.7); color:var(--fg); font-size:15px; font-weight:600; cursor:pointer; transition:transform .1s var(--ease); }
