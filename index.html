@@ -1184,6 +1184,12 @@
     50%{ transform:scale(1.025); filter:drop-shadow(0 0 62px rgba(7,185,177,.32)); } }
   #voiceOverlay.listening .vo-orb{ animation:aoListen 1.6s ease-in-out infinite; transform:scale(1.05); }
   @keyframes aoListen{ 0%,100%{ filter:drop-shadow(0 0 60px rgba(7,185,177,.40)); } 50%{ filter:drop-shadow(0 0 96px rgba(7,185,177,.55)); } }
+  /* long-wait ("still working") — a slower, calmer breath so a long model latency
+     reads as patient pondering, not a frozen loop. Status text also dims slightly. */
+  #voiceOverlay.thinking.longwait .vo-orb{ animation:aoLongwait 4.2s ease-in-out infinite; }
+  @keyframes aoLongwait{ 0%,100%{ transform:scale(.985); filter:drop-shadow(0 0 40px rgba(7,185,177,.26)); }
+    50%{ transform:scale(1.015); filter:drop-shadow(0 0 70px rgba(7,185,177,.40)); } }
+  #voiceOverlay.longwait .vo-status{ opacity:.8; }
   /* status + transcript + hint, restyled for the dark teal screen */
   #voiceOverlay .vo-status{ position:relative; z-index:2; color:var(--ao-cyan); }
   #voiceOverlay .vo-transcript{ position:relative; z-index:2; color:var(--ao-text); font-size:clamp(15px,4.4vw,19px);
@@ -2838,7 +2844,11 @@ async function liveAsk(text, silent){
         const line=buf.slice(0,i).trim(); buf=buf.slice(i+2);
         if(!line.startsWith('data:')) continue;
         let ev; try{ ev=JSON.parse(line.slice(5).trim()); }catch(e){ continue; }
-        if(ev.type==='text'){ ensureBubble(); acc+=ev.text; bubble.innerHTML=mdToHtml(acc); scrollChat(); }
+        if(ev.type==='text'){ ensureBubble(); acc+=ev.text; bubble.innerHTML=mdToHtml(acc); scrollChat();
+          // first token: drop the "thinking" sweep immediately so a long, variable
+          // model latency never overstays — perceived wait ends the moment words flow.
+          if(window.__voiceMode && acc.trim() && $('voiceOverlay').classList.contains('thinking')){ voSetState('speaking','AETHER'); }
+        }
         else if(ev.type==='action'){ toast('⚡ '+(ev.result||ev.tool)); }
         else if(ev.type==='error'){ throw new Error(ev.error||'proxy error'); }
         else if(ev.type==='done'){ acc=ev.text||acc; }
@@ -3101,9 +3111,27 @@ setInterval(()=>{
 window.__voiceMode=false; let speaking=false; let ttsPrimed=false; let preferredVoice=null;
 function pickVoice(){ try{ const vs=window.speechSynthesis.getVoices()||[]; preferredVoice = vs.find(v=>/Samantha|Karen|Daniel|Google US English|Aaron|Evan/i.test(v.name)) || vs.find(v=>v.lang&&v.lang.indexOf('en')===0) || vs[0] || null; }catch(e){} }
 if(window.speechSynthesis){ pickVoice(); window.speechSynthesis.onvoiceschanged=pickVoice; }
+let __thinkWatch=null, __thinkStart=0;
 function voSetState(cls,label){ const o=$('voiceOverlay'); o.classList.remove('listening','speaking','thinking','paused'); if(cls)o.classList.add(cls); if(label)$('voStatus').textContent=label;
   // drive the water orb energy from the voice state
-  if(window.AO){ const e=(cls==='speaking')?0.85:(cls==='listening')?0.55:(cls==='thinking')?0.4:0.12; window.AO.setEnergy(e); } }
+  if(window.AO){ const e=(cls==='speaking')?0.85:(cls==='listening')?0.55:(cls==='thinking')?0.4:0.12; window.AO.setEnergy(e); }
+  // "still working" escalation: if thinking runs long, switch to a calmer, slower
+  // acknowledging pulse + honest copy so a real (variable) model latency never
+  // reads as a frozen loop. Cleared the moment we leave the thinking state.
+  if(__thinkWatch){ clearTimeout(__thinkWatch); __thinkWatch=null; }
+  o.classList.remove('longwait');
+  if(cls==='thinking'){
+    __thinkStart=Date.now();
+    __thinkWatch=setTimeout(function stillWorking(){
+      if(!o.classList.contains('thinking')) return;
+      o.classList.add('longwait');                 // CSS slows the orb's breathing
+      if(window.AO) window.AO.setEnergy(0.30);      // calmer, deeper pulse
+      const secs=Math.round((Date.now()-__thinkStart)/1000);
+      $('voStatus').textContent = secs>=22 ? 'Still working… hang tight' : 'Still working…';
+      __thinkWatch=setTimeout(stillWorking, 7000);  // keep it honest if it drags on
+    }, 9000);
+  }
+}
 function primeTTS(){ // must run inside a user gesture to unlock iOS speech
   if(ttsPrimed||!window.speechSynthesis) return;
   try{ const u=new SpeechSynthesisUtterance(' '); u.volume=0; window.speechSynthesis.speak(u); ttsPrimed=true; }catch(e){}
@@ -3251,6 +3279,8 @@ function stopVoiceConversation(){
   if(listening){ try{recog.stop();}catch(e){} }
   if(window.speechSynthesis) window.speechSynthesis.cancel();
   if(window.AO && window.AO.micStop) window.AO.micStop();   // release the mic (privacy)
+  if(__thinkWatch){ clearTimeout(__thinkWatch); __thinkWatch=null; }
+  $('voiceOverlay').classList.remove('longwait','thinking','listening','speaking');
 }
 $('voStop').addEventListener('click', stopVoiceConversation);
 // In-voice "Conversations" — pop the session chooser over the live overlay so you
@@ -4009,7 +4039,7 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
 (function(){
   const VS='attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}';
   const FS=`precision highp float;
-  uniform vec2 uRes; uniform float uTime; uniform float uInt; uniform float uLevel; uniform float uReveal;
+  uniform vec2 uRes; uniform float uTime; uniform float uInt; uniform float uLevel; uniform float uReveal; uniform float uThink;
   uniform vec3 uDeep; uniform vec3 uMid; uniform vec3 uBright;
   float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
   float vnoise(vec2 p){vec2 i=floor(p),f=fract(p);float a=hash(i),b=hash(i+vec2(1,0)),c=hash(i+vec2(0,1)),d=hash(i+vec2(1,1));vec2 u=f*f*(3.-2.*f);return mix(mix(a,b,u.x),mix(c,d,u.x),u.y);}
@@ -4026,13 +4056,17 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
     float amp=mix(1.0,2.1,uInt)+uLevel*0.9;
     float h=waterH(wp,uTime,amp); float hx=waterH(wp+vec2(e,0.),uTime,amp); float hy=waterH(wp+vec2(0.,e),uTime,amp);
     vec2 grad=vec2(hx-h,hy-h)/e; vec3 N=normalize(vec3(N0.xy-grad*.16,N0.z));
-    vec3 V=vec3(0.,0.,1.); vec3 L=normalize(vec3(-.45,.6,.72)); vec3 L2=normalize(vec3(.4,.5,.6));
+    vec3 V=vec3(0.,0.,1.);
+    float ta=uThink*uTime*0.9;                              // thinking: key light sweeps around
+    mat2 Rt=mat2(cos(ta),-sin(ta),sin(ta),cos(ta));
+    vec3 L=normalize(vec3(Rt*vec2(-.45,.6),.72)); vec3 L2=normalize(vec3(.4,.5,.6));
     float diff=clamp(dot(N,L),0.,1.); float spec=pow(clamp(dot(N,normalize(L+V)),0.,1.),90.);
     float spec2=pow(clamp(dot(N,normalize(L2+V)),0.,1.),26.); float fres=pow(1.-clamp(dot(N,V),0.,1.),3.0);
     vec3 col=mix(uDeep,uMid,.35+.5*z); col+=uMid*diff*.30; col+=uBright*spec*1.8;
     col+=vec3(1.0,1.0,.98)*spec2*.40; col+=vec3(.45,.88,.83)*fres*.22;
     float sheen=smoothstep(.55,0.,length(uv-vec2(-.32,.40))); col+=vec3(.85,.97,.93)*sheen*.16;
     col*=mix(.66,1.04,z); col+=uInt*uBright*.10; col+=uLevel*uBright*.22;
+    col+=uBright*uThink*(0.10+0.10*sin(uTime*3.0));        // thinking: gentle heartbeat glow
     float fa=fbm(uv*1.6+vec2(uTime*0.05,-uTime*0.04)); float fb=fbm(uv*1.6+vec2(11.0,3.0)-vec2(uTime*0.05));
     vec2 flow=normalize(vec2(fb-0.5,-(fa-0.5))+1e-4); vec2 sp=uv*2.6+flow*0.7;
     float wisp=fbm(sp+vec2(uTime*0.10,-uTime*0.08)); float rr=r+(wisp-0.5)*0.46;
@@ -4088,8 +4122,9 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
     gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
     const U={res:gl.getUniformLocation(pr,'uRes'),time:gl.getUniformLocation(pr,'uTime'),
       int:gl.getUniformLocation(pr,'uInt'),level:gl.getUniformLocation(pr,'uLevel'),reveal:gl.getUniformLocation(pr,'uReveal'),
+      think:gl.getUniformLocation(pr,'uThink'),
       deep:gl.getUniformLocation(pr,'uDeep'),mid:gl.getUniformLocation(pr,'uMid'),bright:gl.getUniformLocation(pr,'uBright')};
-    let intensity=0, phase=0, lastMs=0, running=false;
+    let intensity=0, phase=0, lastMs=0, running=false, thinkAmt=0;
     let qScale=Math.min(window.devicePixelRatio||1,2), fpsAccum=0, fpsFrames=0, degradeStep=0;
     let reveal=0, startT=0, lastLvl=0;
     function resize(){ const s=cv.getBoundingClientRect();
@@ -4107,7 +4142,8 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
         if(fps<45 && degradeStep<2){ degradeStep++; qScale=degradeStep===1?Math.min(qScale,1.25):1.0; resize(); }
         else if(fps<22){ cv.style.display='none'; running=false; return; } }
       const e=Math.max(0,Math.min(1,st.energy||0)), active=!!st.active;
-      const tgtInt=active?Math.max(0.35,e):e*0.5;
+      thinkAmt+=((st.think?1:0)-thinkAmt)*0.08;            // ease into/out of the thinking look
+      const tgtInt=active?Math.max(0.35,e):Math.max(e*0.5, thinkAmt*0.4);
       intensity+=(tgtInt-intensity)*0.12; lastLvl=active?(0.10+0.35*e):0.0;
       phase+=dt*(0.5+0.6*intensity+1.0*lastLvl);
       resize(); gl.viewport(0,0,cv.width,cv.height);
@@ -4120,6 +4156,7 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
       gl.uniform1f(U.int, Math.min(1.0,intensity));
       gl.uniform1f(U.level, Math.min(1.0,lastLvl));
       gl.uniform1f(U.reveal, reveal);
+      gl.uniform1f(U.think, thinkAmt);
       gl.uniform3f(U.deep,WATER[0][0],WATER[0][1],WATER[0][2]);
       gl.uniform3f(U.mid, WATER[1][0],WATER[1][1],WATER[1][2]);
       gl.uniform3f(U.bright,WATER[2][0],WATER[2][1],WATER[2][2]);
@@ -4143,7 +4180,8 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
   const inst=window.AO.makeOrb(cv, function(){
     if(!overlay || !overlay.classList.contains('open')) return {stop:true};
     const e=window.AO._tick? window.AO._tick(0.016):0;   // advance eased energy
-    return {energy:e, active:overlay.classList.contains('listening')};
+    return {energy:e, active:overlay.classList.contains('listening'),
+            think:overlay.classList.contains('thinking')};
   });
   window.AO._orbStart=function(){ inst.start(); };
   const orb=document.getElementById('voOrb');
