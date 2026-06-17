@@ -3201,32 +3201,14 @@ function voiceModeAfterReply(msg){
   const clean=msg.replace(/[*_`#>\[\]]/g,'').replace(/https?:\/\/\S+/g,'link').slice(0,700);
   const showText=()=>{ $('voTranscript').textContent=clean.slice(0,160)+(clean.length>160?'…':''); };
   const fallback=()=>{ if(!live())return; voSetState('speaking','AETHER · tap to interrupt'); showText(); speakPhoneVoice(clean, resume); };
-  if(!aiVoiceOn){
-    // phone voice is instant — reveal text and speak together
-    voSetState('speaking','AETHER · tap to interrupt'); showText();
-    speakPhoneVoice(clean, resume); return;
-  }
-  // Real OpenAI voice: it takes ~3s to generate/upload/fetch. The answer is
-  // already in hand, so DON'T fall back to "thinking" (that reads as stuck per the
-  // state-edge rule) — reveal the text now under a calm "speaking" state, then
-  // sync audio when it lands. Hard timeout guarantees we never hang waiting on TTS.
-  voSetState('speaking','AETHER'); showText();
-  let _settled=false;
-  const ttsGuard=setTimeout(()=>{ if(!_settled && live()){ _settled=true; speakPhoneVoice(clean, resume); } }, 9000);
-  fetchAIVoiceUrl(clean).then(url=>{
-    if(!live()){ clearTimeout(ttsGuard); return; }       // interrupted/superseded while waiting
-    if(_settled){ return; }                              // guard already fell back to phone voice
-    if(!url){ _settled=true; clearTimeout(ttsGuard); fallback(); return; }
-    _settled=true; clearTimeout(ttsGuard);
-    const a=ensureAudioEl(); a.src=url;
-    a.onended=resume;
-    a.onerror=fallback;
-    a.onplaying=()=>{ if(!live())return; voSetState('speaking','AETHER · tap to interrupt'); showText(); };  // sync: text appears as voice begins
-    a.play().then(()=>{
-      // safety net if 'ended' never fires
-      setTimeout(()=>{ if(live() && a.paused){ resume(); } }, Math.min(4000+clean.length*70, 20000));
-    }).catch(fallback);
-  }).catch(fallback);
+  // ZERO-DELAY SYNC (Yaro asked for this): the moment the reply lands, reveal the
+  // text AND start speaking in the SAME tick. The on-device voice is instant (no
+  // network round-trip), so text + audio fire together with no gap. We DON'T wait
+  // on the ~3s OpenAI cloud clip in voice mode — that wait is exactly the lag Yaro
+  // saw (words on screen seconds before they were read). Premium cloud voice still
+  // serves the text-mode checkpoint queue (enqueueSpeak), where sync matters less.
+  voSetState('speaking','AETHER · tap to interrupt'); showText();
+  speakPhoneVoice(clean, resume);
 }
 // Barge-in: tap the orb (or anywhere on the overlay) while AETHER is speaking
 // to cut it off and start listening immediately. iOS-reliable alternative to
