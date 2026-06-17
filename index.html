@@ -702,7 +702,11 @@
   .vss-item:active { background:rgba(60,210,255,.14); }
   .vss-item .when { color:var(--faint); font-size:11px; white-space:nowrap; }
   .vo-transcript { color:var(--fg); font-size:19px; line-height:1.4; text-align:center; max-width:82%; min-height:28px; opacity:.95; }
-  .vo-stop { margin-top:14px; background:rgba(12,26,46,.06); color:var(--fg); border:1px solid var(--line); border-radius:24px; padding:13px 26px; font-size:15px; font-weight:600; cursor:pointer; }
+  .vo-actions { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:10px; margin-top:14px; }
+  .vo-convo { display:inline-flex; align-items:center; gap:8px; background:rgba(45,212,191,.12); color:var(--teal2); border:1px solid var(--line); border-radius:24px; padding:13px 20px; font-size:15px; font-weight:700; cursor:pointer; transition:transform .1s var(--ease), background var(--t) var(--ease); }
+  .vo-convo svg { width:18px; height:18px; }
+  .vo-convo:active { transform:scale(.96); background:rgba(45,212,191,.2); }
+  .vo-stop { background:rgba(12,26,46,.06); color:var(--fg); border:1px solid var(--line); border-radius:24px; padding:13px 26px; font-size:15px; font-weight:600; cursor:pointer; }
   .vo-stop:active { transform:scale(.96); }
   .foot { text-align:center; color:var(--faint); font-size:10px; letter-spacing:2.5px; margin:20px 0 6px; }
 
@@ -1280,7 +1284,13 @@
       </div>
       <div class="vo-status" id="voStatus">Listening…</div>
       <div class="vo-transcript" id="voTranscript"></div>
-      <button class="vo-stop" id="voStop">End voice mode</button>
+      <div class="vo-actions">
+        <button class="vo-convo" id="voConvo" aria-label="Conversations — start a new one or switch back">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7A8.5 8.5 0 0 1 4 11.5 8.38 8.38 0 0 1 12.5 3 8.38 8.38 0 0 1 21 11.5Z"/></svg>
+          <span>Conversations</span>
+        </button>
+        <button class="vo-stop" id="voStop">End voice mode</button>
+      </div>
     </div>
   </div>
 
@@ -2995,6 +3005,15 @@ function stopVoiceConversation(){
   if(window.speechSynthesis) window.speechSynthesis.cancel();
 }
 $('voStop').addEventListener('click', stopVoiceConversation);
+// In-voice "Conversations" — pop the session chooser over the live overlay so you
+// can spin up a brand-new conversation or jump back to an old one without leaving
+// voice mode (fan out many agent threads). Pause the current mic while choosing.
+$('voConvo').addEventListener('click', (e)=>{ e.stopPropagation();
+  if(listening){ try{recog.stop();}catch(e){} }
+  if(window.speechSynthesis) window.speechSynthesis.cancel();
+  voSetState('paused','Pick a conversation…');
+  openVoiceSessChooser();
+});
 // Tap the orb (or empty overlay space) while AETHER is talking = interrupt it
 // and start listening. The Stop button stops propagation so it still ends mode.
 $('voOrb').addEventListener('click', (e)=>{ e.stopPropagation(); voiceInterrupt(); });
@@ -3022,7 +3041,10 @@ function openVoiceSessChooser(){
 function closeVoiceSessChooser(){ $('voiceSessSheet').classList.remove('open'); }
 $('vssNew').addEventListener('click', ()=>{ primeTTS(); primeAudio(); closeVoiceSessChooser(); startNewChat().then(()=>startVoiceConversation()); });
 $('vssContinue').addEventListener('click', ()=>{ primeTTS(); primeAudio(); closeVoiceSessChooser(); startVoiceConversation(); });
-$('vssCancel').addEventListener('click', closeVoiceSessChooser);
+$('vssCancel').addEventListener('click', ()=>{ closeVoiceSessChooser();
+  // If we paused a live voice session to browse conversations, resume listening.
+  if(window.__voiceMode){ voSetState('listening','Listening…'); setTimeout(()=>{ if(window.__voiceMode && !speaking) startListening(); }, 200); }
+});
 
 /* ===== TTS ===== */
 $('ttsToggle').checked = localStorage.getItem('aetherTTS')==='1';
