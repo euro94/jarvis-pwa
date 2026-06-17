@@ -2856,9 +2856,13 @@ if(SR){ recog=new SR(); recog.lang='en-US'; recog.interimResults=true; recog.con
     if(window.__voiceMode){
       const said=($('voTranscript').textContent||'').trim();
       if(window.__studioVoice){
-        // Hands-free Studio: ship each utterance as a build, ack briefly, keep listening.
-        if(said){ $('voTranscript').textContent='“'+said+'”'; studioVoiceDispatch(said); voiceModeAfterReply(studioAck()); }
-        else { setTimeout(()=>{ if(window.__voiceMode && !speaking) startListening(); }, 500); }
+        // Hands-free Studio: ship each utterance as a build, then ALWAYS go back to
+        // listening on a fixed timer. We deliberately do NOT route through the
+        // speak/resume pipeline (its resume callback can stall and leave the loop
+        // stuck), so the mic always reopens for the next command.
+        if(said){ $('voTranscript').textContent='“'+said+'”'; studioVoiceDispatch(said); speak(studioAck()); }
+        voSetState('listening','Studio · listening');
+        setTimeout(()=>{ if(window.__voiceMode && window.__studioVoice && !listening) startListening(); }, said?900:400);
         return;
       }
       if(said){ voSetState('thinking','Thinking…'); $('voTranscript').textContent='“'+said+'”'; if(liveOn()){ liveAsk(said); } else { askAgent(said,false); } }
