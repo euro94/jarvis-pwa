@@ -3118,12 +3118,15 @@ function voSetState(cls,label){ const o=$('voiceOverlay'); o.classList.remove('l
   // "still working" escalation: if thinking runs long, switch to a calmer, slower
   // acknowledging pulse + honest copy so a real (variable) model latency never
   // reads as a frozen loop. Cleared the moment we leave the thinking state.
+  // NOTE: only arm while genuinely WAITING ON THE MODEL (speaking===false). The
+  // post-reply TTS-prep phase also uses 'thinking' but already has the answer —
+  // escalating there would loop "Still working…" forever, so skip it.
   if(__thinkWatch){ clearTimeout(__thinkWatch); __thinkWatch=null; }
   o.classList.remove('longwait');
-  if(cls==='thinking'){
+  if(cls==='thinking' && !speaking){
     __thinkStart=Date.now();
     __thinkWatch=setTimeout(function stillWorking(){
-      if(!o.classList.contains('thinking')) return;
+      if(!o.classList.contains('thinking') || speaking){ o.classList.remove('longwait'); return; }
       o.classList.add('longwait');                 // CSS slows the orb's breathing
       if(window.AO) window.AO.setEnergy(0.30);      // calmer, deeper pulse
       const secs=Math.round((Date.now()-__thinkStart)/1000);
