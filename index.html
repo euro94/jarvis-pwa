@@ -653,18 +653,18 @@
   .vo-orb { position:relative; width:228px; height:228px; display:flex; align-items:center; justify-content:center; }
   .vo-orb .ring { position:absolute; border-radius:50%; pointer-events:none; }
   .vo-orb .halo { inset:0;
-    background:conic-gradient(from 0deg, transparent 0deg, rgba(45,212,191,0) 40deg, rgba(45,212,191,.55) 130deg, rgba(110,231,255,.9) 180deg, rgba(45,212,191,.55) 230deg, transparent 320deg, transparent 360deg);
+    background:conic-gradient(from 0deg, transparent 0deg, rgba(60,210,255,0) 40deg, rgba(60,210,255,.5) 130deg, rgba(60,230,255,.95) 180deg, rgba(60,210,255,.5) 230deg, transparent 320deg, transparent 360deg);
     -webkit-mask:radial-gradient(circle, transparent 58%, #000 60%, #000 72%, transparent 74%);
             mask:radial-gradient(circle, transparent 58%, #000 60%, #000 72%, transparent 74%);
     filter:blur(.5px); animation:voSpin 6s linear infinite; opacity:.9; }
-  .vo-orb .r1 { inset:18px; border:1.5px solid rgba(110,231,255,.35); box-shadow:0 0 24px rgba(45,212,191,.28) inset; }
-  .vo-orb .r2 { inset:42px; border:1px solid rgba(110,231,255,.22); }
+  .vo-orb .r1 { inset:18px; border:1.5px solid rgba(60,210,255,.38); box-shadow:0 0 24px var(--glow-teal) inset; }
+  .vo-orb .r2 { inset:42px; border:1px solid rgba(60,210,255,.22); }
   .vo-orb .core { position:relative; width:122px; height:122px; border-radius:50%;
-    background:radial-gradient(circle at 38% 30%, #d6fffb 0%, #8ff0ee 22%, #2dd4bf 50%, #2b73c4 82%, #1c2b55 100%);
-    box-shadow:0 0 56px rgba(45,212,191,.62), 0 0 100px rgba(43,115,196,.42), inset 0 8px 22px rgba(255,255,255,.45), inset 0 -10px 24px rgba(20,30,70,.5);
+    background:radial-gradient(circle at 38% 30%, #e6fbff 0%, #8fe9ff 20%, #3ce6ff 48%, #0d8fb8 80%, #082742 100%);
+    box-shadow:0 0 56px var(--glow-cyan), 0 0 100px rgba(13,143,184,.42), inset 0 8px 22px rgba(255,255,255,.45), inset 0 -10px 24px rgba(8,24,52,.55), inset 0 0 0 1px rgba(243,199,90,.20);
     transition:transform .3s ease; }
   .vo-orb .core::after { content:''; position:absolute; inset:0; border-radius:50%;
-    background:radial-gradient(circle at 50% 120%, rgba(110,231,255,.5), transparent 60%); mix-blend-mode:screen; }
+    background:radial-gradient(circle at 50% 120%, rgba(60,230,255,.5), transparent 60%); mix-blend-mode:screen; }
   #voiceOverlay.listening .halo { animation-duration:9s; }
   #voiceOverlay.listening .core { animation:voBreathe 3.2s ease-in-out infinite; }
   #voiceOverlay.listening .r1 { animation:voEcho 2.6s ease-out infinite; }
