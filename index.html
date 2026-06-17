@@ -13,6 +13,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Saira:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script>/* iOS PWA viewport fix — dvh is stale on first paint; stamp true px before layout */
+(function(){var f=function(){document.documentElement.style.setProperty('--real-vh',window.innerHeight+'px')};f();window.addEventListener('resize',f);})();
+</script>
 <style>
   :root {
     /* ===== AETHER-OS — dark navy / cyan cyberpunk HUD design system ===== */
@@ -66,7 +69,7 @@
   body {
     color:var(--fg);
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter",system-ui,sans-serif;
-    -webkit-font-smoothing:antialiased; display:flex; flex-direction:column; height:100dvh;
+    -webkit-font-smoothing:antialiased; display:flex; flex-direction:column; height:var(--real-vh,100dvh);
     background:var(--bg);
     line-height:var(--lh-body); font-weight:var(--w-body);
   }
