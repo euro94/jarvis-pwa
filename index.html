@@ -3206,13 +3206,18 @@ function voiceModeAfterReply(msg){
     voSetState('speaking','AETHER · tap to interrupt'); showText();
     speakPhoneVoice(clean, resume); return;
   }
-  // Real OpenAI voice: it takes ~3s to generate/upload/fetch. Hold the text
-  // reveal until the audio actually STARTS so you hear and read it together
-  // (otherwise the text lands ~3s before the voice). Stay on "thinking" meanwhile.
-  voSetState('thinking','Thinking…');
+  // Real OpenAI voice: it takes ~3s to generate/upload/fetch. The answer is
+  // already in hand, so DON'T fall back to "thinking" (that reads as stuck per the
+  // state-edge rule) — reveal the text now under a calm "speaking" state, then
+  // sync audio when it lands. Hard timeout guarantees we never hang waiting on TTS.
+  voSetState('speaking','AETHER'); showText();
+  let _settled=false;
+  const ttsGuard=setTimeout(()=>{ if(!_settled && live()){ _settled=true; speakPhoneVoice(clean, resume); } }, 9000);
   fetchAIVoiceUrl(clean).then(url=>{
-    if(!live()){ return; }                 // interrupted/superseded while waiting
-    if(!url){ fallback(); return; }         // no AI voice → phone voice fallback
+    if(!live()){ clearTimeout(ttsGuard); return; }       // interrupted/superseded while waiting
+    if(_settled){ return; }                              // guard already fell back to phone voice
+    if(!url){ _settled=true; clearTimeout(ttsGuard); fallback(); return; }
+    _settled=true; clearTimeout(ttsGuard);
     const a=ensureAudioEl(); a.src=url;
     a.onended=resume;
     a.onerror=fallback;
