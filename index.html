@@ -307,6 +307,15 @@
   .recent .item .dot2 { width:7px; height:7px; border-radius:50%; background:var(--teal); flex:0 0 auto; box-shadow:0 0 10px var(--glow-teal); }
   .recent .item b { color:var(--cyan); font-weight:700; }
   .recent .empty { padding:20px 16px; color:var(--faint); font-size:13.5px; text-align:center; }
+  /* lit top accent — a glowing brand hairline rides the top edge of every glass
+     card surface (Home stats, Recent list, every settings card) so the whole app
+     reads as one HUD system, not flat panels. Purely decorative (AA unaffected). */
+  .stat, .recent, .card2 { position:relative; }
+  .stat::before, .recent::before, .card2::before {
+    content:""; position:absolute; top:0; left:14px; right:14px; height:2px;
+    border-radius:var(--r-pill); background:var(--grad);
+    box-shadow:0 0 10px var(--glow-teal); opacity:.85; pointer-events:none;
+  }
 
   /* ===== CHAT ===== */
   .chat-top {
