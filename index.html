@@ -2763,6 +2763,10 @@ function renderRecent(){
 }
 renderRecent();
 
+/* Boot straight into Design Studio so the app can be iterated fast (e.g. from
+   the car) — reuses the nav button click so all screen/start wiring fires. */
+try{ navTo('screenStudio'); }catch(e){}
+
 /* ===== IMAGE ATTACH + UPLOAD ===== */
 $('attachBtn').addEventListener('click', ()=>$('fileInput').click());
 $('fileInput').addEventListener('change',(e)=>{ for(const f of e.target.files){ const rd=new FileReader(); rd.onload=ev=>{ pendingImages.push({name:f.name,dataUrl:ev.target.result,file:f}); renderAttachments(); }; rd.readAsDataURL(f);} e.target.value=''; });
