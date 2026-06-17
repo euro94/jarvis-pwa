@@ -2157,7 +2157,7 @@ function startStudioVoice(){
   window.__voiceMode=true; window.__studioVoice=true;
   acquireWakeLock();                      // keep the screen awake hands-free
   $('voiceOverlay').classList.add('open');
-  if(window.AO) window.AO.start();
+  if(window.AO){ window.AO.start(); window.AO.micStart(); }
   $('voiceModeBtn') && $('voiceModeBtn').classList.add('on');
   voSetState('listening','Studio · listening'); $('voTranscript').textContent='Describe a change — I keep listening.';
   haptic(); startListening();
@@ -3238,7 +3238,7 @@ function startVoiceConversation(){
   window.__voiceMode=true; window.__studioVoice=false;
   acquireWakeLock();          // keep the screen awake for the whole drive
   $('voiceOverlay').classList.add('open');     // overlay — does NOT change tab
-  if(window.AO) window.AO.start();
+  if(window.AO){ window.AO.start(); window.AO.micStart(); }
   $('voiceModeBtn') && $('voiceModeBtn').classList.add('on');
   voSetState('listening','Listening…'); $('voTranscript').textContent='';
   haptic(); startListening();
@@ -3250,6 +3250,7 @@ function stopVoiceConversation(){
   $('voiceModeBtn') && $('voiceModeBtn').classList.remove('on');
   if(listening){ try{recog.stop();}catch(e){} }
   if(window.speechSynthesis) window.speechSynthesis.cancel();
+  if(window.AO && window.AO.micStop) window.AO.micStop();   // release the mic (privacy)
 }
 $('voStop').addEventListener('click', stopVoiceConversation);
 // In-voice "Conversations" — pop the session chooser over the live overlay so you
@@ -3957,8 +3958,43 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
 
   // shared energy signal (0..1), eased toward a target the voice loop sets
   let energy=0, target=0.0;
+  /* ---- LIVE MIC LEVEL ------------------------------------------------------
+     Real loudness from an AnalyserNode so the orb reacts to YOUR voice, not just
+     the state. Runs alongside the speech recognizer (shares the mic). Permission
+     is requested when voice mode opens; if denied we silently fall back to the
+     state-driven baseline. micLevel is 0..1 (fast attack, slow release). */
+  let micLevel=0, _ac=null, _an=null, _data=null, _stream=null, _micReady=false, _micPending=false;
+  function micLoop(){
+    if(!_micReady||!_an){ return; }
+    _an.getByteTimeDomainData(_data);
+    let s=0; for(let i=0;i<_data.length;i++){ const x=(_data[i]-128)/128; s+=x*x; }
+    let r=Math.sqrt(s/_data.length);
+    r=Math.max(0,r-0.015)/(1-0.015); r=Math.min(1,r*3.4);     // gate + sensitivity
+    micLevel += (r-micLevel)*(r>micLevel?0.6:0.12);            // fast attack, slow release
+    requestAnimationFrame(micLoop);
+  }
+  window.AO.micStart=async function(){
+    if(_micReady){ if(_ac&&_ac.state==='suspended') _ac.resume(); return; }
+    if(_micPending) return; _micPending=true;
+    try{
+      _stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:false}});
+      _ac=new (window.AudioContext||window.webkitAudioContext)();
+      if(_ac.state==='suspended') await _ac.resume();
+      const src=_ac.createMediaStreamSource(_stream);
+      _an=_ac.createAnalyser(); _an.fftSize=1024; _an.smoothingTimeConstant=0.5;
+      src.connect(_an); _data=new Uint8Array(_an.fftSize); _micReady=true;
+      requestAnimationFrame(micLoop);
+    }catch(e){ _micReady=false; }   // denied/unavailable → baseline only
+    _micPending=false;
+  };
+  window.AO.micStop=function(){ if(_stream){ _stream.getTracks().forEach(t=>t.stop()); _stream=null; }
+    _micReady=false; _an=null; micLevel=0; };
+  window.AO.micLevel=function(){ return _micReady?micLevel:0; };
   window.AO.setEnergy=function(v){ target=Math.max(0,Math.min(1,v)); };
-  window.AO._tick=function(dt){ energy+=(target-energy)*Math.min(1,dt*6);
+  window.AO._tick=function(dt){
+    // when listening, let the live mic drive the orb; otherwise ease to the state target
+    const eff=Math.max(target, _micReady?micLevel:0);
+    energy+=(eff-energy)*Math.min(1,dt*(eff>energy?14:6));
     document.documentElement.style.setProperty('--ao-voice', energy.toFixed(3)); return energy; };
   window.AO.start=function(){ voiceFog.start(); if(window.AO._orbStart) window.AO._orbStart(); };
   window.AO.stop=function(){ /* canvases keep their last frame; cheap to leave idle */ };
@@ -4006,9 +4042,38 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
     alpha*=clamp(uReveal,0.0,1.0); col+=uBright*(1.0-clamp(uReveal,0.0,1.0))*0.05;
     gl_FragColor=vec4(col,alpha);
   }`;
-  const WATER=[[.01,.13,.15],[0,.40,.40],[.06,.74,.70]];
   const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
   window.AO=window.AO||{};
+  /* ---- TIME-OF-DAY WATER PALETTE -------------------------------------------
+     Shifts the orb's water colours by local clock time, staying within the teal
+     identity (temperature/brightness, never a hue jump). Anchors: night→dawn→
+     day→dusk, interpolated by the hour. AO.WATER is the live [deep,mid,bright]
+     (rgb 0..1) the shader samples each frame. Preview: AO.setHour(0..24). */
+  const ANCHORS=[
+    { h:2,  w:[[.006,.055,.085],[0,.26,.30],[.03,.55,.58]] },   // night — deep, dim
+    { h:7,  w:[[.01,.13,.15],[0,.40,.40],[.06,.74,.70]] },      // dawn
+    { h:13, w:[[.01,.17,.18],[0,.46,.43],[.08,.85,.78]] },      // day — bright
+    { h:19, w:[[.03,.14,.12],[.02,.40,.34],[.20,.78,.60]] },    // dusk — warmer teal
+  ];
+  const lerp=(a,b,t)=>a+(b-a)*t;
+  const lerpW=(a,b,t)=>a.map((c,i)=>c.map((v,j)=>lerp(v,b[i][j],t)));
+  function paletteFor(hour){
+    let h=hour; if(h<ANCHORS[0].h) h+=24;
+    const ext=ANCHORS.concat([{h:ANCHORS[0].h+24, w:ANCHORS[0].w}]);
+    for(let i=0;i<ext.length-1;i++){ const a=ext[i], b=ext[i+1];
+      if(h>=a.h && h<=b.h){ return lerpW(a.w,b.w,(h-a.h)/(b.h-a.h)); } }
+    return ANCHORS[0].w;
+  }
+  const WATER=[[.01,.13,.15],[0,.40,.40],[.06,.74,.70]];   // live palette, eased toward target
+  let WTARGET=WATER.map(c=>c.slice());
+  function applyTime(){ const hour=(typeof window.__aetherHour==='number')?window.__aetherHour
+      :(new Date().getHours()+new Date().getMinutes()/60); WTARGET=paletteFor(hour); }
+  applyTime(); for(let i=0;i<3;i++) WATER[i]=WTARGET[i].slice();   // snap on load
+  setInterval(applyTime, 5*60*1000);   // drift through the day
+  window.AO.WATER=WATER;
+  window.AO.setHour=function(h){ window.__aetherHour=h; applyTime(); };
+  // ease the live palette toward the time target (called each frame from draw)
+  window.AO._easePalette=function(){ for(let i=0;i<3;i++) for(let j=0;j<3;j++) WATER[i][j]+=(WTARGET[i][j]-WATER[i][j])*0.04; };
   window.AO.makeOrb=function(cv, getEnergy){
     if(!cv) return {start:function(){},stop:function(){}};
     const gl=cv.getContext('webgl',{premultipliedAlpha:false,alpha:true,antialias:true})
@@ -4049,6 +4114,7 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
       gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
       gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT);
       useProg();
+      if(window.AO._easePalette) window.AO._easePalette();
       gl.uniform2f(U.res,cv.width,cv.height);
       gl.uniform1f(U.time, reduceMotion?0.0:phase);
       gl.uniform1f(U.int, Math.min(1.0,intensity));
@@ -4097,10 +4163,11 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
   const orb=window.AO.makeOrb(cv, function(){
     const home=document.getElementById('screenHome');
     if(!home || !home.classList.contains('active')) return {stop:true};   // pause off-screen
-    // gentle breathing baseline; lift when the voice loop is actively listening
+    // gentle breathing baseline; react to live mic level while a session listens
     const base=0.28+0.06*Math.sin((performance.now()-t0)/1600);
     const listening=window.__voiceMode && document.getElementById('voiceOverlay').classList.contains('listening');
-    return {energy:listening?0.6:base, active:listening};
+    const mic=(listening&&window.AO.micLevel)?window.AO.micLevel():0;
+    return {energy:listening?Math.max(0.5,mic):base, active:listening};
   });
   function startHome(){ const home=document.getElementById('screenHome');
     if(home && home.classList.contains('active')){ fog.start(); orb.start(); } }
