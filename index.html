@@ -3189,6 +3189,7 @@ function speakPhoneVoice(clean, resume){
   setTimeout(()=>{ if(speaking && window.__voiceMode && !window.speechSynthesis.speaking){ resume(); } }, Math.min(2000+clean.length*60, 15000));
 }
 let __voiceTurn=0;
+let __kokoroHandle=null;
 function voiceModeAfterReply(msg){
   // Each reply claims a turn token. A barge-in or a newer reply bumps the token,
   // which invalidates any still-in-flight audio fetch from THIS turn so a stale
@@ -3201,13 +3202,27 @@ function voiceModeAfterReply(msg){
   const clean=msg.replace(/[*_`#>\[\]]/g,'').replace(/https?:\/\/\S+/g,'link').slice(0,700);
   const showText=()=>{ $('voTranscript').textContent=clean.slice(0,160)+(clean.length>160?'…':''); };
   const fallback=()=>{ if(!live())return; voSetState('speaking','AETHER · tap to interrupt'); showText(); speakPhoneVoice(clean, resume); };
-  // ZERO-DELAY SYNC (Yaro asked for this): the moment the reply lands, reveal the
-  // text AND start speaking in the SAME tick. The on-device voice is instant (no
-  // network round-trip), so text + audio fire together with no gap. We DON'T wait
-  // on the ~3s OpenAI cloud clip in voice mode — that wait is exactly the lag Yaro
-  // saw (words on screen seconds before they were read). Premium cloud voice still
-  // serves the text-mode checkpoint queue (enqueueSpeak), where sync matters less.
-  voSetState('speaking','AETHER · tap to interrupt'); showText();
+  // LOCAL NEURAL VOICE (Yaro asked for this): Kokoro runs fully on-device, so it
+  // streams sentence-by-sentence with no network round-trip — the words on screen
+  // and the spoken audio land together, fast, even with no signal in the car. We
+  // reveal the text immediately, then speak via Kokoro. If Kokoro can't run on
+  // this device (old iOS / no WebGPU+wasm), we fall back to the on-device Safari
+  // voice so the loop never goes silent.
+  showText();
+  if(window.KokoroVoice && window.KokoroVoice.available()){
+    let spoke=false;
+    window.KokoroVoice.speak(clean, {
+      onstart:()=>{ if(!live())return; spoke=true; voSetState('speaking','AETHER · tap to interrupt'); },
+      onend:()=>{ resume(); }
+    }).then(h=>{
+      if(h===false){ if(!spoke) fallback(); return; }   // Kokoro unavailable → Safari
+      __kokoroHandle = h;
+      if(!live() && h && h.stop) h.stop();               // a newer turn already superseded us
+    }).catch(()=>{ if(!spoke) fallback(); });
+    return;
+  }
+  // No Kokoro at all → on-device Safari voice.
+  voSetState('speaking','AETHER · tap to interrupt');
   speakPhoneVoice(clean, resume);
 }
 // Barge-in: tap the orb (or anywhere on the overlay) while AETHER is speaking
@@ -3228,6 +3243,8 @@ function voiceInterrupt(){
     __voiceTurn++;            // invalidate the in-flight/playing turn's callbacks
     speaking=false;
     if(window.speechSynthesis) window.speechSynthesis.cancel();
+    if(window.KokoroVoice) window.KokoroVoice.stop();
+    if(__kokoroHandle){ try{ __kokoroHandle.stop(); }catch(e){} __kokoroHandle=null; }
     if(aiAudioEl){ try{ aiAudioEl.pause(); aiAudioEl.currentTime=0; }catch(e){} }
     haptic();
     setTimeout(()=>{ if(window.__voiceMode && !speaking) startListening(); }, 120);
@@ -3253,6 +3270,10 @@ function startVoiceConversation(){
   if(!SR){ toast('Voice mode not supported on this browser.',true); return; }
   primeTTS();                 // unlock iOS speech inside this tap
   primeAudio();               // unlock <audio> autoplay for the AI voice
+  // Warm up the local neural voice (downloads once, then cached) AND resume its
+  // AudioContext inside this tap gesture so iOS lets it autoplay later. Done here
+  // so the model is ready before the first reply — no first-word stall.
+  if(window.KokoroVoice){ window.KokoroVoice.resume(); window.KokoroVoice.init().catch(()=>{}); }
   window.__voiceMode=true; window.__studioVoice=false;
   acquireWakeLock();          // keep the screen awake for the whole drive
   $('voiceOverlay').classList.add('open');     // overlay — does NOT change tab
@@ -3268,6 +3289,8 @@ function stopVoiceConversation(){
   $('voiceModeBtn') && $('voiceModeBtn').classList.remove('on');
   if(listening){ try{recog.stop();}catch(e){} }
   if(window.speechSynthesis) window.speechSynthesis.cancel();
+  if(window.KokoroVoice) window.KokoroVoice.stop();
+  if(__kokoroHandle){ try{ __kokoroHandle.stop(); }catch(e){} __kokoroHandle=null; }
   if(window.AO && window.AO.micStop) window.AO.micStop();   // release the mic (privacy)
   if(__thinkWatch){ clearTimeout(__thinkWatch); __thinkWatch=null; }
   $('voiceOverlay').classList.remove('longwait','thinking','listening','speaking');
@@ -4213,6 +4236,110 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
     ho.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); go(); } });
   }
 })();
+</script>
+
+<!-- ===== KOKORO LOCAL NEURAL VOICE (offline, streaming) =====================
+  Runs an 82M-param neural TTS fully on-device via WebGPU (falls back to wasm).
+  Downloads once (~86MB q8), then caches for offline use — no network round-trip,
+  so it streams sentence-by-sentence the instant reply text lands. This replaces
+  the cloud-mp3 round-trip (the lag) AND the robotic Safari voice (the screech).
+  Exposed as window.KokoroVoice; the classic script prefers it in voice mode and
+  only falls back to Safari speech if Kokoro genuinely can't run on the device. -->
+<script type="module">
+const MODEL = "onnx-community/Kokoro-82M-v1.0-ONNX";
+const VOICE = "af_heart";   // warm, natural default
+let _tts = null, _splitMod = null, _state = "idle", _readyP = null;
+let _ctx = null, _player = null;
+
+function gpu(){ return typeof navigator!=="undefined" && !!navigator.gpu; }
+
+// Shared AudioContext, must be resumed inside a user gesture on iOS.
+function ensureCtx(){
+  if(!_ctx){ try{ _ctx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ _ctx=null; } }
+  return _ctx;
+}
+function resumeCtx(){ const c=ensureCtx(); if(c && c.state==="suspended"){ c.resume().catch(()=>{}); } }
+
+// Gapless streaming player: scheduled buffer sources on the shared context.
+class StreamPlayer {
+  constructor(ctx){ this.ctx=ctx; this.t=0; this.sources=[]; this.stopped=false; this._doneCb=null; this._doneTimer=null; }
+  enqueue(float32, rate){
+    if(this.stopped || !float32 || !float32.length) return;
+    let buf; try{ buf=this.ctx.createBuffer(1, float32.length, rate); buf.copyToChannel(float32,0); }catch(e){ return; }
+    const src=this.ctx.createBufferSource(); src.buffer=buf; src.connect(this.ctx.destination);
+    const now=this.ctx.currentTime;
+    if(this.t < now+0.04) this.t = now+0.04;   // small lead so first chunk doesn't clip
+    try{ src.start(this.t); }catch(e){ return; }
+    this.t += buf.duration; this.sources.push(src);
+  }
+  // Call once the producer has pushed everything; fires cb after the last sample.
+  finish(cb){
+    this._doneCb=cb;
+    const remaining = Math.max(0, this.t - this.ctx.currentTime);
+    this._doneTimer = setTimeout(()=>{ if(!this.stopped && this._doneCb){ const c=this._doneCb; this._doneCb=null; c(); } }, remaining*1000 + 90);
+  }
+  stop(){
+    this.stopped=true;
+    if(this._doneTimer){ clearTimeout(this._doneTimer); this._doneTimer=null; }
+    this._doneCb=null;
+    this.sources.forEach(s=>{ try{ s.stop(); }catch(e){} });
+    this.sources=[];
+  }
+}
+
+async function _load(){
+  const { KokoroTTS, TextSplitterStream } = await import("https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/+esm");
+  _splitMod = TextSplitterStream;
+  const device = gpu() ? "webgpu" : "wasm";
+  _tts = await KokoroTTS.from_pretrained(MODEL, { dtype: "q8", device });
+  return _tts;
+}
+
+const KokoroVoice = {
+  get state(){ return _state; },
+  available(){ return _state !== "failed"; },   // optimistic until proven otherwise
+  // Kick the (cached) download + warm-up. Safe to call repeatedly.
+  init(){
+    if(_readyP) return _readyP;
+    _state = "loading";
+    _readyP = _load().then(t=>{ _state="ready"; return t; })
+                     .catch(e=>{ console.warn("[Kokoro] load failed:", e); _state="failed"; _readyP=null; throw e; });
+    return _readyP;
+  },
+  // Speak text with streaming playback. opts: {onstart, onend}. Returns a handle
+  // with .stop(). Resolves false if Kokoro can't run — caller falls back.
+  async speak(text, opts={}){
+    const t=(text||"").trim(); if(!t){ opts.onend && opts.onend(); return {stop(){}}; }
+    let tts;
+    try{ tts = await this.init(); }catch(e){ opts.onend && opts.onend(); return false; }
+    resumeCtx();
+    const ctx=ensureCtx(); if(!ctx){ opts.onend && opts.onend(); return false; }
+    if(_player){ _player.stop(); _player=null; }   // stop any prior playback
+    const player=new StreamPlayer(ctx); _player=player;
+    let started=false;
+    const fireStart=()=>{ if(!started){ started=true; opts.onstart && opts.onstart(); } };
+    (async()=>{
+      try{
+        const splitter=new _splitMod();
+        const stream=tts.stream(splitter, { voice: VOICE });
+        splitter.push(t); splitter.close();
+        for await (const chunk of stream){
+          if(player.stopped) break;
+          const a=chunk && chunk.audio;
+          if(a && a.audio && a.sampling_rate){ fireStart(); player.enqueue(a.audio, a.sampling_rate); }
+        }
+        if(!player.stopped){ fireStart(); player.finish(()=>{ if(_player===player) _player=null; opts.onend && opts.onend(); }); }
+      }catch(e){
+        console.warn("[Kokoro] synth error:", e);
+        if(!player.stopped){ if(_player===player) _player=null; opts.onend && opts.onend(); }
+      }
+    })();
+    return { stop(){ player.stop(); if(_player===player) _player=null; } };
+  },
+  stop(){ if(_player){ _player.stop(); _player=null; } },
+  resume(){ resumeCtx(); }
+};
+window.KokoroVoice = KokoroVoice;
 </script>
 
 </body>

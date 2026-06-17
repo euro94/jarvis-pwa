@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<!-- viewport-fit=cover lets the screen extend under notch / home indicator for true edge-to-edge -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#001417" />
+<!-- PWA standalone hints (pair with a manifest.json + service worker when you deploy) -->
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Aether" />
+<title>Aether — Ask</title>
+<style>
+/* ============================================================================
+   AETHER · "Ask" screen — single-file rebuild of the Midjourney concept render
+   Palette + spacing sampled from the source pixels. Tweak via the tokens below.
+   ============================================================================ */
+
+/* ---- DESIGN TOKENS (extracted from the render) ---------------------------- */
+:root{
+  /* Background fog gradient stops (deep teal -> midnight) */
+  --bg-deep:    #00141a;   /* darkest corners / edges */
+  --bg-base:    #012b2b;   /* mid fog body */
+  --bg-mid:     #013a38;   /* fog mid teal */
+  --fog-bright: #015a54;   /* brighter drifting fog (sampled right side) */
+  --fog-cyan:   #027a72;   /* hottest fog highlight */
+
+  /* Orb */
+  --orb-core:   #063a3b;   /* dark interior */
+  --orb-glow:   #07b9b1;   /* inner cyan glow (sample #029e9b, pushed brighter) */
+  --orb-rim:    #0b524e;   /* rim teal */
+  --specular:   #e2f2ee;   /* glossy upper-left highlight */
+
+  /* Metal / accents */
+  --cyan:       #7fd9d4;   /* icon + hairline accent (close-ring sample #81bcba) */
+  --cyan-dim:   rgba(127,217,212,.55);
+  --knot-case:  #07282a;   /* dark casing between knot strands (the over-under gap) */
+
+  /* Text */
+  --text:       #cbdedb;   /* muted off-white title */
+  --text-dim:   #6f8d8a;   /* placeholder / secondary */
+
+  /* Glass surfaces */
+  --glass-fill:   rgba(3,42,42,.34);
+  --glass-fill-2: rgba(2,30,32,.40);
+  --glass-border: rgba(127,217,212,.28);
+  --glass-hi:     rgba(127,217,212,.10);
+
+  /* Spacing scale (8px base) */
+  --s1: 4px;  --s2: 8px;  --s3: 16px; --s4: 24px; --s5: 32px;
+  --s6: 48px; --s7: 64px; --s8: 96px;
+
+  /* Radii */
+  --r-pill: 999px;
+  --r-lg:   22px;
+  --r-md:   14px;
+
+  /* Safe-area insets */
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
+
+*{ box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+[hidden]{ display:none !important; }   /* let the hidden attr win over explicit display */
+html,body{ height:100%; }
+body{
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, sans-serif;
+  color: var(--text);
+  background: var(--bg-deep);
+  overflow:hidden;
+  /* prevent text selection on the app chrome */
+  -webkit-user-select:none; user-select:none;
+}
+
+/* ---- SCREEN: full viewport, edge-to-edge, no device frame ------------------ */
+.screen{
+  position:fixed; inset:0;
+  /* base volumetric-fog gradient (canvas drifts on top of this) */
+  background:
+    radial-gradient(120% 80% at 78% 42%, var(--fog-bright) 0%, rgba(1,90,84,0) 46%),
+    radial-gradient(90% 60% at 18% 22%, var(--bg-mid) 0%, rgba(1,58,56,0) 55%),
+    radial-gradient(140% 120% at 50% 8%,  var(--bg-base) 0%, var(--bg-deep) 78%),
+    linear-gradient(180deg, #021e22 0%, #00161a 60%, #00101300 100%),
+    var(--bg-deep);
+  display:flex; flex-direction:column;
+  /* honor safe areas so content never sits under notch / home bar */
+  padding: calc(var(--sat) + var(--s2)) calc(var(--sar) + var(--s4))
+           calc(var(--sab) + var(--s2)) calc(var(--sal) + var(--s4));
+}
+
+/* ============================================================================
+   FOG CANVAS  ← WEBGL CAUSTICS SHADER GOES HERE
+   This <canvas> sits behind ALL content. The current JS paints slow drifting
+   blurred blobs as a placeholder. Replace the 2D draw loop in fog.js-section
+   with a WebGL context + caustics fragment shader; keep the element + sizing.
+   ============================================================================ */
+#fog-canvas{
+  position:fixed; inset:-26px; z-index:0;             /* slack so parallax never reveals an edge */
+  width:calc(100% + 52px); height:calc(100% + 52px);
+  filter: blur(26px) saturate(108%);
+  opacity:.85; pointer-events:none;
+  transform: translate(calc(var(--px,0) * -14px), calc(var(--py,0) * -10px));  /* far layer */
+  transition: transform .25s ease-out;
+}
+
+/* everything above the fog */
+.screen > *{ position:relative; z-index:1; }
+
+/* ---- ATMOSPHERE: light the orb casts into the fog -------------------------- */
+/* soft ambient glow centred on the orb; brightens with --voice */
+.aura{
+  position:absolute; left:50%; top:44%; width:130%; aspect-ratio:1;
+  transform:translate(-50%,-50%); z-index:0 !important; pointer-events:none;
+  background: radial-gradient(circle,
+    rgba(7,185,177,.26) 0%, rgba(7,185,177,.09) 30%, rgba(7,185,177,0) 60%);
+  filter: blur(12px);
+  opacity: calc(.4 + .6 * var(--voice, 0));
+  transition: opacity .2s ease;
+}
+/* slow volumetric light shafts radiating from the orb, masked to fade outward */
+.rays{
+  position:absolute; left:50%; top:44%; width:165%; aspect-ratio:1;
+  transform:translate(-50%,-50%); z-index:0 !important; pointer-events:none;
+  mix-blend-mode:screen;
+  background: conic-gradient(from 0deg,
+    rgba(127,217,212,0) 0deg, rgba(127,217,212,.05) 7deg, rgba(127,217,212,0) 15deg,
+    rgba(127,217,212,0) 44deg, rgba(127,217,212,.045) 52deg, rgba(127,217,212,0) 60deg,
+    rgba(127,217,212,0) 96deg, rgba(127,217,212,.05) 104deg, rgba(127,217,212,0) 113deg,
+    rgba(127,217,212,0) 152deg, rgba(127,217,212,.04) 162deg, rgba(127,217,212,0) 172deg,
+    rgba(127,217,212,0) 210deg, rgba(127,217,212,.05) 220deg, rgba(127,217,212,0) 230deg,
+    rgba(127,217,212,0) 286deg, rgba(127,217,212,.045) 296deg, rgba(127,217,212,0) 306deg,
+    rgba(127,217,212,0) 360deg);
+  -webkit-mask: radial-gradient(circle, #000 6%, rgba(0,0,0,.45) 32%, transparent 62%);
+          mask: radial-gradient(circle, #000 6%, rgba(0,0,0,.45) 32%, transparent 62%);
+  opacity: calc(.35 + .5 * var(--voice, 0));
+  animation: rays-spin 70s linear infinite;
+}
+@keyframes rays-spin{ to{ transform:translate(-50%,-50%) rotate(360deg); } }
+
+/* ---- CINEMATIC GRADE (top of stack, non-interactive) ---------------------- */
+.grade{ position:absolute; inset:0; pointer-events:none; }
+.grade.vignette{ z-index:5; background:
+  radial-gradient(125% 95% at 50% 40%, transparent 44%, rgba(0,8,10,.42) 100%); }
+.grade.grain{ z-index:6; opacity:.05; mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-size:120px 120px; }
+@media (prefers-reduced-motion: reduce){ .rays{ animation:none; } }
+
+/* ---- HEADER --------------------------------------------------------------- */
+.header{
+  display:flex; align-items:center; justify-content:space-between;
+  height:44px; flex:0 0 auto;
+}
+.icon-btn{
+  width:40px; height:40px; display:grid; place-items:center;
+  background:transparent; border:0; cursor:pointer; color:var(--cyan);
+  filter: drop-shadow(0 0 6px var(--cyan-dim));
+  transition: transform .15s ease, filter .2s ease;
+}
+.icon-btn:active{ transform:scale(.9); }
+.icon-btn svg{ width:24px; height:24px; }
+.close-ring{
+  border:1.5px solid var(--cyan); border-radius:50%;
+  box-shadow: 0 0 8px var(--cyan-dim), inset 0 0 4px rgba(127,217,212,.18);
+}
+.close-ring svg{ width:14px; height:14px; }
+
+/* ---- LOGO (Celtic knot medallion) ----------------------------------------- */
+.logo-wrap{
+  flex:0 0 auto; display:flex; justify-content:center;
+  margin-top: var(--s5);
+}
+.logo{
+  width: 28vw; max-width:148px; min-width:108px; height:auto;
+  filter: drop-shadow(0 0 14px rgba(127,217,212,.22))
+          drop-shadow(0 2px 6px rgba(0,0,0,.5));
+}
+
+/* ---- TITLE ---------------------------------------------------------------- */
+.title{
+  flex:0 0 auto; text-align:center;
+  margin-top: var(--s7);   /* sits below the header; was tucked under the logo */
+  font-size: clamp(20px, 5.6vw, 26px);
+  font-weight: 400; letter-spacing:.5px;
+  color: var(--text);
+  text-shadow: 0 0 12px rgba(127,217,212,.18);
+}
+
+/* ---- HERO ORB ------------------------------------------------------------- */
+.hero{
+  flex:1 1 auto; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap: var(--s5);
+  min-height:0; position:relative;
+}
+.orb-stage{ display:grid; place-items:center; position:relative; z-index:1;
+  transform: translate(calc(var(--px,0) * 16px), calc(var(--py,0) * 12px));  /* near layer — moves more */
+  transition: transform .2s ease-out; }
+
+/* caustic light pool beneath the orb (grounds it; reacts to voice) */
+.floor{
+  position:absolute; left:50%; top:63%; transform:translateX(-50%);
+  width:52%; height:14%; z-index:0; pointer-events:none;
+  background: radial-gradient(ellipse at 50% 50%,
+    rgba(7,185,177,.34) 0%, rgba(7,185,177,.12) 42%, rgba(7,185,177,0) 72%);
+  filter: blur(11px);
+  opacity: calc(.30 + .55 * var(--voice,0));
+  animation: floor-breathe 6s ease-in-out infinite;
+}
+@keyframes floor-breathe{
+  0%,100%{ transform:translateX(-50%) scaleX(1);    }
+  50%    { transform:translateX(-50%) scaleX(1.10); }
+}
+
+.orb{
+  --orb-size: min(66vw, 320px);
+  position:relative;
+  width: var(--orb-size); height: var(--orb-size);
+  cursor:pointer;
+  isolation:isolate;
+  /* misty fallback if WebGL is unavailable: soft radial that fades to nothing
+     (no hard disc) — the shader canvas covers this when it runs */
+  background:
+    radial-gradient(circle at 46% 42%, rgba(7,185,177,.30) 0%, rgba(7,185,177,.12) 34%, rgba(6,58,59,.06) 58%, transparent 74%);
+  /* soft outer aura only — NO crisp rim, so the edge can dissolve into fog */
+  filter: drop-shadow(0 0 46px rgba(7,185,177,.22));
+  animation: breathe 6s ease-in-out infinite;
+  transition: filter .4s ease, transform .4s ease;
+}
+
+/* ---- WATER SURFACE (WebGL shader: real waves + glints, edge fades to mist) -- */
+#orb-canvas{
+  position:absolute; inset:-6%;            /* oversize a touch so wisps have room */
+  width:112%; height:112%; display:block; pointer-events:none;
+}
+
+/* very light glass sheen over the water (soft, edgeless) */
+.orb .gloss{
+  position:absolute; inset:0; border-radius:50%; pointer-events:none;
+  background:
+    radial-gradient(36% 24% at 32% 24%, rgba(255,255,255,.30) 0%, rgba(226,242,238,.08) 48%, rgba(226,242,238,0) 72%);
+  mix-blend-mode:screen; opacity:.7;
+}
+
+@keyframes breathe{
+  0%,100%{ transform:scale(1);    filter: drop-shadow(0 0 46px rgba(7,185,177,.22)); }
+  50%   { transform:scale(1.025); filter: drop-shadow(0 0 62px rgba(7,185,177,.32)); }
+}
+/* listening state: brighter aura + slight scale (water energy handled in shader) */
+.orb.listening{
+  animation: listen 1.6s ease-in-out infinite;
+  transform:scale(1.05);
+}
+@keyframes listen{
+  0%,100%{ filter: drop-shadow(0 0 60px rgba(7,185,177,.40)); }
+  50%   { filter: drop-shadow(0 0 96px rgba(7,185,177,.55)); }
+}
+
+.hint{
+  font-size: clamp(15px, 4.4vw, 19px);
+  font-weight:300; letter-spacing:.4px;
+  color: var(--text-dim);
+  text-shadow:0 0 10px rgba(0,0,0,.5);
+}
+
+/* ---- BOTTOM SHEET (swipe-up) --------------------------------------------- */
+.panel{ flex:0 0 auto; display:flex; flex-direction:column; gap:0; margin-top: var(--s4); }
+
+/* grab handle — the affordance that says "pull me up" */
+.sheet-handle{
+  appearance:none; background:transparent; border:0; cursor:grab;
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+  padding:6px 0 10px; touch-action:none;       /* lets us own the vertical drag */
+}
+.sheet-handle:active{ cursor:grabbing; }
+.sheet-handle .grip{
+  width:40px; height:4px; border-radius:999px;
+  background: rgba(127,217,212,.5);
+  box-shadow:0 0 8px rgba(127,217,212,.35);
+}
+.sheet-handle .chev{
+  width:18px; height:18px; color: var(--cyan); opacity:.7;
+  transition: transform .35s ease, opacity .25s ease;
+}
+.panel[data-open="true"] .sheet-handle .chev{ transform: rotate(180deg); }  /* flips when open */
+
+/* collapsible actions group (max-height driven so the sheet grows upward) */
+.sheet-actions{
+  display:flex; flex-direction:column; gap: var(--s3);
+  overflow:hidden;
+  max-height:0; opacity:0; transform:translateY(6px);
+  transition: max-height .38s cubic-bezier(.4,0,.2,1),
+              opacity .3s ease, transform .38s cubic-bezier(.4,0,.2,1),
+              margin-bottom .38s cubic-bezier(.4,0,.2,1);
+}
+.panel[data-open="true"] .sheet-actions{
+  opacity:1; transform:none; margin-bottom: var(--s3);
+  /* max-height is set inline by JS to the measured content height */
+}
+
+/* --voice (0..1) is updated each frame from the orb's mic energy, so the pills'
+   luminous edge breathes in sync with the water when you speak. */
+.pill{
+  position:relative; overflow:hidden;            /* clips the tap ripple to the pill */
+  display:flex; align-items:center; gap: var(--s3);
+  min-height:54px; padding: 0 var(--s4);
+  border-radius: var(--r-pill);
+  /* liquid glass: dark teal fill + a wet top-light "meniscus" sheen */
+  background:
+    linear-gradient(180deg, rgba(127,217,212,.10) 0%, rgba(127,217,212,0) 26%),
+    radial-gradient(120% 180% at 50% -40%, rgba(127,217,212,.10) 0%, rgba(127,217,212,0) 60%),
+    var(--glass-fill);
+  -webkit-backdrop-filter: blur(16px) saturate(135%);
+  backdrop-filter: blur(16px) saturate(135%);
+  /* edge brightness scales with voice (calc inside the alpha) */
+  border:1px solid rgba(127,217,212, calc(.22 + .55 * var(--voice, 0)));
+  box-shadow:
+    inset 0 1px 0 rgba(226,242,238,.10),                                  /* top meniscus line */
+    inset 0 -10px 22px rgba(0,0,0,.22),                                    /* liquid depth */
+    0 8px 24px rgba(0,0,0,.30),
+    0 0 calc(10px + 26px * var(--voice, 0)) rgba(127,217,212, calc(.05 + .22 * var(--voice,0))); /* voice glow */
+  transition: transform .18s ease, box-shadow .25s ease, border-color .25s ease;
+}
+/* slow caustic light drifting across the surface (like light through water) */
+.pill::before{
+  content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+  background: linear-gradient(115deg,
+    rgba(127,217,212,0) 30%, rgba(127,217,212,.10) 48%,
+    rgba(226,242,238,.14) 52%, rgba(127,217,212,0) 70%);
+  background-size:280% 100%;
+  mix-blend-mode:screen; opacity:.7;
+  animation: caustic-drift 9s linear infinite;
+}
+.pill:nth-child(2)::before{ animation-delay:-3s; }
+.pill:nth-child(3)::before{ animation-delay:-6s; }
+@keyframes caustic-drift{ from{ background-position:140% 0; } to{ background-position:-140% 0; } }
+
+.pill.action{ cursor:pointer; }
+.pill.action:active{ transform:scale(.985); }
+
+/* water tap ripple (spawned in JS at the press point) */
+.pill .ripple{
+  position:absolute; border-radius:50%; pointer-events:none; z-index:0;
+  transform:translate(-50%,-50%) scale(0);
+  background: radial-gradient(circle, rgba(226,242,238,.5) 0%, rgba(127,217,212,.26) 38%, rgba(127,217,212,0) 70%);
+  mix-blend-mode:screen;
+  animation: pill-ripple .65s ease-out forwards;
+}
+@keyframes pill-ripple{
+  0%  { transform:translate(-50%,-50%) scale(0);   opacity:.8; }
+  100%{ transform:translate(-50%,-50%) scale(1);   opacity:0;  }
+}
+
+.pill .label{ flex:1 1 auto; color: var(--text-dim); font-size:16px; font-weight:300; position:relative; }
+.pill .gear{ color: var(--cyan); width:20px; height:20px; flex:0 0 auto; position:relative; filter:drop-shadow(0 0 4px var(--cyan-dim)); }
+
+/* input bar */
+.inputbar{ padding: 0 var(--s3); background:
+    linear-gradient(180deg, rgba(127,217,212,.08) 0%, rgba(127,217,212,0) 26%), var(--glass-fill-2); }
+.inputbar:focus-within{
+  border-color: rgba(127,217,212,.6);
+  box-shadow: inset 0 1px 0 rgba(226,242,238,.12), 0 8px 24px rgba(0,0,0,.30),
+              0 0 18px rgba(127,217,212,.20);
+}
+.inputbar .lead{ color: var(--cyan); width:22px; height:22px; flex:0 0 auto; position:relative; filter:drop-shadow(0 0 5px var(--cyan-dim)); }
+.inputbar input{
+  flex:1 1 auto; background:transparent; border:0; outline:0; position:relative;
+  color: var(--text); font-size:16px; font-weight:300; text-align:center;
+  -webkit-user-select:text; user-select:text;
+}
+.inputbar input::placeholder{ color: var(--text-dim); }
+/* send icon glows brighter as you speak */
+.inputbar .send{ color: var(--cyan); width:22px; height:22px; flex:0 0 auto; position:relative; cursor:pointer;
+  filter: drop-shadow(0 0 calc(4px + 8px*var(--voice,0)) rgba(127,217,212, calc(.5 + .4*var(--voice,0)))); }
+
+/* ---- HOME INDICATOR ------------------------------------------------------- */
+.home-indicator{
+  flex:0 0 auto; align-self:center;
+  width:134px; height:5px; border-radius:999px;
+  background: rgba(200,224,221,.55);
+  margin-top: var(--s3);
+  margin-bottom: 2px;
+}
+
+/* desktop: keep it phone-shaped and centered rather than stretched */
+@media (min-width:560px){
+  body{ background:#000; display:grid; place-items:center; }
+  .screen{
+    position:relative; inset:auto;
+    width:390px; height:844px; max-height:96vh;
+    border-radius:34px; overflow:hidden;
+    box-shadow:0 30px 80px rgba(0,0,0,.6);
+  }
+  #fog-canvas{ position:absolute; border-radius:34px; }
+}
+@media (prefers-reduced-motion: reduce){
+  .orb,.orb.listening{ animation:none; }
+}
+
+/* ---- ENTRANCE: chrome fades/rises in while the orb condenses from mist ----- */
+@keyframes fadeIn{ from{opacity:0} to{opacity:1} }
+@keyframes riseIn{ from{opacity:0; transform:translateY(14px)} to{opacity:1; transform:none} }
+.header   { animation: fadeIn .8s ease .15s both; }
+.orb-stage{ animation: fadeIn 1.5s ease .10s both; }   /* opacity only; shader does the condense */
+.floor    { animation: floor-breathe 6s ease-in-out infinite, fadeIn 1.6s ease .3s both; }
+.title    { animation: riseIn .9s cubic-bezier(.2,.7,.2,1) .50s both; }
+.hint     { animation: riseIn .9s cubic-bezier(.2,.7,.2,1) .85s both; }
+.panel    { animation: riseIn .9s cubic-bezier(.2,.7,.2,1) 1.0s  both; }
+@media (prefers-reduced-motion: reduce){
+  .header,.orb-stage,.title,.hint,.panel{ animation:none; opacity:1; transform:none; }
+  .floor{ animation:none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================ FOG LAYER -->
+<!-- WebGL caustics shader target. Replace the 2D loop in <script> (FOG section). -->
+<canvas id="fog-canvas"></canvas>
+
+<main class="screen">
+
+  <!-- ambient light the orb casts into the fog + slow volumetric shafts (behind content) -->
+  <div class="aura" aria-hidden="true"></div>
+  <div class="rays" aria-hidden="true"></div>
+
+  <!-- ===================================================== HEADER -->
+  <header class="header">
+    <!-- thin-line back chevron -->
+    <button class="icon-btn" aria-label="Back">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M15 5 L8 12 L15 19"/>
+      </svg>
+    </button>
+    <!-- circular outline close (X) -->
+    <button class="icon-btn close-ring" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+        <path d="M6 6 L18 18 M18 6 L6 18"/>
+      </svg>
+    </button>
+  </header>
+
+  <!-- ===================================================== LOGO (inline Celtic knot SVG)
+       Hidden for now — the orb is the hero on this screen. To bring it back,
+       remove the `hidden` attribute below. -->
+  <div class="logo-wrap" hidden>
+    <svg class="logo" viewBox="0 0 620 620" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Aether emblem">
+      <defs>
+        <!-- silver / metallic strand gradient -->
+        <linearGradient id="knotMetal" x1="0" y1="0" x2="0.3" y2="1">
+          <stop offset="0"    stop-color="#f4f9f7"/>
+          <stop offset="0.45" stop-color="#aac3c0"/>
+          <stop offset="1"    stop-color="#5c7875"/>
+        </linearGradient>
+        <linearGradient id="bezelMetal" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0"   stop-color="#dfeeeb"/>
+          <stop offset="0.5" stop-color="#8fadaa"/>
+          <stop offset="1"   stop-color="#566f6c"/>
+        </linearGradient>
+        <!-- soft glow -->
+        <filter id="knotGlow" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="6" result="b"/>
+          <feColorMatrix in="b" type="matrix"
+            values="0 0 0 0 .5  0 0 0 0 .85  0 0 0 0 .83  0 0 0 .6 0" result="g"/>
+          <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+
+      <!-- medallion bezel: outer ring + inner ring -->
+      <g filter="url(#knotGlow)">
+        <circle cx="310" cy="310" r="300" fill="none" stroke="url(#bezelMetal)" stroke-width="11"/>
+        <circle cx="310" cy="310" r="284" fill="none" stroke="url(#bezelMetal)" stroke-width="4" opacity="0.6"/>
+
+        <!-- interlaced knot strands (generated; correct over-under weave) -->
+        <path d="M 150.0 150.0 Q 22.9 214.3 150.0 310.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 470.0 150.0 Q 597.1 214.3 470.0 310.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 150.0 150.0 Q 214.3 22.9 310.0 150.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 150.0 470.0 Q 214.3 597.1 310.0 470.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 150.0 310.0 Q 22.9 405.7 150.0 470.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 470.0 310.0 Q 597.1 405.7 470.0 470.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 310.0 150.0 Q 405.7 22.9 470.0 150.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 310.0 470.0 Q 405.7 597.1 470.0 470.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 150.0 70.0 Q 24.7 24.7 70.0 150.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 470.0 70.0 Q 595.3 24.7 550.0 150.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 70.0 470.0 Q 24.7 595.3 150.0 550.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 470.0 550.0 Q 595.3 595.3 550.0 470.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 150.0 150.0 Q 22.9 214.3 150.0 310.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 470.0 150.0 Q 597.1 214.3 470.0 310.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 150.0 150.0 Q 214.3 22.9 310.0 150.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 150.0 470.0 Q 214.3 597.1 310.0 470.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 150.0 310.0 Q 22.9 405.7 150.0 470.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 470.0 310.0 Q 597.1 405.7 470.0 470.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 310.0 150.0 Q 405.7 22.9 470.0 150.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 310.0 470.0 Q 405.7 597.1 470.0 470.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 150.0 70.0 Q 24.7 24.7 70.0 150.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 470.0 70.0 Q 595.3 24.7 550.0 150.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 70.0 470.0 Q 24.7 595.3 150.0 550.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 470.0 550.0 Q 595.3 595.3 550.0 470.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 70.0 70.0 L 230.0 230.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 70.0 390.0 L 230.0 230.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 70.0 390.0 L 230.0 550.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 150.0 310.0 L 310.0 150.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 150.0 310.0 L 310.0 470.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 230.0 230.0 L 390.0 70.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 230.0 230.0 L 390.0 390.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 230.0 550.0 L 390.0 390.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 310.0 150.0 L 470.0 310.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 310.0 470.0 L 470.0 310.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 390.0 70.0 L 550.0 230.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 390.0 390.0 L 550.0 230.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 390.0 390.0 L 550.0 550.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 70.0 70.0 L 230.0 230.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 70.0 390.0 L 230.0 230.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 70.0 390.0 L 230.0 550.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 150.0 310.0 L 310.0 150.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 150.0 310.0 L 310.0 470.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 230.0 230.0 L 390.0 70.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 230.0 230.0 L 390.0 390.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 230.0 550.0 L 390.0 390.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 310.0 150.0 L 470.0 310.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 310.0 470.0 L 470.0 310.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 390.0 70.0 L 550.0 230.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 390.0 390.0 L 550.0 230.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 390.0 390.0 L 550.0 550.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 70.0 230.0 L 230.0 70.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 70.0 230.0 L 230.0 390.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 70.0 550.0 L 230.0 390.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 150.0 150.0 L 310.0 310.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 150.0 470.0 L 310.0 310.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 230.0 70.0 L 390.0 230.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 230.0 390.0 L 390.0 230.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 230.0 390.0 L 390.0 550.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 310.0 310.0 L 470.0 150.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 310.0 310.0 L 470.0 470.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 390.0 230.0 L 550.0 70.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 390.0 230.0 L 550.0 390.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 390.0 550.0 L 550.0 390.0" fill="none" stroke="var(--knot-case)" stroke-width="30" stroke-linecap="round"/>
+        <path d="M 70.0 230.0 L 230.0 70.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 70.0 230.0 L 230.0 390.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 70.0 550.0 L 230.0 390.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 150.0 150.0 L 310.0 310.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 150.0 470.0 L 310.0 310.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 230.0 70.0 L 390.0 230.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 230.0 390.0 L 390.0 230.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 230.0 390.0 L 390.0 550.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 310.0 310.0 L 470.0 150.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 310.0 310.0 L 470.0 470.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 390.0 230.0 L 550.0 70.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 390.0 230.0 L 550.0 390.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+        <path d="M 390.0 550.0 L 550.0 390.0" fill="none" stroke="url(#knotMetal)" stroke-width="20" stroke-linecap="round"/>
+      </g>
+    </svg>
+  </div>
+
+  <!-- ===================================================== TITLE -->
+  <h1 class="title">Ask Aether</h1>
+
+  <!-- ===================================================== HERO ORB -->
+  <section class="hero">
+    <div class="floor" aria-hidden="true"></div>   <!-- caustic light pool under the orb -->
+    <div class="orb-stage">
+      <div class="orb" id="orb" role="button" tabindex="0" aria-label="Tap to speak">
+        <canvas id="orb-canvas"></canvas>   <!-- WebGL water surface -->
+        <span class="gloss"></span>          <!-- glass sheen over the water -->
+      </div>
+    </div>
+    <p class="hint" id="hint">Ask me anything</p>
+  </section>
+
+  <!-- ===================================================== BOTTOM SHEET (swipe up)
+       Peeks with just the handle + input bar; swipe up (or tap the handle) to
+       reveal the action rows. Input stays reachable in both states. -->
+  <section class="panel" id="sheet" data-open="false">
+    <!-- grab handle / toggle -->
+    <button class="sheet-handle" id="sheet-handle" aria-expanded="false" aria-controls="sheet-actions" aria-label="Show more">
+      <span class="grip"></span>
+      <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 14 L12 8 L18 14"/>
+      </svg>
+    </button>
+
+    <!-- collapsible actions (revealed on swipe up) -->
+    <div class="sheet-actions" id="sheet-actions">
+      <div class="pill action">
+        <span class="label">Greetings</span>
+        <svg class="gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
+          <path d="M12 9.2a2.8 2.8 0 100 5.6 2.8 2.8 0 000-5.6Z"/>
+          <path d="M19.4 13a7.5 7.5 0 000-2l1.7-1.3-1.6-2.8-2 .8a7.4 7.4 0 00-1.8-1l-.3-2.1H11l-.3 2.1a7.4 7.4 0 00-1.8 1l-2-.8L5.3 7.7 7 9a7.5 7.5 0 000 2l-1.7 1.3 1.6 2.8 2-.8c.5.4 1.1.8 1.8 1l.3 2.1h2.6l.3-2.1c.7-.2 1.3-.6 1.8-1l2 .8 1.6-2.8L19.4 13Z"/>
+        </svg>
+      </div>
+      <div class="pill action">
+        <span class="label">Preferences</span>
+        <svg class="gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
+          <path d="M12 9.2a2.8 2.8 0 100 5.6 2.8 2.8 0 000-5.6Z"/>
+          <path d="M19.4 13a7.5 7.5 0 000-2l1.7-1.3-1.6-2.8-2 .8a7.4 7.4 0 00-1.8-1l-.3-2.1H11l-.3 2.1a7.4 7.4 0 00-1.8 1l-2-.8L5.3 7.7 7 9a7.5 7.5 0 000 2l-1.7 1.3 1.6 2.8 2-.8c.5.4 1.1.8 1.8 1l.3 2.1h2.6l.3-2.1c.7-.2 1.3-.6 1.8-1l2 .8 1.6-2.8L19.4 13Z"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- input bar — always visible -->
+    <div class="pill inputbar">
+      <svg class="lead" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 3 L13.6 9.2 L20 11 L13.6 12.8 L12 19 L10.4 12.8 L4 11 L10.4 9.2 Z" opacity=".9"/>
+      </svg>
+      <input id="ask-input" type="text" placeholder="Other thoughts…" aria-label="Type a message" />
+      <svg class="send" id="send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 12 L20 5 L14 12 L20 19 Z"/>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ===================================================== HOME INDICATOR -->
+  <div class="home-indicator" aria-hidden="true"></div>
+
+  <!-- cinematic grade: vignette focuses the eye on the orb; fine grain kills teal banding -->
+  <div class="grade vignette" aria-hidden="true"></div>
+  <div class="grade grain" aria-hidden="true"></div>
+
+</main>
+
+<script>
+/* ============================================================================
+   FOG  ← (WebGL caustics shader target)
+   Placeholder 2D fog: a handful of large, soft, slowly-drifting teal blobs.
+   The whole canvas is CSS-blurred so individual blobs read as volumetric fog.
+   To upgrade: swap getContext('2d') for a WebGL context and render a caustics
+   fragment shader into #fog-canvas. Keep resize() + the rAF loop wiring.
+   ============================================================================ */
+(function(){
+  const canvas = document.getElementById('fog-canvas');
+  const ctx = canvas.getContext('2d');
+  let w, h, dpr;
+
+  function resize(){
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const r = canvas.getBoundingClientRect();
+    w = r.width; h = r.height;
+    canvas.width  = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener('resize', resize);
+
+  // blob field: position, radius, drift velocity, hue
+  const COLORS = ['rgba(2,122,114,', 'rgba(1,90,84,', 'rgba(1,58,56,', 'rgba(8,40,44,'];
+  const blobs = Array.from({length: 7}, (_, i) => ({
+    x: Math.random(), y: Math.random(),
+    r: 0.30 + Math.random()*0.35,
+    vx: (Math.random()-0.5)*0.000045,
+    vy: (Math.random()-0.5)*0.000035,
+    c: COLORS[i % COLORS.length],
+    a: 0.30 + Math.random()*0.30
+  }));
+
+  // drifting light motes (foreground dust catching the teal light) — adds depth
+  const motes = Array.from({length: 26}, () => ({
+    x: Math.random(), y: Math.random(),
+    r: 0.4 + Math.random()*1.6,            // px radius (scaled by dpr below)
+    drift: 0.00002 + Math.random()*0.00006,// slow upward rise
+    sway: 0.4 + Math.random()*0.8,         // horizontal sway amount
+    ph: Math.random()*6.28,                // sway phase
+    a: 0.15 + Math.random()*0.4
+  }));
+
+  function frame(t){
+    ctx.clearRect(0,0,w,h);
+    ctx.globalCompositeOperation = 'lighter';
+    for(const b of blobs){
+      b.x += b.vx; b.y += b.vy;
+      if(b.x < -0.4) b.x = 1.4; if(b.x > 1.4) b.x = -0.4;
+      if(b.y < -0.4) b.y = 1.4; if(b.y > 1.4) b.y = -0.4;
+      const cx = b.x*w, cy = b.y*h, rad = b.r*Math.max(w,h);
+      const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad);
+      g.addColorStop(0, b.c + b.a + ')');
+      g.addColorStop(1, b.c + '0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI*2); ctx.fill();
+    }
+    // motes
+    const time=(t||0)*0.001;
+    const par = window.__parallax || {x:0,y:0};       // parallax: motes are the nearest layer
+    for(const m of motes){
+      m.y -= m.drift; if(m.y < -0.05) m.y = 1.05, m.x = Math.random();
+      const px = (m.x + Math.sin(time*0.3 + m.ph)*0.02*m.sway)*w + par.x*22;
+      const py = m.y*h + par.y*16;
+      const rr = m.r*2;
+      const g = ctx.createRadialGradient(px,py,0,px,py,rr*4);
+      g.addColorStop(0, 'rgba(190,235,228,'+m.a+')');
+      g.addColorStop(1, 'rgba(190,235,228,0)');
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(px,py,rr*4,0,Math.PI*2); ctx.fill();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+    requestAnimationFrame(frame);
+  }
+  resize(); requestAnimationFrame(frame);
+})();
+
+/* ============================================================================
+   PARALLAX — pointer (desktop) or device tilt (mobile) shifts the layers at
+   different rates for depth. Publishes --px/--py (and window.__parallax for the
+   canvas motes). Device tilt needs a permission grant, requested on first tap.
+   ============================================================================ */
+(function(){
+  const root=document.documentElement.style;
+  let tx=0,ty=0,cx=0,cy=0;
+  const clamp=v=>Math.max(-1,Math.min(1,v));
+  window.addEventListener('pointermove', e=>{
+    tx=clamp((e.clientX/innerWidth)*2-1);
+    ty=clamp((e.clientY/innerHeight)*2-1);
+  });
+  function onTilt(e){
+    if(e.gamma==null) return;
+    tx=clamp(e.gamma/30); ty=clamp((e.beta-45)/30);
+  }
+  let tiltAsked=false;
+  window.__enableTilt=function(){
+    if(tiltAsked) return; tiltAsked=true;
+    if(typeof DeviceOrientationEvent!=='undefined' && DeviceOrientationEvent.requestPermission){
+      DeviceOrientationEvent.requestPermission().then(s=>{ if(s==='granted') addEventListener('deviceorientation',onTilt); }).catch(()=>{});
+    } else { addEventListener('deviceorientation',onTilt); }
+  };
+  (function loop(){
+    cx+=(tx-cx)*0.06; cy+=(ty-cy)*0.06;
+    root.setProperty('--px', cx.toFixed(3));
+    root.setProperty('--py', cy.toFixed(3));
+    window.__parallax={x:cx,y:cy};
+    requestAnimationFrame(loop);
+  })();
+})();
+
+/* ============================================================================
+   VOICE — captures the mic and turns it into two signals the orb reacts to:
+     • level  : instant loudness (RMS), fast attack / slow release -> per-syllable
+     • energy : a build-up that rises the LONGER you keep talking, decays in silence
+   Permission is requested on first tap. If the mic is unavailable/denied, a gentle
+   baseline pulse is used so the orb still feels alive while "listening".
+   ============================================================================ */
+const Voice = (function(){
+  let ctx, analyser, stream, data, ready=false, pending=false, warned=false;
+  let level=0, sustain=0;
+
+  async function start(){
+    if(ready){ if(ctx && ctx.state==='suspended') ctx.resume(); return; }
+    if(pending) return; pending=true;
+    try{
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio:{ echoCancellation:true, noiseSuppression:true, autoGainControl:false }
+      });
+      ctx = new (window.AudioContext||window.webkitAudioContext)();
+      if(ctx.state==='suspended') await ctx.resume();
+      const src = ctx.createMediaStreamSource(stream);
+      analyser = ctx.createAnalyser();
+      analyser.fftSize = 1024;
+      analyser.smoothingTimeConstant = 0.5;
+      src.connect(analyser);
+      data = new Uint8Array(analyser.fftSize);
+      ready = true;
+    }catch(e){
+      if(!warned){ console.warn('[Aether] mic unavailable — using baseline pulse:', e.name); warned=true; }
+      ready=false;
+    }
+    pending=false;
+  }
+  function stop(){                                  // release the mic (privacy)
+    if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
+    ready=false; analyser=null;
+  }
+  function rms(){
+    if(!ready || !analyser) return 0;
+    analyser.getByteTimeDomainData(data);
+    let s=0; for(let i=0;i<data.length;i++){ const x=(data[i]-128)/128; s+=x*x; }
+    return Math.sqrt(s/data.length);
+  }
+
+  // dt seconds, active = orb is listening. Returns {level, energy} in 0..1
+  function update(dt, active){
+    let r = active ? rms() : 0;
+    r = Math.max(0, r-0.015) / (1-0.015);            // noise gate
+    r = Math.min(1, r*3.2);                           // sensitivity
+    const speaking = r > 0.05;
+
+    level += (r - level) * (r>level ? 0.6 : 0.12);    // fast attack, slow release
+
+    if(active){
+      // builds while you speak (faster when loud), eases down when you pause
+      sustain += speaking ? dt*(0.32 + level*0.9) : -dt*0.5;
+    }else{
+      sustain += -dt*1.4;                              // decays after you stop listening
+    }
+    sustain = Math.max(0, Math.min(1, sustain));
+
+    let energy;
+    if(active && !ready){                              // no mic: gentle living baseline
+      energy = 0.42 + 0.10*Math.sin(performance.now()/650);
+      level  = Math.max(level, 0.18 + 0.10*Math.sin(performance.now()/300));
+    }else{
+      energy = Math.max(sustain, level*0.7);
+    }
+    return { level, energy };
+  }
+
+  return { start, stop, update };
+})();
+
+/* ============================================================================
+   THEME — shifts the palette by local time of day, staying WITHIN the teal
+   identity (temperature / brightness / depth — never a hue jump). Four anchors
+   (night → dawn → day → dusk) are interpolated by the hour. Drives the CSS fog
+   tokens + accent, and exposes the water colours for the orb shader.
+   Override for testing: set window.AetherHour = 0..24 then Theme.apply().
+   ============================================================================ */
+const Theme = (function(){
+  // each anchor: hour, css bg stops [deep,base,mid,fogBright], accent, water [deep,mid,bright]
+  const A = [
+    { h:2,  bg:['#00070d','#021a20','#042b30','#06474a'], accent:'#5fb8c0',
+      water:[[.006,.055,.085],[0,.26,.30],[.03,.55,.58]] },          // night
+    { h:7,  bg:['#001417','#022b2b','#06403f','#0a665f'], accent:'#86d8d2',
+      water:[[.01,.13,.15],[0,.40,.40],[.06,.74,.70]] },             // dawn
+    { h:13, bg:['#01171c','#033a38','#07514c','#0e8076'], accent:'#9bf0e6',
+      water:[[.01,.17,.18],[0,.46,.43],[.08,.85,.78]] },             // day
+    { h:19, bg:['#0a0f0c','#093026','#0d4636','#16785a'], accent:'#84e0bf',
+      water:[[.03,.14,.12],[.02,.40,.34],[.20,.78,.60]] },           // dusk
+  ];
+  const hex = h => [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+  const toHex = c => '#'+c.map(v=>Math.round(v).toString(16).padStart(2,'0')).join('');
+  const lerp = (a,b,t)=>a+(b-a)*t;
+  const lerpHex=(a,b,t)=>toHex(hex(a).map((v,i)=>lerp(v,hex(b),t)[i]!==undefined?lerp(v,hex(b)[i],t):v));
+  const lerpArr=(a,b,t)=>a.map((v,i)=>lerp(v,b[i],t));
+
+  let water = A[1].water.map(c=>c.slice());   // current target water colours (rgb 0..1)
+
+  function pick(hour){
+    // wrap into the anchor range [2 .. 26]
+    let h = hour; if(h < A[0].h) h += 24;
+    const ext = A.concat([{...A[0], h:A[0].h+24}]);
+    for(let i=0;i<ext.length-1;i++){
+      const a=ext[i], b=ext[i+1];
+      if(h>=a.h && h<=b.h){
+        const t=(h-a.h)/(b.h-a.h);
+        return {
+          bg: a.bg.map((c,j)=>lerpHex(c,b.bg[j],t)),
+          accent: lerpHex(a.accent,b.accent,t),
+          water: a.water.map((c,j)=>lerpArr(c,b.water[j],t)),
+        };
+      }
+    }
+    return {bg:A[0].bg, accent:A[0].accent, water:A[0].water};
+  }
+
+  function apply(){
+    const hour = (typeof window.AetherHour==='number')
+      ? window.AetherHour : (new Date().getHours()+new Date().getMinutes()/60);
+    const p = pick(hour);
+    const r = document.documentElement.style;
+    r.setProperty('--bg-deep',    p.bg[0]);
+    r.setProperty('--bg-base',    p.bg[1]);
+    r.setProperty('--bg-mid',     p.bg[2]);
+    r.setProperty('--fog-bright', p.bg[3]);
+    r.setProperty('--cyan',       p.accent);
+    const a=hex(p.accent);
+    r.setProperty('--cyan-dim', `rgba(${a[0]},${a[1]},${a[2]},.55)`);
+    water = p.water;
+  }
+
+  apply();
+  setInterval(apply, 5*60*1000);   // drift through the day
+  return { apply, get water(){ return water; } };
+})();
+window.Theme = Theme;   // window.AetherHour = <0..24>; Theme.apply() to preview a time
+
+/* ============================================================================
+   WATER ORB — WebGL shader. A wave height field perturbs the sphere's surface
+   normals so light glints off real ridges & waves; energy rises while listening.
+   Pure WebGL, no libraries. Falls back to the CSS fill if WebGL is unavailable.
+   Tunables live in the fragment shader: wave() (the waves) and the colour block.
+   ============================================================================ */
+(function(){
+  const cv = document.getElementById('orb-canvas');
+  const gl = cv.getContext('webgl', {premultipliedAlpha:false, alpha:true, antialias:true})
+          || cv.getContext('experimental-webgl', {premultipliedAlpha:false, alpha:true});
+  if(!gl){ cv.style.display='none'; return; }   // CSS fallback fill stays visible
+
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---- shaders ----------------------------------------------------------- */
+  const VS = 'attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}';
+
+  // WATER (renders to a texture so we can bloom it)
+  const FS = `precision highp float;
+  uniform vec2 uRes; uniform float uTime; uniform float uInt; uniform float uLevel; uniform float uReveal;
+  uniform vec3 uDeep; uniform vec3 uMid; uniform vec3 uBright;
+  float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+  float vnoise(vec2 p){vec2 i=floor(p),f=fract(p);float a=hash(i),b=hash(i+vec2(1,0)),c=hash(i+vec2(0,1)),d=hash(i+vec2(1,1));vec2 u=f*f*(3.-2.*f);return mix(mix(a,b,u.x),mix(c,d,u.x),u.y);}
+  float fbm(vec2 p){float v=0.,a=.5;mat2 m=mat2(1.6,1.2,-1.2,1.6);for(int i=0;i<5;i++){v+=a*vnoise(p);p=m*p;a*=.5;}return v;}
+  float waterH(vec2 p, float t, float amp){
+    vec2 fl=vec2(t*0.10,-t*0.08);
+    vec2 q=vec2(fbm(p*1.1+fl), fbm(p*1.1+vec2(4.3,1.7)-fl));
+    float h =fbm(p*1.7+1.3*q+fl);
+    h+=0.45*fbm(p*3.6+1.0*q-fl*1.6);
+    h+=0.20*sin(dot(p,vec2(0.6,0.8))*2.0+t*0.7);
+    return (h-0.85)*amp;
+  }
+  void main(){
+    vec2 uv=(gl_FragCoord.xy/uRes)*2.-1.;
+    float r=length(uv);
+    if(r>1.05){gl_FragColor=vec4(0.);return;}
+    float z=sqrt(max(0.,1.-min(r,1.)*min(r,1.)));
+    vec3 N0=vec3(uv,z);
+    vec2 wp=uv/(z*.35+.65)*2.4;
+    float e=.012;
+    float amp=mix(1.0,2.1,uInt)+uLevel*0.9;
+    float h =waterH(wp,uTime,amp);
+    float hx=waterH(wp+vec2(e,0.),uTime,amp);
+    float hy=waterH(wp+vec2(0.,e),uTime,amp);
+    vec2 grad=vec2(hx-h,hy-h)/e;
+    vec3 N=normalize(vec3(N0.xy-grad*.16,N0.z));
+    vec3 V=vec3(0.,0.,1.);
+    vec3 L=normalize(vec3(-.45,.6,.72));
+    vec3 L2=normalize(vec3(.4,.5,.6));
+    float diff=clamp(dot(N,L),0.,1.);
+    float spec=pow(clamp(dot(N,normalize(L+V)),0.,1.),90.);
+    float spec2=pow(clamp(dot(N,normalize(L2+V)),0.,1.),26.);
+    float fres=pow(1.-clamp(dot(N,V),0.,1.),3.0);
+    vec3 deep=uDeep, mid=uMid, bright=uBright;
+    vec3 col=mix(deep,mid,.35+.5*z);
+    col+=mid*diff*.30;
+    col+=bright*spec*1.8;
+    col+=vec3(1.0,1.0,.98)*spec2*.40;
+    col+=vec3(.45,.88,.83)*fres*.22;
+    float sheen=smoothstep(.55,0.,length(uv-vec2(-.32,.40)));
+    col+=vec3(.85,.97,.93)*sheen*.16;
+    col*=mix(.66,1.04,z);
+    col+=uInt*bright*.10;
+    col+=uLevel*bright*.22;
+    // swirling mist edge
+    float fa=fbm(uv*1.6+vec2(uTime*0.05,-uTime*0.04));
+    float fb=fbm(uv*1.6+vec2(11.0,3.0)-vec2(uTime*0.05));
+    vec2 flow=normalize(vec2(fb-0.5,-(fa-0.5))+1e-4);
+    vec2 sp=uv*2.6+flow*0.7;
+    float wisp=fbm(sp+vec2(uTime*0.10,-uTime*0.08));
+    float rr=r+(wisp-0.5)*0.46;
+    float core=smoothstep(0.86,0.40,rr);
+    float stroke=0.5+0.5*sin(dot(uv,vec2(-flow.y,flow.x))*24.0 + fbm(sp*1.4)*6.2831);
+    float haze=smoothstep(1.05,0.5,r)*fbm(sp*1.8-vec2(uTime*0.08))*0.42;
+    haze*=mix(0.45,1.0,stroke);
+    float alpha=clamp(core+haze*core,0.0,1.0)*0.97;
+    col+=bright*(1.0-core)*haze*1.5;
+    // entrance: condense out of mist (uReveal 0 -> 1)
+    alpha *= clamp(uReveal,0.0,1.0);
+    col   += bright*(1.0-clamp(uReveal,0.0,1.0))*0.05;
+    gl_FragColor=vec4(col, alpha);
+  }`;
+
+  // BRIGHT EXTRACT (threshold -> keep only the glints)
+  const FS_EXTRACT = `precision highp float; uniform sampler2D uTex; uniform vec2 uRes;
+  void main(){ vec2 uv=gl_FragCoord.xy/uRes; vec4 c=texture2D(uTex,uv);
+    float b=max(c.r,max(c.g,c.b));
+    float k=smoothstep(0.50,0.95,b);
+    gl_FragColor=vec4(c.rgb*k, 1.0); }`;
+
+  // SEPARABLE GAUSSIAN BLUR
+  const FS_BLUR = `precision highp float; uniform sampler2D uTex; uniform vec2 uRes; uniform vec2 uDir;
+  void main(){ vec2 uv=gl_FragCoord.xy/uRes; vec2 px=uDir/uRes;
+    vec3 s=texture2D(uTex,uv).rgb*0.227027;
+    s+=texture2D(uTex,uv+px*1.3846).rgb*0.316216;
+    s+=texture2D(uTex,uv-px*1.3846).rgb*0.316216;
+    s+=texture2D(uTex,uv+px*3.2308).rgb*0.070270;
+    s+=texture2D(uTex,uv-px*3.2308).rgb*0.070270;
+    gl_FragColor=vec4(s,1.0); }`;
+
+  // COMPOSITE scene + bloom (bloom carries its own alpha so it glows into the fog)
+  const FS_COMP = `precision highp float;
+  uniform sampler2D uScene; uniform sampler2D uBloom; uniform vec2 uRes; uniform float uBloomAmt;
+  void main(){ vec2 uv=gl_FragCoord.xy/uRes;
+    vec4 sc=texture2D(uScene,uv);
+    vec3 bl=texture2D(uBloom,uv).rgb*uBloomAmt;
+    float bl_l=max(bl.r,max(bl.g,bl.b));
+    float a=clamp(sc.a+bl_l,0.0,1.0);
+    vec3 pm=sc.rgb*sc.a + bl;                 // premultiplied accumulate
+    gl_FragColor=vec4(a>0.001? pm/a : vec3(0.0), a);   // back to straight alpha
+  }`;
+
+  /* ---- program + buffer setup -------------------------------------------- */
+  function compile(t,src){const s=gl.createShader(t);gl.shaderSource(s,src);gl.compileShader(s);
+    if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(s)); return s;}
+  function program(fs){
+    const pr=gl.createProgram();
+    gl.attachShader(pr,compile(gl.VERTEX_SHADER,VS));
+    gl.attachShader(pr,compile(gl.FRAGMENT_SHADER,fs));
+    gl.linkProgram(pr);
+    return { pr, loc: gl.getAttribLocation(pr,'p') };
+  }
+  const water   = program(FS);
+  const extract = program(FS_EXTRACT);
+  const blur    = program(FS_BLUR);
+  const comp    = program(FS_COMP);
+
+  const buf=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1, 3,-1, -1,3]),gl.STATIC_DRAW);
+  function useProg(p){ gl.useProgram(p.pr); gl.enableVertexAttribArray(p.loc);
+    gl.vertexAttribPointer(p.loc,2,gl.FLOAT,false,0,0); }
+
+  // uniform locations
+  const U = {
+    res:gl.getUniformLocation(water.pr,'uRes'), time:gl.getUniformLocation(water.pr,'uTime'),
+    int:gl.getUniformLocation(water.pr,'uInt'), level:gl.getUniformLocation(water.pr,'uLevel'),
+    reveal:gl.getUniformLocation(water.pr,'uReveal'),
+    deep:gl.getUniformLocation(water.pr,'uDeep'), mid:gl.getUniformLocation(water.pr,'uMid'),
+    bright:gl.getUniformLocation(water.pr,'uBright'),
+    exTex:gl.getUniformLocation(extract.pr,'uTex'), exRes:gl.getUniformLocation(extract.pr,'uRes'),
+    blTex:gl.getUniformLocation(blur.pr,'uTex'), blRes:gl.getUniformLocation(blur.pr,'uRes'), blDir:gl.getUniformLocation(blur.pr,'uDir'),
+    coScene:gl.getUniformLocation(comp.pr,'uScene'), coBloom:gl.getUniformLocation(comp.pr,'uBloom'),
+    coRes:gl.getUniformLocation(comp.pr,'uRes'), coAmt:gl.getUniformLocation(comp.pr,'uBloomAmt'),
+  };
+
+  /* ---- render targets (FBOs) --------------------------------------------- */
+  function makeTarget(w,h){
+    const tex=gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D,tex);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,w,h,0,gl.RGBA,gl.UNSIGNED_BYTE,null);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+    const fbo=gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER,fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,tex,0);
+    return {tex,fbo,w,h};
+  }
+  let scene, bloomA, bloomB, bw, bh;
+  function setupTargets(){
+    [scene,bloomA,bloomB].forEach(t=>{ if(t){ gl.deleteTexture(t.tex); gl.deleteFramebuffer(t.fbo); } });
+    scene = makeTarget(cv.width, cv.height);
+    bw = Math.max(1, cv.width>>2); bh = Math.max(1, cv.height>>2);   // quarter-res bloom
+    bloomA = makeTarget(bw,bh); bloomB = makeTarget(bw,bh);
+    gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+  }
+
+  /* ---- state ------------------------------------------------------------- */
+  const orb=document.getElementById('orb');
+  let intensity=0, phase=0, lastMs=0, lastVoiceVar=-1;
+  let curW=[[.01,.13,.15],[0,.40,.40],[.06,.74,.70]];
+  let running=true;
+  let qScale=Math.min(window.devicePixelRatio||1,2);
+  let fpsAccum=0, fpsFrames=0, degradeStep=0, bloomOn=true;
+  let reveal=0, startT=0;                 // entrance reveal 0 -> 1
+
+  function resize(){
+    const s=cv.getBoundingClientRect();
+    cv.width=Math.max(1,Math.floor(s.width*qScale));
+    cv.height=Math.max(1,Math.floor(s.height*qScale));
+    setupTargets();
+  }
+  window.addEventListener('resize',resize); resize();
+
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden){ running=false; }
+    else if(!running){ running=true; lastMs=0; requestAnimationFrame(draw); }
+  });
+
+  function setWaterUniforms(w,h){
+    gl.uniform2f(U.res,w,h);
+    gl.uniform1f(U.time, reduceMotion?0.0:phase);
+    gl.uniform1f(U.int, Math.min(1.0,intensity));
+    gl.uniform1f(U.level, Math.min(1.0, lastLvl));
+    gl.uniform1f(U.reveal, reveal);
+    gl.uniform3f(U.deep,   curW[0][0],curW[0][1],curW[0][2]);
+    gl.uniform3f(U.mid,    curW[1][0],curW[1][1],curW[1][2]);
+    gl.uniform3f(U.bright, curW[2][0],curW[2][1],curW[2][2]);
+  }
+  let lastLvl=0;
+
+  function draw(ms){
+    if(document.hidden){ running=false; return; }
+    const active=orb.classList.contains('listening');
+    const t=ms/1000; if(!startT) startT=t;
+    let dt=t-(lastMs||t); lastMs=t; dt=Math.min(0.05,Math.max(0,dt));
+
+    // entrance reveal (ease-out over ~1.6s)
+    const rt=Math.min(1,(t-startT)/1.6);
+    reveal = reduceMotion ? 1 : (1-Math.pow(1-rt,3));
+
+    // fps watchdog
+    fpsAccum+=dt; fpsFrames++;
+    if(fpsAccum>=2.0){
+      const fps=fpsFrames/fpsAccum; fpsAccum=0; fpsFrames=0;
+      if(fps<45 && degradeStep<2){ degradeStep++; qScale=degradeStep===1?Math.min(qScale,1.25):1.0; resize(); }
+      else if(fps<38 && bloomOn){ bloomOn=false; }      // drop bloom before resolution-killing
+      else if(fps<24){ cv.style.display='none'; running=false; return; }
+    }
+
+    // voice + palette
+    const v=Voice.update(dt, active);
+    intensity += (v.energy - intensity)*0.15;
+    lastLvl=v.level;
+    phase += dt*(0.5 + 0.6*intensity + 1.6*lastLvl);
+    const tw=Theme.water;
+    for(let i=0;i<3;i++) for(let j=0;j<3;j++) curW[i][j]+=(tw[i][j]-curW[i][j])*0.05;
+
+    if(bloomOn){
+      // 1) water -> scene texture
+      gl.bindFramebuffer(gl.FRAMEBUFFER, scene.fbo); gl.viewport(0,0,scene.w,scene.h);
+      gl.disable(gl.BLEND); gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT);
+      useProg(water); setWaterUniforms(scene.w,scene.h); gl.drawArrays(gl.TRIANGLES,0,3);
+      // 2) extract brights -> bloomA (quarter res)
+      gl.bindFramebuffer(gl.FRAMEBUFFER, bloomA.fbo); gl.viewport(0,0,bw,bh);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      useProg(extract); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,scene.tex);
+      gl.uniform1i(U.exTex,0); gl.uniform2f(U.exRes,bw,bh); gl.drawArrays(gl.TRIANGLES,0,3);
+      // 3) blur H -> bloomB
+      gl.bindFramebuffer(gl.FRAMEBUFFER, bloomB.fbo); gl.viewport(0,0,bw,bh);
+      useProg(blur); gl.bindTexture(gl.TEXTURE_2D,bloomA.tex);
+      gl.uniform1i(U.blTex,0); gl.uniform2f(U.blRes,bw,bh); gl.uniform2f(U.blDir,1.2,0.0); gl.drawArrays(gl.TRIANGLES,0,3);
+      // 4) blur V -> bloomA
+      gl.bindFramebuffer(gl.FRAMEBUFFER, bloomA.fbo); gl.viewport(0,0,bw,bh);
+      gl.bindTexture(gl.TEXTURE_2D,bloomB.tex);
+      gl.uniform2f(U.blDir,0.0,1.2); gl.drawArrays(gl.TRIANGLES,0,3);
+      // 5) composite -> screen
+      gl.bindFramebuffer(gl.FRAMEBUFFER,null); gl.viewport(0,0,cv.width,cv.height);
+      gl.disable(gl.BLEND); gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT);
+      useProg(comp);
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D,scene.tex); gl.uniform1i(U.coScene,0);
+      gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D,bloomA.tex); gl.uniform1i(U.coBloom,1);
+      gl.uniform2f(U.coRes,cv.width,cv.height); gl.uniform1f(U.coAmt,1.35);
+      gl.drawArrays(gl.TRIANGLES,0,3);
+      gl.activeTexture(gl.TEXTURE0);
+    } else {
+      // lightweight path: water straight to screen, no bloom
+      gl.bindFramebuffer(gl.FRAMEBUFFER,null); gl.viewport(0,0,cv.width,cv.height);
+      gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+      gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT);
+      useProg(water); setWaterUniforms(cv.width,cv.height); gl.drawArrays(gl.TRIANGLES,0,3);
+    }
+
+    // share energy with the UI
+    const voice=Math.min(1, Math.max(intensity, lastLvl));
+    if(Math.abs(voice-lastVoiceVar)>0.012){
+      document.documentElement.style.setProperty('--voice', voice.toFixed(3)); lastVoiceVar=voice;
+    }
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+})();
+
+
+/* ============================================================================
+   PILL RIPPLES — a water ripple spreads from where you tap an action button.
+   ============================================================================ */
+(function(){
+  function addRipple(e){
+    const pill=e.currentTarget;
+    const rect=pill.getBoundingClientRect();
+    const x=(e.clientX!=null?e.clientX:rect.left+rect.width/2)-rect.left;
+    const y=(e.clientY!=null?e.clientY:rect.top+rect.height/2)-rect.top;
+    const d=Math.max(rect.width,rect.height)*2.2;
+    const s=document.createElement('span');
+    s.className='ripple';
+    s.style.width=s.style.height=d+'px';
+    s.style.left=x+'px'; s.style.top=y+'px';
+    pill.prepend(s);
+    s.addEventListener('animationend',()=>s.remove());
+  }
+  document.querySelectorAll('.pill.action').forEach(p=>p.addEventListener('pointerdown',addRipple));
+})();
+
+
+(function(){
+  const orb  = document.getElementById('orb');
+  const hint = document.getElementById('hint');
+  let listening = false;
+  function toggle(){
+    listening = !listening;
+    orb.classList.toggle('listening', listening);
+    hint.textContent = listening ? 'Listening…' : 'Ask me anything';
+    if(listening) Voice.start(); else Voice.stop();   // mic on/off (asks permission once)
+    if(window.__enableTilt) window.__enableTilt();      // device-tilt parallax (asks once)
+  }
+  orb.addEventListener('click', toggle);
+  orb.addEventListener('keydown', e => {
+    if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggle(); }
+  });
+})();
+
+/* ============================================================================
+   BOTTOM SHEET — swipe up (or tap the handle) to reveal the action rows.
+   Drag tracks your finger; on release it snaps open/closed past the midpoint.
+   ============================================================================ */
+(function(){
+  const sheet  = document.getElementById('sheet');
+  const handle = document.getElementById('sheet-handle');
+  const actions= document.getElementById('sheet-actions');
+  let open=false, dragging=false, startY=0, baseH=0, fullH=0, moved=0;
+
+  function measure(){                       // remeasure the open height
+    const prev=actions.style.transition;
+    actions.style.transition='none';
+    actions.style.maxHeight='none';
+    fullH=actions.scrollHeight;
+    actions.style.maxHeight = open? fullH+'px' : '0px';
+    requestAnimationFrame(()=>{ actions.style.transition=prev; });
+  }
+  function setOpen(v){
+    open=v;
+    sheet.dataset.open = v?'true':'false';
+    handle.setAttribute('aria-expanded', v?'true':'false');
+    handle.setAttribute('aria-label', v?'Show less':'Show more');
+    actions.style.maxHeight = v? fullH+'px' : '0px';
+    actions.style.opacity   = v? '1':'0';
+  }
+  measure(); window.addEventListener('resize', measure);
+
+  handle.addEventListener('pointerdown', e=>{
+    dragging=true; moved=0; startY=e.clientY; baseH= open? fullH:0;
+    actions.style.transition='none';
+    try{ handle.setPointerCapture(e.pointerId); }catch(_){}
+  });
+  handle.addEventListener('pointermove', e=>{
+    if(!dragging) return;
+    const dy=startY-e.clientY;               // upward drag = positive
+    moved=Math.max(moved, Math.abs(dy));
+    const h=Math.min(fullH, Math.max(0, baseH+dy));
+    actions.style.maxHeight=h+'px';
+    actions.style.opacity=(h/fullH).toFixed(3);
+    sheet.dataset.open = (h> fullH*0.5)?'true':'false';   // live chevron/margin flip
+  });
+  function endDrag(){
+    if(!dragging) return;
+    dragging=false; actions.style.transition='';
+    const h=parseFloat(actions.style.maxHeight)||0;
+    if(moved<6) setOpen(!open);               // treated as a tap
+    else setOpen(h > fullH*0.5);              // snap by position
+  }
+  handle.addEventListener('pointerup', endDrag);
+  handle.addEventListener('pointercancel', endDrag);
+  handle.addEventListener('keydown', e=>{
+    if(e.key==='Enter'||e.key===' '){ e.preventDefault(); setOpen(!open); }
+  });
+})();
+
+/* ============================================================================
+   INPUT — basic send wiring (no backend; hook your Hermes/ntfy pipeline here).
+   ============================================================================ */
+(function(){
+  const input = document.getElementById('ask-input');
+  const send  = document.getElementById('send');
+  function submit(){
+    const v = input.value.trim();
+    if(!v) return;
+    console.log('[Aether] send:', v);   // <- dispatch to your agent transport
+    input.value = '';
+  }
+  send.addEventListener('click', submit);
+  input.addEventListener('keydown', e => { if(e.key === 'Enter') submit(); });
+})();
+</script>
+</body>
+</html>
