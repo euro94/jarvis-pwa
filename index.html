@@ -1080,6 +1080,107 @@
   .plan-task .pt-x { flex:0 0 auto; color:var(--faint); font-size:16px; cursor:pointer; padding:2px 4px; }
   .plan-task .pt-x:hover { color:var(--sev-high); }
   .plan-empty { text-align:center; color:var(--faint); font-size:13.5px; line-height:1.6; padding:36px 20px; }
+
+  /* ============================================================================
+     AETHER VOICE — full-screen "water orb" screen. All tokens are namespaced
+     (--ao-*) and every selector is scoped under #voiceOverlay so none of this
+     leaks into the rest of the app. The orb is a WebGL water surface; the fog,
+     aura and rays react to a --ao-voice signal driven by the listen/speak state.
+     ============================================================================ */
+  #voiceOverlay{
+    --ao-deep:#00141a; --ao-base:#012b2b; --ao-mid:#013a38; --ao-fog:#015a54; --ao-fog2:#027a72;
+    --ao-cyan:#7fd9d4; --ao-cyan-dim:rgba(127,217,212,.55); --ao-text:#cbdedb; --ao-text-dim:#6f8d8a;
+    --ao-glass:rgba(3,42,42,.34);
+  }
+  /* turn the centered card into a true full-bleed screen */
+  #voiceOverlay.open{ padding:0; background:var(--ao-deep); -webkit-backdrop-filter:none; backdrop-filter:none; }
+  #voiceOverlay .vo-card{
+    width:100%; max-width:none; height:100%; gap:0; padding:0; border:0; border-radius:0; box-shadow:none;
+    background:
+      radial-gradient(120% 80% at 78% 42%, var(--ao-fog) 0%, rgba(1,90,84,0) 46%),
+      radial-gradient(90% 60% at 18% 22%, var(--ao-mid) 0%, rgba(1,58,56,0) 55%),
+      radial-gradient(140% 120% at 50% 8%, var(--ao-base) 0%, var(--ao-deep) 78%),
+      linear-gradient(180deg,#021e22 0%,#00161a 60%,#001013 100%), var(--ao-deep);
+    justify-content:flex-start; align-items:stretch; overflow:hidden; animation:none; position:relative;
+  }
+  /* drifting fog canvas behind everything */
+  #aoFog{ position:absolute; inset:-26px; width:calc(100% + 52px); height:calc(100% + 52px);
+    filter:blur(26px) saturate(108%); opacity:.85; pointer-events:none; z-index:0; }
+  /* ambient glow + slow light shafts cast by the orb */
+  #voiceOverlay .ao-aura{ position:absolute; left:50%; top:46%; width:130%; aspect-ratio:1; transform:translate(-50%,-50%);
+    pointer-events:none; z-index:0; filter:blur(12px);
+    background:radial-gradient(circle, rgba(7,185,177,.26) 0%, rgba(7,185,177,.09) 30%, rgba(7,185,177,0) 60%);
+    opacity:calc(.4 + .6*var(--ao-voice,0)); transition:opacity .2s ease; }
+  #voiceOverlay .ao-rays{ position:absolute; left:50%; top:46%; width:165%; aspect-ratio:1; transform:translate(-50%,-50%);
+    pointer-events:none; z-index:0; mix-blend-mode:screen;
+    background:conic-gradient(from 0deg,
+      rgba(127,217,212,0) 0deg, rgba(127,217,212,.05) 7deg, rgba(127,217,212,0) 15deg,
+      rgba(127,217,212,0) 44deg, rgba(127,217,212,.045) 52deg, rgba(127,217,212,0) 60deg,
+      rgba(127,217,212,0) 96deg, rgba(127,217,212,.05) 104deg, rgba(127,217,212,0) 113deg,
+      rgba(127,217,212,0) 152deg, rgba(127,217,212,.04) 162deg, rgba(127,217,212,0) 172deg,
+      rgba(127,217,212,0) 210deg, rgba(127,217,212,.05) 220deg, rgba(127,217,212,0) 230deg,
+      rgba(127,217,212,0) 286deg, rgba(127,217,212,.045) 296deg, rgba(127,217,212,0) 306deg,
+      rgba(127,217,212,0) 360deg);
+    -webkit-mask:radial-gradient(circle,#000 6%,rgba(0,0,0,.45) 32%,transparent 62%);
+            mask:radial-gradient(circle,#000 6%,rgba(0,0,0,.45) 32%,transparent 62%);
+    opacity:calc(.35 + .5*var(--ao-voice,0)); animation:aoRays 70s linear infinite; }
+  @keyframes aoRays{ to{ transform:translate(-50%,-50%) rotate(360deg); } }
+  /* header row (close / conversations) floats at the top */
+  #voiceOverlay .ao-top{ position:relative; z-index:3; display:flex; align-items:center; justify-content:space-between;
+    padding:calc(var(--safe-t) + 10px) 20px 0; }
+  #voiceOverlay .ao-iconbtn{ width:42px; height:42px; display:grid; place-items:center; background:transparent; border:0;
+    cursor:pointer; color:var(--ao-cyan); filter:drop-shadow(0 0 6px var(--ao-cyan-dim)); transition:transform .15s ease; }
+  #voiceOverlay .ao-iconbtn:active{ transform:scale(.9); }
+  #voiceOverlay .ao-iconbtn svg{ width:22px; height:22px; }
+  #voiceOverlay .ao-iconbtn.ring{ border:1.5px solid var(--ao-cyan); border-radius:50%;
+    box-shadow:0 0 8px var(--ao-cyan-dim), inset 0 0 4px rgba(127,217,212,.18); }
+  #voiceOverlay .ao-iconbtn.ring svg{ width:14px; height:14px; }
+  #voiceOverlay .ao-title{ position:relative; z-index:2; text-align:center; margin-top:18px;
+    font-size:clamp(20px,5.6vw,26px); font-weight:400; letter-spacing:.5px; color:var(--ao-text);
+    text-shadow:0 0 12px rgba(127,217,212,.18); }
+  /* hero region holds the orb, centered and flexible */
+  #voiceOverlay .ao-hero{ position:relative; z-index:1; flex:1 1 auto; min-height:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:30px; }
+  #voiceOverlay .ao-floor{ position:absolute; left:50%; top:62%; transform:translateX(-50%); width:52%; height:14%;
+    z-index:0; pointer-events:none; filter:blur(11px);
+    background:radial-gradient(ellipse at 50% 50%, rgba(7,185,177,.34) 0%, rgba(7,185,177,.12) 42%, rgba(7,185,177,0) 72%);
+    opacity:calc(.30 + .55*var(--ao-voice,0)); animation:aoFloor 6s ease-in-out infinite; }
+  @keyframes aoFloor{ 0%,100%{ transform:translateX(-50%) scaleX(1);} 50%{ transform:translateX(-50%) scaleX(1.10);} }
+  /* the orb itself — replaces the old .vo-orb rings/core look */
+  #voiceOverlay .vo-orb{ --orb-size:min(66vw,300px); width:var(--orb-size); height:var(--orb-size);
+    position:relative; isolation:isolate; cursor:pointer;
+    background:radial-gradient(circle at 46% 42%, rgba(7,185,177,.30) 0%, rgba(7,185,177,.12) 34%, rgba(6,58,59,.06) 58%, transparent 74%);
+    filter:drop-shadow(0 0 46px rgba(7,185,177,.22)); animation:aoBreathe 6s ease-in-out infinite;
+    transition:filter .4s ease, transform .4s ease; }
+  #voiceOverlay #aoOrbCanvas{ position:absolute; inset:-6%; width:112%; height:112%; display:block; pointer-events:none; }
+  #voiceOverlay .vo-orb .ao-gloss{ position:absolute; inset:0; border-radius:50%; pointer-events:none; mix-blend-mode:screen; opacity:.7;
+    background:radial-gradient(36% 24% at 32% 24%, rgba(255,255,255,.30) 0%, rgba(226,242,238,.08) 48%, rgba(226,242,238,0) 72%); }
+  @keyframes aoBreathe{ 0%,100%{ transform:scale(1); filter:drop-shadow(0 0 46px rgba(7,185,177,.22)); }
+    50%{ transform:scale(1.025); filter:drop-shadow(0 0 62px rgba(7,185,177,.32)); } }
+  #voiceOverlay.listening .vo-orb{ animation:aoListen 1.6s ease-in-out infinite; transform:scale(1.05); }
+  @keyframes aoListen{ 0%,100%{ filter:drop-shadow(0 0 60px rgba(7,185,177,.40)); } 50%{ filter:drop-shadow(0 0 96px rgba(7,185,177,.55)); } }
+  /* status + transcript + hint, restyled for the dark teal screen */
+  #voiceOverlay .vo-status{ position:relative; z-index:2; color:var(--ao-cyan); }
+  #voiceOverlay .vo-transcript{ position:relative; z-index:2; color:var(--ao-text); font-size:clamp(15px,4.4vw,19px);
+    font-weight:300; text-align:center; padding:0 28px; min-height:1.4em; text-shadow:0 0 10px rgba(0,0,0,.5); }
+  #voiceOverlay .vo-hint{ position:relative; z-index:2; color:var(--ao-text-dim); }
+  /* bottom action bar sits on a faint glass strip above the home indicator */
+  #voiceOverlay .vo-actions{ position:relative; z-index:3; display:flex; gap:12px; justify-content:center;
+    padding:0 20px calc(var(--safe-b) + 18px); margin-top:8px; }
+  #voiceOverlay .vo-convo, #voiceOverlay .vo-stop{
+    display:flex; align-items:center; gap:8px; padding:12px 18px; border-radius:999px; cursor:pointer;
+    font-size:14px; font-weight:600; color:var(--ao-text);
+    background:linear-gradient(180deg, rgba(127,217,212,.10) 0%, rgba(127,217,212,0) 26%), var(--ao-glass);
+    -webkit-backdrop-filter:blur(16px) saturate(135%); backdrop-filter:blur(16px) saturate(135%);
+    border:1px solid rgba(127,217,212, calc(.22 + .4*var(--ao-voice,0)));
+    box-shadow:inset 0 1px 0 rgba(226,242,238,.10), 0 8px 24px rgba(0,0,0,.30);
+    transition:transform .15s ease, border-color .25s ease; }
+  #voiceOverlay .vo-convo svg{ width:18px; height:18px; }
+  #voiceOverlay .vo-convo:active, #voiceOverlay .vo-stop:active{ transform:scale(.97); }
+  @media (prefers-reduced-motion: reduce){
+    #voiceOverlay .ao-rays, #voiceOverlay .ao-floor, #voiceOverlay .vo-orb,
+    #voiceOverlay.listening .vo-orb{ animation:none; }
+  }
 </style>
 </head>
 <body>
@@ -1300,21 +1401,37 @@
 
   <div id="voiceOverlay">
     <div class="vo-card" id="voCard">
-      <div class="vo-orb" id="voOrb">
-        <div class="ring halo"></div>
-        <div class="ring r1"></div>
-        <div class="ring r2"></div>
-        <div class="core"></div>
+      <canvas id="aoFog"></canvas>
+      <div class="ao-aura" aria-hidden="true"></div>
+      <div class="ao-rays" aria-hidden="true"></div>
+
+      <div class="ao-top">
+        <button class="ao-iconbtn" id="voConvo" aria-label="Conversations — start a new one or switch back">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7A8.5 8.5 0 0 1 4 11.5 8.38 8.38 0 0 1 12.5 3 8.38 8.38 0 0 1 21 11.5Z"/></svg>
+        </button>
+        <button class="ao-iconbtn ring" id="voStop" aria-label="End voice mode">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6 L18 18 M18 6 L6 18"/></svg>
+        </button>
       </div>
-      <div class="vo-status" id="voStatus">Listening…</div>
-      <div class="vo-transcript" id="voTranscript"></div>
-      <div class="vo-hint" id="voHint">Working on it — the mic pauses while I process, then reopens automatically.</div>
+
+      <h1 class="ao-title">Ask AETHER</h1>
+
+      <section class="ao-hero">
+        <div class="ao-floor" aria-hidden="true"></div>
+        <div class="vo-orb" id="voOrb" role="button" tabindex="0" aria-label="Tap to speak">
+          <canvas id="aoOrbCanvas"></canvas>
+          <span class="ao-gloss"></span>
+        </div>
+        <div class="vo-status" id="voStatus">Listening…</div>
+        <div class="vo-transcript" id="voTranscript"></div>
+        <div class="vo-hint" id="voHint">Tap the orb to talk — the mic pauses while I process, then reopens.</div>
+      </section>
+
       <div class="vo-actions">
-        <button class="vo-convo" id="voConvo" aria-label="Conversations — start a new one or switch back">
+        <button class="vo-convo" id="voConvo2" aria-label="Conversations">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7A8.5 8.5 0 0 1 4 11.5 8.38 8.38 0 0 1 12.5 3 8.38 8.38 0 0 1 21 11.5Z"/></svg>
           <span>Conversations</span>
         </button>
-        <button class="vo-stop" id="voStop">End voice mode</button>
       </div>
     </div>
   </div>
@@ -2007,6 +2124,7 @@ function startStudioVoice(){
   window.__voiceMode=true; window.__studioVoice=true;
   acquireWakeLock();                      // keep the screen awake hands-free
   $('voiceOverlay').classList.add('open');
+  if(window.AO) window.AO.start();
   $('voiceModeBtn') && $('voiceModeBtn').classList.add('on');
   voSetState('listening','Studio · listening'); $('voTranscript').textContent='Describe a change — I keep listening.';
   haptic(); startListening();
@@ -2950,7 +3068,9 @@ setInterval(()=>{
 window.__voiceMode=false; let speaking=false; let ttsPrimed=false; let preferredVoice=null;
 function pickVoice(){ try{ const vs=window.speechSynthesis.getVoices()||[]; preferredVoice = vs.find(v=>/Samantha|Karen|Daniel|Google US English|Aaron|Evan/i.test(v.name)) || vs.find(v=>v.lang&&v.lang.indexOf('en')===0) || vs[0] || null; }catch(e){} }
 if(window.speechSynthesis){ pickVoice(); window.speechSynthesis.onvoiceschanged=pickVoice; }
-function voSetState(cls,label){ const o=$('voiceOverlay'); o.classList.remove('listening','speaking','thinking','paused'); if(cls)o.classList.add(cls); if(label)$('voStatus').textContent=label; }
+function voSetState(cls,label){ const o=$('voiceOverlay'); o.classList.remove('listening','speaking','thinking','paused'); if(cls)o.classList.add(cls); if(label)$('voStatus').textContent=label;
+  // drive the water orb energy from the voice state
+  if(window.AO){ const e=(cls==='speaking')?0.85:(cls==='listening')?0.55:(cls==='thinking')?0.4:0.12; window.AO.setEnergy(e); } }
 function primeTTS(){ // must run inside a user gesture to unlock iOS speech
   if(ttsPrimed||!window.speechSynthesis) return;
   try{ const u=new SpeechSynthesisUtterance(' '); u.volume=0; window.speechSynthesis.speak(u); ttsPrimed=true; }catch(e){}
@@ -3085,6 +3205,7 @@ function startVoiceConversation(){
   window.__voiceMode=true; window.__studioVoice=false;
   acquireWakeLock();          // keep the screen awake for the whole drive
   $('voiceOverlay').classList.add('open');     // overlay — does NOT change tab
+  if(window.AO) window.AO.start();
   $('voiceModeBtn') && $('voiceModeBtn').classList.add('on');
   voSetState('listening','Listening…'); $('voTranscript').textContent='';
   haptic(); startListening();
@@ -3107,10 +3228,16 @@ $('voConvo').addEventListener('click', (e)=>{ e.stopPropagation();
   voSetState('paused','Pick a conversation…');
   openVoiceSessChooser();
 });
+$('voConvo2') && $('voConvo2').addEventListener('click', (e)=>{ e.stopPropagation();
+  if(listening){ try{recog.stop();}catch(e){} }
+  if(window.speechSynthesis) window.speechSynthesis.cancel();
+  voSetState('paused','Pick a conversation…');
+  openVoiceSessChooser();
+});
 // Tap the orb (or empty overlay space) while AETHER is talking = interrupt it
 // and start listening. The Stop button stops propagation so it still ends mode.
 $('voOrb').addEventListener('click', (e)=>{ e.stopPropagation(); voiceInterrupt(); });
-$('voiceOverlay').addEventListener('click', (e)=>{ if(e.target&&e.target.id==='voStop')return; voiceInterrupt(); });
+$('voiceOverlay').addEventListener('click', (e)=>{ if(e.target&&e.target.closest&&e.target.closest('#voStop'))return; voiceInterrupt(); });
 $('voiceModeBtn').addEventListener('click', ()=>{
   if(!SR){ toast('Voice mode not supported on this browser.',true); return; }
   if(window.__voiceMode){ stopVoiceConversation(); } else { openVoiceSessChooser(); }
@@ -3755,6 +3882,167 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
   window.rrSetPrivacy=function(on){ localStorage.setItem(RR_PRIVACY, on?'1':'0'); $('rrPrivacy').style.display=on?'flex':'none'; };
 })();
 
+</script>
+
+<script>
+/* ============================================================================
+   AETHER VOICE WATER-ORB — scoped renderer for #voiceOverlay. Drifting teal fog
+   + a WebGL water-surface orb. Energy is driven by the existing voice STATE
+   (listening/speaking), NOT a second mic — that would fight the recognizer on
+   iOS. Exposes window.AO.setEnergy(0..1) + AO.start()/AO.stop() for the loop.
+   ============================================================================ */
+(function(){
+  const FOG = document.getElementById('aoFog');
+  let fctx, fw, fh, fdpr, fogRAF=0;
+  function fres(){ if(!FOG) return; fdpr=Math.min(window.devicePixelRatio||1,2);
+    const r=FOG.getBoundingClientRect(); fw=r.width; fh=r.height;
+    FOG.width=Math.floor(fw*fdpr); FOG.height=Math.floor(fh*fdpr);
+    fctx.setTransform(fdpr,0,0,fdpr,0,0); }
+  const COLORS=['rgba(2,122,114,','rgba(1,90,84,','rgba(1,58,56,','rgba(8,40,44,'];
+  const blobs=Array.from({length:7},(_,i)=>({x:Math.random(),y:Math.random(),
+    r:0.30+Math.random()*0.35, vx:(Math.random()-0.5)*0.000045, vy:(Math.random()-0.5)*0.000035,
+    c:COLORS[i%COLORS.length], a:0.30+Math.random()*0.30}));
+  function ffrm(){
+    if(!fctx){ return; }
+    fctx.clearRect(0,0,fw,fh); fctx.globalCompositeOperation='lighter';
+    for(const b of blobs){ b.x+=b.vx; b.y+=b.vy;
+      if(b.x<-0.4)b.x=1.4; if(b.x>1.4)b.x=-0.4; if(b.y<-0.4)b.y=1.4; if(b.y>1.4)b.y=-0.4;
+      const cx=b.x*fw, cy=b.y*fh, rad=b.r*Math.max(fw,fh);
+      const g=fctx.createRadialGradient(cx,cy,0,cx,cy,rad);
+      g.addColorStop(0,b.c+b.a+')'); g.addColorStop(1,b.c+'0)');
+      fctx.fillStyle=g; fctx.beginPath(); fctx.arc(cx,cy,rad,0,Math.PI*2); fctx.fill(); }
+    fctx.globalCompositeOperation='source-over'; fogRAF=requestAnimationFrame(ffrm);
+  }
+  function fogStart(){ if(!FOG||fctx) return; fctx=FOG.getContext('2d'); fres();
+    window.addEventListener('resize',fres); fogRAF=requestAnimationFrame(ffrm); }
+
+  // shared energy signal (0..1), eased toward a target the voice loop sets
+  let energy=0, target=0.0;
+  window.AO = window.AO || {};
+  window.AO.setEnergy=function(v){ target=Math.max(0,Math.min(1,v)); };
+  window.AO._tick=function(dt){ energy+=(target-energy)*Math.min(1,dt*6);
+    document.documentElement.style.setProperty('--ao-voice', energy.toFixed(3)); return energy; };
+  window.AO.start=function(){ fogStart(); if(window.AO._orbStart) window.AO._orbStart(); };
+  window.AO.stop=function(){ /* canvases keep their last frame; cheap to leave idle */ };
+})();
+</script>
+
+<script>
+/* AETHER WATER ORB — WebGL surface. Wave height-field perturbs sphere normals so
+   light glints off real ridges; energy rises while listening. CSS fill is the
+   fallback if WebGL is unavailable. Palette hardcoded (teal) — does NOT touch
+   global app tokens. */
+(function(){
+  const cv=document.getElementById('aoOrbCanvas'); if(!cv) return;
+  const gl=cv.getContext('webgl',{premultipliedAlpha:false,alpha:true,antialias:true})
+        || cv.getContext('experimental-webgl',{premultipliedAlpha:false,alpha:true});
+  if(!gl){ cv.style.display='none'; return; }
+  const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const VS='attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}';
+  const FS=`precision highp float;
+  uniform vec2 uRes; uniform float uTime; uniform float uInt; uniform float uLevel; uniform float uReveal;
+  uniform vec3 uDeep; uniform vec3 uMid; uniform vec3 uBright;
+  float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+  float vnoise(vec2 p){vec2 i=floor(p),f=fract(p);float a=hash(i),b=hash(i+vec2(1,0)),c=hash(i+vec2(0,1)),d=hash(i+vec2(1,1));vec2 u=f*f*(3.-2.*f);return mix(mix(a,b,u.x),mix(c,d,u.x),u.y);}
+  float fbm(vec2 p){float v=0.,a=.5;mat2 m=mat2(1.6,1.2,-1.2,1.6);for(int i=0;i<5;i++){v+=a*vnoise(p);p=m*p;a*=.5;}return v;}
+  float waterH(vec2 p,float t,float amp){vec2 fl=vec2(t*0.10,-t*0.08);
+    vec2 q=vec2(fbm(p*1.1+fl),fbm(p*1.1+vec2(4.3,1.7)-fl));
+    float h=fbm(p*1.7+1.3*q+fl); h+=0.45*fbm(p*3.6+1.0*q-fl*1.6);
+    h+=0.20*sin(dot(p,vec2(0.6,0.8))*2.0+t*0.7); return (h-0.85)*amp;}
+  void main(){
+    vec2 uv=(gl_FragCoord.xy/uRes)*2.-1.; float r=length(uv);
+    if(r>1.05){gl_FragColor=vec4(0.);return;}
+    float z=sqrt(max(0.,1.-min(r,1.)*min(r,1.))); vec3 N0=vec3(uv,z);
+    vec2 wp=uv/(z*.35+.65)*2.4; float e=.012;
+    float amp=mix(1.0,2.1,uInt)+uLevel*0.9;
+    float h=waterH(wp,uTime,amp); float hx=waterH(wp+vec2(e,0.),uTime,amp); float hy=waterH(wp+vec2(0.,e),uTime,amp);
+    vec2 grad=vec2(hx-h,hy-h)/e; vec3 N=normalize(vec3(N0.xy-grad*.16,N0.z));
+    vec3 V=vec3(0.,0.,1.); vec3 L=normalize(vec3(-.45,.6,.72)); vec3 L2=normalize(vec3(.4,.5,.6));
+    float diff=clamp(dot(N,L),0.,1.); float spec=pow(clamp(dot(N,normalize(L+V)),0.,1.),90.);
+    float spec2=pow(clamp(dot(N,normalize(L2+V)),0.,1.),26.); float fres=pow(1.-clamp(dot(N,V),0.,1.),3.0);
+    vec3 col=mix(uDeep,uMid,.35+.5*z); col+=uMid*diff*.30; col+=uBright*spec*1.8;
+    col+=vec3(1.0,1.0,.98)*spec2*.40; col+=vec3(.45,.88,.83)*fres*.22;
+    float sheen=smoothstep(.55,0.,length(uv-vec2(-.32,.40))); col+=vec3(.85,.97,.93)*sheen*.16;
+    col*=mix(.66,1.04,z); col+=uInt*uBright*.10; col+=uLevel*uBright*.22;
+    float fa=fbm(uv*1.6+vec2(uTime*0.05,-uTime*0.04)); float fb=fbm(uv*1.6+vec2(11.0,3.0)-vec2(uTime*0.05));
+    vec2 flow=normalize(vec2(fb-0.5,-(fa-0.5))+1e-4); vec2 sp=uv*2.6+flow*0.7;
+    float wisp=fbm(sp+vec2(uTime*0.10,-uTime*0.08)); float rr=r+(wisp-0.5)*0.46;
+    float core=smoothstep(0.86,0.40,rr);
+    float haze=smoothstep(1.05,0.5,r)*fbm(sp*1.8-vec2(uTime*0.08))*0.42;
+    float alpha=clamp(core+haze*core,0.0,1.0)*0.97; col+=uBright*(1.0-core)*haze*1.5;
+    alpha*=clamp(uReveal,0.0,1.0); col+=uBright*(1.0-clamp(uReveal,0.0,1.0))*0.05;
+    gl_FragColor=vec4(col,alpha);
+  }`;
+  function compile(t,src){const s=gl.createShader(t);gl.shaderSource(s,src);gl.compileShader(s);
+    if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))console.error(gl.getShaderInfoLog(s));return s;}
+  const pr=gl.createProgram();
+  gl.attachShader(pr,compile(gl.VERTEX_SHADER,VS)); gl.attachShader(pr,compile(gl.FRAGMENT_SHADER,FS));
+  gl.linkProgram(pr); const loc=gl.getAttribLocation(pr,'p');
+  const buf=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+  const U={res:gl.getUniformLocation(pr,'uRes'),time:gl.getUniformLocation(pr,'uTime'),
+    int:gl.getUniformLocation(pr,'uInt'),level:gl.getUniformLocation(pr,'uLevel'),reveal:gl.getUniformLocation(pr,'uReveal'),
+    deep:gl.getUniformLocation(pr,'uDeep'),mid:gl.getUniformLocation(pr,'uMid'),bright:gl.getUniformLocation(pr,'uBright')};
+  // teal water palette (rgb 0..1): deep / mid / bright
+  const WATER=[[.01,.13,.15],[0,.40,.40],[.06,.74,.70]];
+  window.AO=window.AO||{};
+  window.AO._gl={cv,gl,pr,loc,U,WATER,reduceMotion};
+})();
+</script>
+
+<script>
+/* Water-orb render loop — pulls energy from AO._tick (state-driven), eases the
+   listening intensity, advances wave phase, and draws. Self-throttles via an
+   fps watchdog; hides the canvas (CSS fallback shows) if the GPU can't keep up. */
+(function(){
+  const S=window.AO&&window.AO._gl; if(!S){ return; }
+  const {cv,gl,pr,loc,U,WATER,reduceMotion}=S;
+  const orb=document.getElementById('voOrb');
+  let intensity=0, phase=0, lastMs=0, running=false, started=false;
+  let qScale=Math.min(window.devicePixelRatio||1,2);
+  let fpsAccum=0, fpsFrames=0, degradeStep=0;
+  let reveal=0, startT=0, lastLvl=0;
+  function resize(){ const s=cv.getBoundingClientRect();
+    cv.width=Math.max(1,Math.floor(s.width*qScale)); cv.height=Math.max(1,Math.floor(s.height*qScale)); }
+  function useProg(){ gl.useProgram(pr); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0); }
+  function draw(ms){
+    if(!running) return;
+    const overlay=document.getElementById('voiceOverlay');
+    if(!overlay || !overlay.classList.contains('open')){ running=false; return; }  // pause when closed
+    const active=overlay.classList.contains('listening');
+    const t=ms/1000; if(!startT) startT=t;
+    let dt=t-(lastMs||t); lastMs=t; dt=Math.min(0.05,Math.max(0,dt));
+    const rt=Math.min(1,(t-startT)/1.6); reveal=reduceMotion?1:(1-Math.pow(1-rt,3));
+    // fps watchdog
+    fpsAccum+=dt; fpsFrames++;
+    if(fpsAccum>=2.0){ const fps=fpsFrames/fpsAccum; fpsAccum=0; fpsFrames=0;
+      if(fps<45 && degradeStep<2){ degradeStep++; qScale=degradeStep===1?Math.min(qScale,1.25):1.0; resize(); }
+      else if(fps<22){ cv.style.display='none'; running=false; return; } }
+    // energy from the voice STATE: a gentle baseline that lifts while listening
+    const e=window.AO._tick? window.AO._tick(dt):0;
+    const tgtInt=active?Math.max(0.35,e):e*0.5;
+    intensity+=(tgtInt-intensity)*0.12; lastLvl=active?(0.10+0.35*e):0.0;
+    phase+=dt*(0.5+0.6*intensity+1.0*lastLvl);
+    resize(); gl.viewport(0,0,cv.width,cv.height);
+    gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+    gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT);
+    useProg();
+    gl.uniform2f(U.res,cv.width,cv.height);
+    gl.uniform1f(U.time, reduceMotion?0.0:phase);
+    gl.uniform1f(U.int, Math.min(1.0,intensity));
+    gl.uniform1f(U.level, Math.min(1.0,lastLvl));
+    gl.uniform1f(U.reveal, reveal);
+    gl.uniform3f(U.deep,WATER[0][0],WATER[0][1],WATER[0][2]);
+    gl.uniform3f(U.mid, WATER[1][0],WATER[1][1],WATER[1][2]);
+    gl.uniform3f(U.bright,WATER[2][0],WATER[2][1],WATER[2][2]);
+    gl.drawArrays(gl.TRIANGLES,0,3);
+    requestAnimationFrame(draw);
+  }
+  window.AO._orbStart=function(){ if(cv.style.display==='none') return;
+    started=true; if(!running){ running=true; lastMs=0; startT=0; resize(); requestAnimationFrame(draw); } };
+  // keep the orb tap working as the talk trigger even with the new markup
+  if(orb){ orb.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); orb.click(); } }); }
+})();
 </script>
 
 </body>
