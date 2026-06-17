@@ -572,6 +572,14 @@
   .st-ship.busy .st-spin { display:inline-block; }
   .st-ship.busy .st-shipico { display:none; }
   @keyframes stsp { to{ transform:rotate(360deg);} }
+  /* dictate-to-designer mic — talk the change instead of typing it */
+  .st-mic { flex:0 0 auto; width:40px; height:40px; border-radius:50%; cursor:pointer; display:inline-flex; align-items:center; justify-content:center;
+    border:1px solid var(--line); background:var(--card-hi); color:var(--dim); transition:transform var(--t), color var(--t), border-color var(--t), box-shadow var(--t); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); }
+  .st-mic svg { width:18px; height:18px; }
+  .st-mic:hover { color:var(--teal); border-color:var(--teal); }
+  .st-mic:active { transform:scale(.92); }
+  .st-mic:focus-visible { box-shadow:var(--ring); }
+  .st-mic.listening { color:var(--teal); border-color:var(--teal); box-shadow:0 0 0 3px rgba(60,210,255,.16); animation:pulse 1.2s infinite; }
 
   /* "load latest build" banner — appears when a deploy is detected */
   .st-deploy { display:none; align-items:center; gap:11px; margin:16px 0 4px; padding:13px 14px; border-radius:var(--r-md);
@@ -1200,7 +1208,7 @@
       <button class="st-clear" id="stClear" title="Clear build feed" aria-label="Clear build feed">⌦</button>
     </div>
     <div class="st-scroll">
-      <p class="st-lede">Reshape AETHER from your phone. Pick what to change, and it ships through <b>Claude Code</b> — edits the app, pushes, redeploys. Tap <b>Load latest build</b> when it lands.</p>
+      <p class="st-lede">Reshape AETHER from your phone. Talk it through or type — describe a change, and the designer can ask you smart follow-ups in the feed below. It ships through <b>Claude Code</b>, pushes, redeploys. Tap <b>Load latest build</b> when it lands.</p>
 
       <div class="st-deploy" id="stDeploy">
         <div class="st-dtxt"><b>New build shipped.</b> <span id="stDeploySub">Pull it in to see your changes.</span></div>
@@ -1216,11 +1224,14 @@
       <div class="st-seclbl">What to change</div>
       <div class="st-grid" id="stGrid"></div>
 
-      <div class="st-seclbl">Describe it</div>
+      <div class="st-seclbl">Describe it — or tap the mic and talk</div>
       <div class="st-compose">
-        <textarea id="stInput" rows="2" placeholder="e.g. make the Home cards feel lighter — more whitespace, softer borders, a touch more gold on hover"></textarea>
+        <textarea id="stInput" rows="2" placeholder="Talk or type — e.g. make the Home cards feel lighter, more whitespace, softer borders, a touch more gold on hover"></textarea>
         <div class="st-cbar">
           <div class="st-pillnote" id="stNote">Pick an intent above, or just describe the change. Ships to <b>Claude Code</b>.</div>
+          <button class="st-mic" id="stMic" aria-label="Talk to the designer" title="Talk to the designer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.5" width="6" height="11.5" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3.2M9 21.5h6"/></svg>
+          </button>
           <button class="st-ship" id="stShip" aria-label="Ship change">
             <span class="st-spin" aria-hidden="true"></span>
             <svg class="st-shipico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
@@ -1959,6 +1970,15 @@ function reloadToLatest(){
 $('stShip') && $('stShip').addEventListener('click', shipStudio);
 $('stClear') && $('stClear').addEventListener('click', clearStudioFeed);
 $('stReload') && $('stReload').addEventListener('click', reloadToLatest);
+$('stMic') && $('stMic').addEventListener('click', ()=>{
+  if(!SR){ toast('Voice input not supported here.',true); return; }
+  if(listening){ recog.stop(); return; }
+  haptic();
+  // dictate the design request straight into the Studio composer
+  __studioDictation=true; const si=$('stInput'); if(si){ si.value=''; si.dispatchEvent(new Event('input')); }
+  $('stMic').classList.add('listening');
+  try{ recog.start(); listening=true; }catch(e){ listening=false; __studioDictation=false; $('stMic').classList.remove('listening'); }
+});
 $('stInput') && $('stInput').addEventListener('input', function(){ this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,180)+'px'; stRefreshNote(); });
 $('stInput') && $('stInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)){ e.preventDefault(); shipStudio(); } });
 
@@ -2719,7 +2739,7 @@ if(typeof curSession!=='undefined' && curSession && !getBoundSession()) setBound
 setTimeout(()=>{ try{ catchUpAll(); }catch(e){} }, 600);
 // Reflect connection state on load and flush any chat sends queued while offline.
 (function(){ if(navigator.onLine===false) setNet('offline','Offline — messages will queue'); else if(chatOutbox.length) drainOutbox(); })();
-let recog=null, listening=false, __streamDictation=false;
+let recog=null, listening=false, __streamDictation=false, __studioDictation=false;
 // Heartbeat: last time the recognizer proved it was alive (onstart/onresult).
 // iOS silently kills webkitSpeechRecognition on suspend without firing onend,
 // leaving a "zombie" that never advances. A stale heartbeat = dead recognizer.
@@ -2732,21 +2752,23 @@ if(SR){ recog=new SR(); recog.lang='en-US'; recog.interimResults=true; recog.con
     let t=''; for(let i=0;i<e.results.length;i++)t+=e.results[i][0].transcript;
     if(window.__voiceMode){ $('voTranscript').textContent=t; }
     else if(__streamDictation){ $('streamInput').value=t; }
+    else if(__studioDictation){ const si=$('stInput'); if(si){ si.value=t; si.dispatchEvent(new Event('input')); } }
     else { $('chatInput').value=t; }
   };
   recog.onend=()=>{
-    listening=false; $('micBtn').classList.remove('listening'); $('homeMic')&&$('homeMic').classList.remove('rec'); $('streamMic')&&$('streamMic').classList.remove('listening');
+    listening=false; $('micBtn').classList.remove('listening'); $('homeMic')&&$('homeMic').classList.remove('rec'); $('streamMic')&&$('streamMic').classList.remove('listening'); $('stMic')&&$('stMic').classList.remove('listening');
     if(window.__voiceMode){
       const said=($('voTranscript').textContent||'').trim();
       if(said){ voSetState('thinking','Thinking…'); $('voTranscript').textContent='“'+said+'”'; if(liveOn()){ liveAsk(said); } else { askAgent(said,false); } }
       else { /* heard nothing — keep listening */ setTimeout(()=>{ if(window.__voiceMode && !speaking) startListening(); }, 500); }
       return;
     }
+    if(__studioDictation){ __studioDictation=false; const si=$('stInput'); if(si){ si.focus(); si.dispatchEvent(new Event('input')); } stRefreshNote&&stRefreshNote(); return; }
     if(__streamDictation){ __streamDictation=false; const inp=$('streamInput'); if(inp){ inp.focus(); inp.dispatchEvent(new Event('input')); } return; }
     const v=$('chatInput').value.trim(); if(v){ $('chatInput').value=''; askAgent(v,false);} 
   };
   recog.onerror=(e)=>{
-    listening=false; __streamDictation=false; $('micBtn').classList.remove('listening'); $('homeMic')&&$('homeMic').classList.remove('rec'); $('streamMic')&&$('streamMic').classList.remove('listening');
+    listening=false; __streamDictation=false; __studioDictation=false; $('micBtn').classList.remove('listening'); $('homeMic')&&$('homeMic').classList.remove('rec'); $('streamMic')&&$('streamMic').classList.remove('listening'); $('stMic')&&$('stMic').classList.remove('listening');
     // 'no-speech'/'aborted' are normal in a loop — just restart listening
     if(window.__voiceMode && !speaking){ setTimeout(()=>{ if(window.__voiceMode && !speaking) startListening(); }, 600); }
   };
