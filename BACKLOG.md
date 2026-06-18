@@ -113,3 +113,10 @@ Status keys: `[ ]` todo · `[~]` on a branch awaiting review · `[x]` shipped to
 
 _Builder loop: ORIENT → PLAN → BRANCH → ACT → VERIFY → SHIP. One feature per run,
 finish or revert, never ship red, never auto-merge. Log lives in BUILD_LOG.md._
+
+## Ideas (eval-generated)
+
+- [ ] **✨ Daily Summary** [Home] — Implement a feature that provides a daily summary of tasks completed, progress towards goals, and any relevant notifications or updates. This would help users stay organized and informed about their day-to-day activities. `effort:large` `impact:high` _(epic idea, eval 2026-06-17)_
+- [ ] **✨ Agent-Assisted Prioritization Interface** [Plan] — Implement a user interface that allows AETHER to assist Yaro in prioritizing tasks based on calendar events and task importance. This feature would enhance the app's functionality by providing real-time suggestions for task management, ensuring Yaro stays organized during his prep for the CPA exam. `effort:medium` `impact:high` _(epic idea, eval 2026-06-17)_
+- [ ] **Settings menu** [Settings] — The settings menu is missing from the screenshot, which could provide additional options for customization and troubleshooting. `effort:small` `impact:medium` _(eval 2026-06-17)_
+- [ ] **✨ Voice Command Enhancements** [Settings] — Implement a more advanced voice command system that allows users to give commands like 'pause', 'resume', and 'repeat' without needing to tap the orb. This would enhance user experience by making interactions smoother. `effort:medium` `impact:high` _(epic idea, eval 2026-06-17)_

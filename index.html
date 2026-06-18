@@ -4015,27 +4015,106 @@ function primeAudio(){ // unlock autoplay inside a user gesture (iOS)
   try{ const a=ensureAudioEl(); a.muted=true; a.src='data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCA'; a.play().then(()=>{a.pause();a.muted=false;}).catch(()=>{a.muted=false;}); }catch(e){}
 }
 let __ttsNonceSeq=0;
-async function fetchAIVoiceUrl(text){
-  // Correlate request → audio with a unique nonce so we NEVER play a
-  // neighbouring/stale turn's clip. The bridge echoes the nonce back as `ref`
-  // (it reads the ntfy Title header). Only audio whose ref matches is accepted.
-  const since=Math.floor(Date.now()/1000)-2;
-  const nonce='v'+Date.now().toString(36)+'-'+(++__ttsNonceSeq);
-  try{ await fetch(`${NTFY}/${TTS_REQ_TOPIC}`,{method:'POST',headers:{'Title':nonce},body:text}); }catch(e){ return null; }
-  const deadline=Date.now()+14000;
-  while(Date.now()<deadline){
+
+/* ── STREAMING TTS CLIENT ───────────────────────────────────────────────────
+   The bridge now sends sentence-by-sentence audio: ref=nonce-s0, nonce-s1 ...
+   We poll with 200ms intervals (not 700ms), play s0 the moment it arrives,
+   and pre-fetch s1 while s0 is playing — gapless, low-latency.
+   Falls back gracefully sentence-by-sentence on poll timeout or bridge failure.
+
+   FLOW:
+     1. POST full text to TTS_REQ_TOPIC with nonce as Title.
+     2. Poll TTS_AUD_TOPIC for nonce-s0 (200ms intervals, 10s deadline).
+     3. When s0 arrives, start playing it AND immediately begin polling for s1.
+     4. When s1 is ready, queue it; when s0 ends, play s1 seamlessly.
+     5. Continue for s2..sN. If a sentence times out, proceed to resume().
+*/
+
+async function pollSentenceUrl(nonce, idx, since, deadlineMs){
+  // Poll for ref="nonce-sIDX"; returns the URL or null on timeout.
+  const refKey = nonce+'-s'+idx;
+  while(Date.now()<deadlineMs){
     try{
       const r=await fetch(`${NTFY}/${TTS_AUD_TOPIC}/json?poll=1&since=${since}`,{cache:'no-store'});
       const lines=(await r.text()).trim().split('\n').filter(Boolean);
       for(const ln of lines){ let o; try{o=JSON.parse(ln);}catch(e){continue;}
         if(o.event!=='message')continue;
-        try{ const d=JSON.parse(o.message||'{}'); if(d.audio && d.ref===nonce) return d.audio; }catch(e){}
+        try{ const d=JSON.parse(o.message||'{}'); if(d.audio && d.ref===refKey) return d.audio; }catch(e){}
       }
     }catch(e){}
-    await new Promise(r=>setTimeout(r,700));
+    await new Promise(r=>setTimeout(r,200));
   }
   return null;
 }
+
+function playUrl(url){
+  // Returns a promise that resolves when the clip ends (or rejects on error).
+  return new Promise((resolve,reject)=>{
+    const a=ensureAudioEl();
+    a.src=url; a.muted=false; a.currentTime=0;
+    a.onended=resolve; a.onerror=reject;
+    const p=a.play();
+    if(p&&p.catch) p.catch(reject);
+  });
+}
+
+async function streamAIVoice(text, myTurn, live, resume, fallbackLocal){
+  const since=Math.floor(Date.now()/1000)-2;
+  const nonce='v'+Date.now().toString(36)+'-'+(++__ttsNonceSeq);
+  // POST the full text to the bridge (it splits into sentences and posts each as nonce-sN)
+  try{ await fetch(`${NTFY}/${TTS_REQ_TOPIC}`,{method:'POST',headers:{'Title':nonce},body:text}); }
+  catch(e){ fallbackLocal(); return; }
+
+  // Wait for sentence 0 (first voice — must arrive within 12s or we fall back entirely)
+  const s0url = await pollSentenceUrl(nonce, 0, since, Date.now()+12000);
+  if(!s0url){ if(live()) fallbackLocal(); return; }
+  if(!live()){ return; } // barged-in before audio arrived
+
+  // Stream remaining sentences in the background while playing
+  let sentIdx=1;
+  const audioQueue=[]; // {url:string, pending:boolean, resolve}
+  let playing=false;
+
+  async function prefetch(idx){
+    // Poll for the next sentence for up to 8s (Kokoro is ~0.5-1s per short sentence)
+    const url=await pollSentenceUrl(nonce, idx, since, Date.now()+8000);
+    return url; // null = bridge didn't produce it (end of response or failed)
+  }
+
+  async function drainQueue(){
+    if(playing||!audioQueue.length) return;
+    const next=audioQueue.shift();
+    if(!next||!live()){ if(!audioQueue.length) resume(); return; }
+    playing=true;
+    try{
+      await playUrl(next);
+    }catch(e){}
+    playing=false;
+    if(live()) drainQueue(); else { resume(); }
+  }
+
+  // Play s0 immediately
+  audioQueue.push(s0url);
+  drainQueue();
+
+  // Pre-fetch remaining sentences concurrently with playback
+  (async()=>{
+    while(live()){
+      const url=await prefetch(sentIdx);
+      if(!url) break; // no more sentences
+      if(!live()) break;
+      audioQueue.push(url);
+      drainQueue();
+      sentIdx++;
+      if(sentIdx>20) break; // safety cap
+    }
+    // when prefetch exhausts, mark queue end with a sentinel: drain and call resume
+    const waitDone=setInterval(()=>{
+      if(!playing&&!audioQueue.length){ clearInterval(waitDone); if(live()) resume(); }
+    },150);
+  })();
+}
+
 function speakPhoneVoice(clean, resume){
   // fallback: the browser's built-in voice
   if(!window.speechSynthesis){ resume(); return; }
@@ -4057,7 +4136,7 @@ function voiceModeAfterReply(msg){
   // ALWAYS speak in voice mode, then resume listening when done.
   const resume=()=>{ if(myTurn!==__voiceTurn) return; speaking=false; if(window.__voiceMode){ setTimeout(()=>{ if(window.__voiceMode && !speaking) startListening(); }, 250); } };
   speaking=true;
-  const clean=msg.replace(/[*_`#>\[\]]/g,'').replace(/https?:\/\/\S+/g,'link').slice(0,700);
+  const clean=msg.replace(/[*_`#>\[\]]/g,'').replace(/https?:\/\/\S+/g,'link').slice(0,1500);
   const showText=()=>{ $('voTranscript').textContent=clean.slice(0,160)+(clean.length>160?'…':''); };
   const fallbackLocal=()=>{ // local on-device voices, last resort
     if(!live())return;
@@ -4075,27 +4154,15 @@ function voiceModeAfterReply(msg){
     }
     speakPhoneVoice(clean, resume);
   };
-  // SERVER NEURAL VOICE (primary): the host bridge generates the real AETHER
-  // voice (local Kokoro on the host, ~2s) and posts an mp3 URL back. We play it
-  // through the <audio> element that was primed inside the start gesture, so iOS
-  // allows autoplay. This is the reliable path on iPhone — in-browser WebGPU
-  // Kokoro can't load on Safari, so it stays a fallback only. Text shows
-  // immediately; audio follows a beat later.
+  // SERVER NEURAL VOICE (primary, streaming sentence-by-sentence):
+  // The bridge splits the reply into sentences and posts each as nonce-sN.
+  // The app plays sentence 0 the moment it arrives, pre-fetches sentence 1
+  // while 0 plays, queues 1 for gapless playback, etc.
+  // Text shows immediately; first audio follows ~Kokoro latency (~0.5-1s).
   showText();
   voSetState('speaking','AETHER · tap to interrupt');
   if(aiVoiceOn){
-    fetchAIVoiceUrl(clean).then(url=>{
-      if(!live()){ return; }
-      if(!url){ fallbackLocal(); return; }   // bridge failed → local voice
-      try{
-        const a=ensureAudioEl();
-        a.src=url; a.muted=false; a.currentTime=0;
-        a.onended=()=>{ resume(); };
-        a.onerror=()=>{ if(live()) fallbackLocal(); };
-        const p=a.play();
-        if(p && p.catch) p.catch(()=>{ if(live()) fallbackLocal(); });
-      }catch(e){ fallbackLocal(); }
-    }).catch(()=>{ if(live()) fallbackLocal(); });
+    streamAIVoice(clean, myTurn, live, resume, fallbackLocal);
     return;
   }
   fallbackLocal();
