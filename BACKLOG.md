@@ -16,7 +16,7 @@ Status keys: `[ ]` todo · `[~]` on a branch awaiting review · `[x]` shipped to
 
 ## Next (unblocked, not yet pulled)
 
-- [~] **Icon brand audit** — install icons had a stale light-theme ground
+- [x] **Icon brand audit** — install icons had a stale light-theme ground
   (`#f8fafc` white tile) clashing with the dark app. Recomposited the cyan AETHER
   mark onto dark navy `#021014`: icon-180/192/512 at 76% scale; maskable-192/512
   at 50% (tips ±25% from center, inside the circular safe zone). Shipped on

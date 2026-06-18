@@ -32,7 +32,7 @@ Newest first. One entry per run: what shipped / what's on a branch / what's bloc
 - **Verified:** all corners now `#021014`; all PNGs valid; vision check confirms
   centered cyan mark, no clipping, dark ground. apple-touch-icon → icon-180
   (opaque, iOS-safe).
-- **Status:** on branch `feat/icon-dark-ground`, pushed. PR opened. Not merged.
+- **Status:** SHIPPED. PR #2 squash-merged to main as `0c341c7`; branch deleted.
 
 ## 2026-06-17 — run 3
 
