@@ -4402,6 +4402,33 @@ $('forceUpdateBtn') && $('forceUpdateBtn').addEventListener('click', async ()=>{
 // reload once the new SW takes control (fires after Force update / a natural update)
 let __swReloaded=false;
 navigator.serviceWorker && navigator.serviceWorker.addEventListener('controllerchange',()=>{ if(__swReloaded) return; __swReloaded=true; location.reload(); });
+
+/* ===== AUTO-UPDATE on every open =====
+   iOS Safari hard-throttles SW update checks to once per 24h unless the page
+   explicitly calls registration.update(). Call it on every app open so a new
+   deploy lands at the NEXT open, not 24h later.
+   - sw.js already has skipWaiting() on install → new SW activates immediately
+   - activate already calls clients.claim() → page is controlled right away
+   - controllerchange listener above triggers location.reload()
+   Net result: ship a new VERSION → user opens app → new SW installs → reload →
+   they're on the latest, silently, every time. No tap needed. */
+(function(){
+  if(!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.ready.then(reg=>{
+    // call update() immediately — kicks off a network fetch of sw.js
+    reg.update().catch(()=>{});
+    // also wire updatefound so the moment the new SW finishes installing we
+    // tell it to skip waiting (don't hold back for other tabs)
+    reg.addEventListener('updatefound',()=>{
+      const sw=reg.installing; if(!sw) return;
+      sw.addEventListener('statechange',()=>{
+        if(sw.state==='installed' && navigator.serviceWorker.controller){
+          sw.postMessage({type:'skip-waiting'});
+        }
+      });
+    });
+  }).catch(()=>{});
+})();
 // populate the version line whenever Settings is opened
 (function(){ const sb=document.querySelector('.nav button[data-screen="screenSettings"]'); if(sb) sb.addEventListener('click', ()=>setTimeout(refreshBuildInfo,60)); })();
 setTimeout(refreshBuildInfo, 1200);
