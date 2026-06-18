@@ -63,7 +63,7 @@
   .brandblock .name, .greet .h1, .greet .h2, .chat-top .nm, .stream-title,
   .vss-h, .rr-head .rr-ttl, .rr-dr-title, .hd-head, .stat .v, .stat.streak .v,
   #logSheet .ttl { font-family:'Chakra Petch','Saira',sans-serif; line-height:var(--lh-tight); }
-  .section-h, .stat .k, .qa span, .fcard .lbl, .card2 h3, .nav button,
+  .section-h, .stat .k, .qa span.lbl, .fcard .lbl, .card2 h3, .nav button,
   .vo-status, .rr-row .rr-tag, .si-when, .rr-saved .rr-saved-h, .rr-dr-sec .rr-dr-k,
   .brandblock .tag, .vss-sub { font-family:'JetBrains Mono',ui-monospace,monospace; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -478,12 +478,19 @@
 
   /* ===== HOME quick actions ===== */
   .quick-row { display:flex; gap:9px; margin:14px 0 4px; }
-  .qa { flex:1; display:flex; flex-direction:column; align-items:center; gap:5px; padding:13px 4px; border-radius:var(--r-md);
+  .qa { position:relative; flex:1; display:flex; flex-direction:column; align-items:center; gap:5px; padding:13px 4px; border-radius:var(--r-md);
     background:var(--card); border:1px solid var(--line); color:var(--dim); font-size:18px; cursor:pointer; box-shadow:var(--e1), var(--hair);
     -webkit-backdrop-filter:blur(14px) saturate(150%); backdrop-filter:blur(14px) saturate(150%); transition:transform .2s var(--ease-spring), border-color var(--t), background var(--t), box-shadow var(--t); }
-  .qa span { font-size:10.5px; font-weight:700; letter-spacing:.3px; color:var(--indigo); }
+  .qa span.lbl { font-size:10.5px; font-weight:700; letter-spacing:.3px; color:var(--indigo); }
   .qa:hover { border-color:rgba(60,210,255,.32); background:var(--card-hi); transform:translateY(-2px); box-shadow:var(--e2), var(--hair); }
   .qa:active { transform:scale(.95); }
+  /* live status badge — reflects the state of the linked system (due cards, open to-dos…) */
+  .qa-badge { position:absolute; top:6px; right:6px; min-width:17px; height:17px; padding:0 5px; border-radius:var(--r-pill);
+    display:none; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
+    line-height:1; color:#04181c; background:var(--cyan); box-shadow:0 0 0 1.5px var(--bg), 0 0 10px var(--glow-cyan); }
+  .qa-badge.on { display:inline-flex; }
+  .qa-badge.gold { background:var(--gold); color:#1c1404; box-shadow:0 0 0 1.5px var(--bg), 0 0 10px rgba(243,199,90,.5); }
+  .qa.live { border-color:rgba(60,210,255,.3); }
 
   /* ===== credits bar (settings) ===== */
   .credit-bar { width:100%; height:9px; border-radius:var(--r-pill); background:rgba(12,26,46,.07); border:1px solid var(--line); overflow:hidden; }
@@ -1285,11 +1292,11 @@
         </div>
       </div>
       <div class="quick-row">
-        <button class="qa" data-qa="brief"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M12 2.8v3M4.6 8.6 6.7 10.7M19.4 8.6 17.3 10.7M2.5 17h3M18.5 17h3M8 17a4 4 0 0 1 8 0"/><path d="M2.5 21h19"/></svg><span>Brief</span></button>
-        <button class="qa" data-qa="agenda"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M9 4.5h6M9 4.5a2 2 0 0 0-2 2V8h10V6.5a2 2 0 0 0-2-2M7 8H6a1.5 1.5 0 0 0-1.5 1.5v10A1.5 1.5 0 0 0 6 21h12a1.5 1.5 0 0 0 1.5-1.5v-10A1.5 1.5 0 0 0 18 8h-1"/><path d="M8.5 13l2 2 4-4.5"/></svg><span>Plan</span></button>
-        <button class="qa" data-qa="stream"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M3 12h3.4l2.4-7 4 16 2.4-9H21"/></svg><span>Stream</span></button>
-        <button class="qa" data-qa="learn"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H19v13H6.5A2.5 2.5 0 0 0 4 19.5z"/><path d="M4 6.5V19.5A2.5 2.5 0 0 0 6.5 22H19v-3"/></svg><span>Learn</span></button>
-        <button class="qa" data-qa="new"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/></svg><span>New</span></button>
+        <button class="qa" data-qa="brief"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M12 2.8v3M4.6 8.6 6.7 10.7M19.4 8.6 17.3 10.7M2.5 17h3M18.5 17h3M8 17a4 4 0 0 1 8 0"/><path d="M2.5 21h19"/></svg><span class="lbl">Brief</span></button>
+        <button class="qa" data-qa="agenda"><span class="qa-badge" id="qaPlanBadge"></span><svg class="ico-svg" viewBox="0 0 24 24"><path d="M9 4.5h6M9 4.5a2 2 0 0 0-2 2V8h10V6.5a2 2 0 0 0-2-2M7 8H6a1.5 1.5 0 0 0-1.5 1.5v10A1.5 1.5 0 0 0 6 21h12a1.5 1.5 0 0 0 1.5-1.5v-10A1.5 1.5 0 0 0 18 8h-1"/><path d="M8.5 13l2 2 4-4.5"/></svg><span class="lbl">Plan</span></button>
+        <button class="qa" data-qa="stream"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M3 12h3.4l2.4-7 4 16 2.4-9H21"/></svg><span class="lbl">Stream</span></button>
+        <button class="qa" data-qa="learn"><span class="qa-badge gold" id="qaLearnBadge"></span><svg class="ico-svg" viewBox="0 0 24 24"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H19v13H6.5A2.5 2.5 0 0 0 4 19.5z"/><path d="M4 6.5V19.5A2.5 2.5 0 0 0 6.5 22H19v-3"/></svg><span class="lbl">Learn</span></button>
+        <button class="qa" data-qa="new"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/></svg><span class="lbl">New</span></button>
       </div>
       <div class="cards">
         <div class="fcard" data-agent="seniorrev" data-q="Senior review mode. Let's walk through a workpaper / control / finding together."><div class="ic"><svg class="ico-svg" viewBox="0 0 24 24"><rect x="5" y="4.5" width="14" height="17" rx="2.5"/><path d="M9 4.5V3.6a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v.9"/><path d="M8.6 13.2l2 2 4-4.6"/></svg></div><div class="lbl">Senior Review</div></div>
@@ -1735,7 +1742,7 @@ document.querySelectorAll('.nav button').forEach(b=>{
     b.classList.add('active'); $(b.dataset.screen).classList.add('active'); haptic();
     stopPlan(); if(typeof stopLearn==='function') stopLearn();
     if(b.dataset.screen==='screenChat'){ scrollChat(); startAmbient(); } else { stopAmbient(); }
-    if(b.dataset.screen==='screenHome'){ loadState(); renderRecent(); if(window.__voiceHome) window.__voiceHome(); }
+    if(b.dataset.screen==='screenHome'){ loadState(); refreshMenuBadges(); renderRecent(); if(window.__voiceHome) window.__voiceHome(); }
     if(b.dataset.screen==='screenStream'){ startStream(); } else { stopStream(); }
     if(b.dataset.screen==='screenStudio'){ startStudio(); } else { stopStudio(); }
     if(b.dataset.screen==='screenSettings'){ renderCredits(); }
@@ -1779,8 +1786,33 @@ async function loadState(){
   }catch(e){}
 }
 let __stateTimer = null;
-function startStatePoll(){ if(!__stateTimer){ loadState(); __stateTimer=setInterval(loadState,60000); } }
+function startStatePoll(){ if(!__stateTimer){ loadState(); refreshMenuBadges(); __stateTimer=setInterval(()=>{ loadState(); refreshMenuBadges(); },60000); } }
 function stopStatePoll(){ if(__stateTimer){ clearInterval(__stateTimer); __stateTimer=null; } }
+
+/* ===== LIVE MENU BADGES ===== */
+/* The home quick-menu mirrors the state of the other systems: open to-dos from
+   the First Things First plan feed, and cards due now from the Tutor feed.
+   Read-only polls of the same ntfy topics the Plan/Learn screens use. */
+function setQaBadge(id, n){
+  const el=$(id); if(!el) return;
+  const btn=el.closest('.qa');
+  if(n>0){ el.textContent=(n>99?'99+':n); el.classList.add('on'); btn&&btn.classList.add('live'); }
+  else { el.classList.remove('on'); btn&&btn.classList.remove('live'); }
+}
+async function refreshMenuBadges(){
+  try{
+    const r=await fetch(`${NTFY}/${PLAN_TOPIC}/json?poll=1`,{cache:'no-store'});
+    const lines=(await r.text()).trim().split('\n').filter(Boolean); let latest=null;
+    for(const ln of lines){ try{ const o=JSON.parse(ln); if(o.event==='message'&&o.message) latest=o.message; }catch(e){} }
+    if(latest){ const d=JSON.parse(latest); const tasks=(d&&d.tasks)||[]; const open=tasks.filter(t=>!t.done).length; setQaBadge('qaPlanBadge',open); }
+  }catch(e){}
+  try{
+    const r=await fetch(`${NTFY}/${LEARN_TOPIC}/json?poll=1`,{cache:'no-store'});
+    const lines=(await r.text()).trim().split('\n').filter(Boolean); let latest=null;
+    for(const ln of lines){ try{ const o=JSON.parse(ln); if(o.event==='message'&&o.message) latest=o.message; }catch(e){} }
+    if(latest){ const d=JSON.parse(latest); setQaBadge('qaLearnBadge',(d&&d.due_total)||0); }
+  }catch(e){}
+}
 startStatePoll();
 
 // Pause background polling while the tab/app is hidden — no radio wakeups or
