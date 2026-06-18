@@ -1,5 +1,5 @@
 // AETHER service worker — Web Push + notification taps + offline app shell
-const VERSION = 'aether-v84';
+const VERSION = 'aether-v85';
 const SHELL = 'aether-shell-' + VERSION;
 
 // The static shell. Cached on install so the app opens (and shows a real
@@ -31,6 +31,18 @@ self.addEventListener('activate', (event) => {
       .then((keys) => Promise.all(keys.filter((k) => k.startsWith('aether-shell-') && k !== SHELL).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
+});
+
+// Page <-> SW messaging: report the running build version, and allow the page to
+// force an immediate activation of a waiting SW (the "Force update" button).
+self.addEventListener('message', (event) => {
+  const data = event.data || {};
+  if (data.type === 'get-version') {
+    const port = event.ports && event.ports[0];
+    if (port) port.postMessage({ type: 'version', version: VERSION });
+  } else if (data.type === 'skip-waiting') {
+    self.skipWaiting();
+  }
 });
 
 // Serve the app shell offline. Only same-origin GET navigations + precached

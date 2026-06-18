@@ -1458,6 +1458,12 @@
         <h3>Chat</h3>
         <button class="btn btn-ghost" id="clearChat">Clear this conversation</button>
       </div>
+      <div class="card2">
+        <h3>About</h3>
+        <div class="row"><span class="k">Build</span><span class="k" id="buildVer" style="font-family:'JetBrains Mono',monospace;color:var(--cyan);">—</span></div>
+        <div class="note" id="buildState" style="margin-top:6px;">Checking for updates…</div>
+        <button class="btn btn-ghost" id="forceUpdateBtn" style="margin-top:8px;">Force update to latest</button>
+      </div>
       <div class="foot">AETHER · NOUS · HERMES</div>
     </div>
   </div>
@@ -3872,6 +3878,53 @@ document.querySelectorAll('#logSheet [data-status]').forEach(b=>b.addEventListen
 $('logClose').addEventListener('click',()=>{$('logSheet').style.display='none';});
 (function(){ const h=new URLSearchParams(location.search).get('log'); if(h){ showLogSheet(h); history.replaceState({},'',location.pathname);} })();
 navigator.serviceWorker && navigator.serviceWorker.addEventListener('message',(e)=>{ if(e.data&&e.data.type==='show-log'&&e.data.habit) showLogSheet(e.data.habit); });
+
+/* ===== BUILD VERSION + FORCE UPDATE =====
+   Shows the running service-worker build in Settings so "phone vs repo" is never
+   a guess, detects when a newer SW is waiting, and lets you force it to activate
+   + reload (busts a stale PWA cache without reinstalling). */
+function askSWVersion(){
+  return new Promise((resolve)=>{
+    if(!('serviceWorker' in navigator) || !navigator.serviceWorker.controller){ resolve(null); return; }
+    const ch=new MessageChannel();
+    const to=setTimeout(()=>resolve(null), 1500);
+    ch.port1.onmessage=(e)=>{ clearTimeout(to); resolve(e.data&&e.data.version||null); };
+    try{ navigator.serviceWorker.controller.postMessage({type:'get-version'}, [ch.port2]); }catch(e){ clearTimeout(to); resolve(null); }
+  });
+}
+async function refreshBuildInfo(){
+  const vEl=$('buildVer'), sEl=$('buildState'); if(!vEl) return;
+  const v=await askSWVersion();
+  vEl.textContent = v || 'not installed';
+  if(!('serviceWorker' in navigator)){ if(sEl) sEl.textContent='Service worker unavailable in this browser.'; return; }
+  try{
+    const reg=await navigator.serviceWorker.getRegistration();
+    if(reg){ reg.update().catch(()=>{}); 
+      if(reg.waiting && sEl){ sEl.textContent='A newer build is ready — tap Force update.'; sEl.style.color='var(--gold)'; }
+      else if(sEl){ sEl.textContent='You’re on the latest build.'; sEl.style.color=''; }
+    }
+  }catch(e){}
+}
+$('forceUpdateBtn') && $('forceUpdateBtn').addEventListener('click', async ()=>{
+  const sEl=$('buildState'); if(sEl) sEl.textContent='Updating…';
+  haptic();
+  try{
+    if('serviceWorker' in navigator){
+      const reg=await navigator.serviceWorker.getRegistration();
+      if(reg){ await reg.update(); if(reg.waiting) reg.waiting.postMessage({type:'skip-waiting'}); }
+    }
+    // clear all caches so the next load pulls everything fresh from the network
+    if(window.caches && caches.keys){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }
+    toast('Updating to latest…');
+    setTimeout(()=>location.reload(true), 600);
+  }catch(e){ toast('Update failed: '+(e.message||'unknown'),true); if(sEl) sEl.textContent='Update failed — try reopening the app.'; }
+});
+// reload once the new SW takes control (fires after Force update / a natural update)
+let __swReloaded=false;
+navigator.serviceWorker && navigator.serviceWorker.addEventListener('controllerchange',()=>{ if(__swReloaded) return; __swReloaded=true; location.reload(); });
+// populate the version line whenever Settings is opened
+(function(){ const sb=document.querySelector('.nav button[data-screen="screenSettings"]'); if(sb) sb.addEventListener('click', ()=>setTimeout(refreshBuildInfo,60)); })();
+setTimeout(refreshBuildInfo, 1200);
 
 /* ===== MODEL SWITCHER (per agent, via /model over the gateway) ===== */
 let modelListCache = {}; // agentId -> {current, options[]}
