@@ -231,8 +231,10 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        print("WARNING: ANTHROPIC_API_KEY not set — requests will fail.", file=sys.stderr)
+    if AUTH_MODE == "oauth":
+        print("Auth: Claude Code OAuth token (Pro/Max plan, no per-token API cost).")
+    elif not os.environ.get("ANTHROPIC_API_KEY"):
+        print("WARNING: no auth — set CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY. Requests will fail.", file=sys.stderr)
     print(f"AETHER voice proxy on http://127.0.0.1:{PORT}  (model={MODEL})")
     print(f"  expose:  tailscale serve --bg --set-path /aether-voice http://127.0.0.1:{PORT}")
     print(f"  then in the app set VOICE_PROXY = {NTFY}/aether-voice")
