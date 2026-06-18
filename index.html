@@ -2044,8 +2044,38 @@ async function refreshMenuBadges(){
 }
 startStatePoll();
 
+/* ===== EVAL HOOK — headless screenshot navigation ========================
+   eval_loop.py loads the app with ?eval=<screenId> to land on a clean screen
+   before taking its screenshot. Also sets ?evalTheme=dark to ensure consistent
+   theming and suppresses the live ambient ticker so the screenshot is stable.
+   Callers: eval_loop.py + start_eval.bat (local) + the nightly Hermes cron.
+   This block runs once after init, costs nothing in production (URL has no ?eval),
+   and never blocks the normal app flow. */
+(function(){
+  const p=new URLSearchParams(location.search), s=p.get('eval');
+  if(!s) return;
+  document.body.dataset.evalMode='1'; // suppress CSS animations for stable screenshots
+  setTimeout(()=>{
+    const dispatch={
+      screenHome:    ()=>{ navTo('screenHome'); loadState(); },
+      screenChat:    ()=>goChat(),
+      screenStream:  ()=>navTo('screenStream'),
+      screenStudio:  ()=>navTo('screenStudio'),
+      screenRadar:   ()=>navTo('screenRadar'),
+      screenSettings:()=>navTo('screenSettings'),
+      screenHealth:  ()=>openHealth(),
+      screenSleep:   ()=>openSleep(),
+      screenPlan:    ()=>typeof openPlan==='function'?openPlan():navTo('screenPlan'),
+      screenLearn:   ()=>typeof openLearn==='function'?openLearn():navTo('screenLearn'),
+    };
+    (dispatch[s]||dispatch.screenHome)();
+    // signal to headless driver that navigation is done
+    document.title='EVAL_READY:'+s;
+    console.log('EVAL_READY:'+s);
+  }, 300);
+})();
+
 // Pause background polling while the tab/app is hidden — no radio wakeups or
-// data spend with the screen off — and refresh on return. The stream poller
 // (streamTick) and state poller are the only standing intervals; the chat/TTS
 // loops are bounded and tied to a user action, so they don't need this.
 document.addEventListener('visibilitychange', ()=>{

@@ -8,3 +8,7 @@ health_sync_store.json
 health_sync_store.json.tmp
 keys/
 subscriptions.json
+ghpr.sh
+eval_loop.py
+start_eval.bat
+/tmp/aether_eval_*.md
