@@ -1087,53 +1087,128 @@
   .lrn-err .le-why { font-size:12.5px; color:var(--faint); line-height:1.45; }
   .lrn-empty { text-align:center; color:var(--faint); font-size:13.5px; line-height:1.6; padding:34px 20px; }
 
-  /* ===== HEALTH (photo meal logging) ===== */
-  #screenHealth.active { display:flex; flex-direction:column; overflow:hidden; }
-  .hl-top { display:flex; align-items:center; gap:10px; padding:calc(env(safe-area-inset-top) + 14px) 14px 10px;
-    border-bottom:1px solid var(--line); background:rgba(7,13,22,.78); -webkit-backdrop-filter:blur(18px) saturate(140%); backdrop-filter:blur(18px) saturate(140%); }
-  .hl-back { flex:0 0 auto; width:34px; height:34px; border:1px solid var(--line); border-radius:10px; background:var(--card); color:var(--fg); font-size:22px; line-height:1; cursor:pointer; }
-  .hl-back:active { transform:scale(.92); }
-  .hl-title { font-family:'Chakra Petch','Saira',sans-serif; font-weight:800; letter-spacing:1px; font-size:16px;
-    background:linear-gradient(90deg,#bfe9ff,#3ce6ff); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
-  .hl-goal { margin-left:auto; flex:0 0 auto; font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1.4px; text-transform:uppercase;
-    color:var(--gold); background:var(--sev-med-bg); border:1px solid rgba(243,199,90,.3); border-radius:99px; padding:6px 12px; cursor:pointer; }
-  .hl-goal:active { transform:scale(.95); }
-  .hl-scroll { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:16px 16px calc(var(--safe-b) + 90px); }
-  /* totals card */
-  .hl-rings { display:flex; align-items:center; gap:18px; background:linear-gradient(150deg,rgba(60,210,255,.08),var(--card));
-    border:1px solid rgba(60,210,255,.26); border-radius:var(--r-lg); padding:18px 18px; margin-bottom:16px; -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); }
-  .hl-ring-main { flex:0 0 auto; text-align:center; min-width:104px; }
-  .hl-kcal { font-family:'Chakra Petch',sans-serif; font-weight:800; font-size:38px; line-height:1; color:var(--cyan); text-shadow:0 0 18px var(--glow-cyan); }
-  .hl-kcal-sub { font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1px; color:var(--faint); margin-top:6px; text-transform:uppercase; }
-  .hl-macros { flex:1; display:flex; flex-direction:column; gap:9px; }
-  .hl-macro { display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--line-2); padding-bottom:7px; }
-  .hl-macro:last-child { border-bottom:none; padding-bottom:0; }
-  .hl-m-k { font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:1px; color:var(--faint); text-transform:uppercase; }
-  .hl-m-v { font-family:'Chakra Petch',sans-serif; font-weight:700; font-size:16px; color:var(--fg); }
-  /* snap button */
-  .hl-snap { width:100%; border:none; border-radius:var(--r-md); padding:16px; font-family:'Chakra Petch',sans-serif; font-size:15px; font-weight:700;
-    letter-spacing:.4px; cursor:pointer; color:#04263a; background:radial-gradient(circle at 40% 30%,#bfeeff,#3ce6ff 60%,#0d8fb8 100%);
-    box-shadow:0 0 20px var(--glow-cyan); margin-bottom:14px; display:flex; align-items:center; justify-content:center; gap:10px; }
-  .hl-snap:active { transform:scale(.98); } .hl-snap:disabled { opacity:.55; }
-  .hl-snap svg { width:21px; height:21px; }
-  /* status line during analysis */
-  .hl-status { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--cyan); text-align:center; padding:10px 12px; margin-bottom:12px;
-    border:1px dashed rgba(60,210,255,.3); border-radius:var(--r-md); background:rgba(60,210,255,.05); }
-  .hl-status.err { color:var(--sev-high); border-color:rgba(255,107,107,.4); background:var(--sev-high-bg); }
-  /* meal rows */
-  .hl-meal { display:flex; gap:12px; align-items:center; background:var(--card); border:1px solid var(--line); border-radius:var(--r-md); padding:11px; margin-bottom:10px; }
-  .hl-meal img { flex:0 0 auto; width:56px; height:56px; border-radius:10px; object-fit:cover; background:var(--bg-2); }
-  .hl-meal .hl-meal-b { flex:1; min-width:0; }
-  .hl-meal .hl-meal-name { font-size:14.5px; font-weight:600; color:var(--fg); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .hl-meal .hl-meal-mac { font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:.4px; color:var(--faint); margin-top:4px; }
-  .hl-meal .hl-meal-kc { flex:0 0 auto; font-family:'Chakra Petch',sans-serif; font-weight:800; font-size:18px; color:var(--cyan); text-align:right; }
-  .hl-meal .hl-meal-kc small { display:block; font-family:'JetBrains Mono',monospace; font-weight:400; font-size:8.5px; color:var(--faint); letter-spacing:1px; }
-  .hl-meal .hl-del { flex:0 0 auto; width:26px; height:26px; border:none; background:none; color:var(--faint); font-size:18px; cursor:pointer; align-self:flex-start; }
-  .hl-meal .hl-del:active { color:var(--sev-high); }
-  .hl-meal.pending { opacity:.7; }
-  .hl-meal .hl-conf { display:inline-block; font-family:'JetBrains Mono',monospace; font-size:8.5px; letter-spacing:.5px; padding:1px 6px; border-radius:99px; margin-left:6px; vertical-align:middle; }
-  .hl-conf.low { color:var(--gold); background:var(--sev-med-bg); }
-  .hl-empty { text-align:center; color:var(--faint); font-size:13.5px; line-height:1.6; padding:30px 20px; }
+  /* ===== HEALTH + SLEEP (the Aether wellbeing experience) =====
+     Namespaced hx-* and scoped to #screenHealth/#screenSleep so the calm teal
+     water-world palette never leaks into the rest of the dark-navy app. */
+  #screenHealth, #screenSleep{
+    --hx-deep:#00141a; --hx-cyan:#7fd9d4; --hx-cyanDim:rgba(127,217,212,.55);
+    --hx-text:#cbdedb; --hx-dim:#6f8d8a; --hx-faint:#4f6d6a;
+    --hx-fill:rgba(3,42,42,.32); --hx-line:rgba(127,217,212,.16);
+  }
+  #screenHealth.active, #screenSleep.active{ display:flex; flex-direction:column; overflow:hidden; }
+  #screenHealth, #screenSleep{
+    background:
+      radial-gradient(120% 60% at 50% 4%, #015a54 0%, rgba(1,90,84,0) 42%),
+      radial-gradient(90% 50% at 16% 12%, #013a38 0%, rgba(1,58,56,0) 55%),
+      radial-gradient(150% 120% at 50% 8%, #012b2b 0%, #00141a 76%), #00141a;
+  }
+  .hx-scroll{ flex:1 1 auto; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch;
+    padding:calc(var(--safe-t,0px) + 8px) 22px calc(var(--safe-b,0px) + 150px); }
+  .hx-scroll.nodock{ padding-bottom:calc(var(--safe-b,0px) + 28px); }
+  .hx-scroll::-webkit-scrollbar{ width:0; }
+  .hx-head{ display:flex; align-items:center; justify-content:space-between; padding:6px 0 2px; }
+  .hx-ibtn{ appearance:none; background:transparent; border:0; color:var(--hx-dim); cursor:pointer;
+    width:42px; height:42px; display:grid; place-items:center; border-radius:50%; }
+  .hx-ibtn svg{ width:24px; height:24px; } .hx-ibtn:active{ transform:scale(.92); }
+  .hx-ibtn.ring{ border:1px solid rgba(127,217,212,.35); color:var(--hx-cyan); box-shadow:0 0 14px rgba(127,217,212,.18); }
+  .hx-glass{ position:relative; overflow:hidden;
+    background:linear-gradient(180deg, rgba(127,217,212,.08) 0%, rgba(127,217,212,0) 26%), var(--hx-fill);
+    -webkit-backdrop-filter:blur(15px) saturate(135%); backdrop-filter:blur(15px) saturate(135%);
+    border:1px solid var(--hx-line); border-radius:18px;
+    box-shadow:inset 0 1px 0 rgba(226,242,238,.08), inset 0 -10px 22px rgba(0,0,0,.18), 0 8px 22px rgba(0,0,0,.26); }
+  /* hero: small orb + synthesis */
+  .hx-hero{ display:flex; flex-direction:column; align-items:center; text-align:center; margin-top:2px; }
+  .hx-orb-wrap{ position:relative; width:86px; height:86px; margin-bottom:8px; }
+  .hx-orb-glow{ position:absolute; inset:-40px; border-radius:50%; pointer-events:none;
+    background:radial-gradient(circle, rgba(7,185,177,.32) 0%, rgba(7,185,177,0) 62%); opacity:.7; }
+  .hx-orb-wrap canvas{ position:absolute; inset:0; width:100%; height:100%; border-radius:50%;
+    filter:drop-shadow(0 0 22px rgba(7,185,177,.4)); }
+  .hx-orb-wrap.pulse::after{ content:""; position:absolute; inset:6px; border-radius:50%;
+    border:1px solid rgba(127,217,212,.6); pointer-events:none; animation:hxpulse .7s ease-out; }
+  @keyframes hxpulse{ from{ transform:scale(1); opacity:.7 } to{ transform:scale(1.85); opacity:0 } }
+  .hx-title{ font-size:30px; font-weight:600; letter-spacing:.4px; color:#eaf6f3; margin-top:2px; text-shadow:0 0 18px rgba(127,217,212,.2); }
+  .hx-summary{ margin-top:10px; max-width:300px; font-size:14px; line-height:1.5; font-weight:300; color:var(--hx-dim); }
+  .hx-summary b{ color:var(--hx-text); font-weight:400; }
+  .hx-kcal{ font-size:12px; color:var(--hx-faint); margin-top:6px; letter-spacing:.3px; }
+  .hx-nudge{ font-size:12.5px; color:var(--hx-cyan); opacity:.85; margin-top:8px; max-width:300px; line-height:1.4; }
+  /* rings */
+  .hx-rings{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:32px 0 24px; }
+  .hx-ring{ display:flex; flex-direction:column; align-items:center; gap:8px; }
+  .hx-ring .holder{ position:relative; display:grid; place-items:center; }
+  .hx-ring svg{ width:84px; height:84px; transform:rotate(-90deg); }
+  .hx-ring .track{ fill:none; stroke:rgba(127,217,212,.12); stroke-width:5; }
+  .hx-ring .arc{ fill:none; stroke:rgba(127,217,212,.55); stroke-width:5; stroke-linecap:round;
+    filter:drop-shadow(0 0 5px rgba(127,217,212,.5)); transition:stroke-dashoffset .8s cubic-bezier(.2,.8,.2,1); }
+  .hx-ring.attn .arc{ stroke:var(--hx-cyan); filter:drop-shadow(0 0 9px rgba(127,217,212,.8)); }
+  .hx-ring .val{ position:absolute; font-size:15px; font-weight:400; color:var(--hx-text); }
+  .hx-ring .lab{ font-size:12px; letter-spacing:.3px; color:var(--hx-dim); }
+  .hx-ring.attn .lab{ color:var(--hx-cyan); }
+  .hx-ring .ctx{ font-size:10.5px; color:var(--hx-faint); }
+  /* ambient strip */
+  .hx-ambient{ display:flex; justify-content:space-around; padding:14px 8px; margin-bottom:24px; opacity:.95; }
+  .hx-amb{ display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer; }
+  .hx-amb .av{ font-size:16px; font-weight:400; color:var(--hx-text); }
+  .hx-amb .al{ font-size:10px; letter-spacing:1.2px; text-transform:uppercase; color:var(--hx-faint); }
+  /* timeline */
+  .hx-eyebrow{ font-size:11px; letter-spacing:2.5px; color:var(--hx-faint); font-weight:600; text-transform:uppercase; margin:0 0 16px 2px; }
+  .hx-log{ padding:2px; }
+  .hx-entry{ display:flex; align-items:center; gap:13px; padding:13px 16px; border-bottom:1px solid rgba(127,217,212,.07); }
+  .hx-entry:last-child{ border-bottom:0; }
+  .hx-entry .ec{ width:34px; height:34px; flex:0 0 auto; border-radius:10px; display:grid; place-items:center;
+    background:rgba(127,217,212,.08); border:1px solid rgba(127,217,212,.18); }
+  .hx-entry .ec svg{ width:18px; height:18px; color:var(--hx-cyan); }
+  .hx-entry .et{ display:flex; flex-direction:column; gap:1px; min-width:0; flex:1; }
+  .hx-entry .when{ font-size:11px; letter-spacing:.4px; color:var(--hx-faint); }
+  .hx-entry .what{ font-size:14.5px; font-weight:300; color:var(--hx-text); }
+  .hx-entry.new .what{ animation:hxfade .5s ease; }
+  @keyframes hxfade{ from{opacity:0; transform:translateY(4px)} to{opacity:1; transform:none} }
+  .hx-entry .macros{ font-size:11px; color:var(--hx-faint); letter-spacing:.4px; cursor:pointer; }
+  .hx-entry .macros:hover{ color:var(--hx-dim); }
+  .hx-entry .del{ flex:0 0 auto; width:26px; height:26px; border:none; background:none; color:var(--hx-faint); font-size:17px; cursor:pointer; }
+  .hx-entry .del:active{ color:#ff8f8f; }
+  .hx-entry img.thumb{ width:34px; height:34px; border-radius:10px; object-fit:cover; flex:0 0 auto; }
+  .hx-empty{ text-align:center; color:var(--hx-faint); font-size:13.5px; line-height:1.6; padding:30px 20px; }
+  /* macro inline edit */
+  .hx-medit{ display:inline-flex; gap:5px; align-items:center; }
+  .hx-medit input{ width:42px; background:rgba(2,30,32,.7); border:1px solid rgba(127,217,212,.3); border-radius:7px;
+    color:var(--hx-text); font-size:11px; padding:3px 4px; text-align:center; -moz-appearance:textfield; }
+  .hx-medit input::-webkit-outer-spin-button,.hx-medit input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+  .hx-medit button{ appearance:none; border:1px solid rgba(127,217,212,.45); background:rgba(127,217,212,.12);
+    color:var(--hx-cyan); border-radius:7px; width:24px; height:24px; cursor:pointer; font-size:12px; }
+  /* sparkline + reflect */
+  .hx-spark{ margin-top:24px; padding:16px; }
+  .hx-spark .k{ font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--hx-faint); font-weight:600; }
+  .hx-spark svg{ width:100%; height:48px; margin-top:10px; display:block; overflow:visible; }
+  .hx-spark .line{ fill:none; stroke:var(--hx-cyan); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; filter:drop-shadow(0 0 6px rgba(127,217,212,.55)); }
+  .hx-reflect{ text-align:center; color:var(--hx-faint); font-size:13px; font-weight:300; line-height:1.5; margin:32px auto 8px; max-width:300px; }
+  /* dock */
+  .hx-dock{ position:absolute; left:0; right:0; bottom:0; z-index:3; padding:24px 22px calc(var(--safe-b,0px) + 78px);
+    background:linear-gradient(180deg, rgba(0,16,18,0) 0%, rgba(0,14,16,.7) 36%, rgba(0,12,14,.92) 100%); pointer-events:none; }
+  .hx-dock > *{ pointer-events:auto; }
+  .hx-chips{ display:flex; gap:8px; overflow-x:auto; margin-bottom:10px; scrollbar-width:none; }
+  .hx-chips::-webkit-scrollbar{ display:none; }
+  .hx-chip{ appearance:none; flex:0 0 auto; cursor:pointer; padding:8px 14px; border-radius:999px; font-size:12.5px;
+    color:var(--hx-dim); background:var(--hx-fill); border:1px solid rgba(127,217,212,.2);
+    -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); display:flex; align-items:center; gap:6px; }
+  .hx-chip svg{ width:14px; height:14px; color:var(--hx-cyan); } .hx-chip:active{ transform:scale(.96); }
+  .hx-chip.snap{ color:var(--hx-cyan); border-color:rgba(127,217,212,.5); box-shadow:0 0 16px rgba(127,217,212,.2); }
+  .hx-bar{ display:flex; align-items:center; gap:12px; min-height:54px; padding:0 14px; border-radius:999px; }
+  .hx-bar .mic, .hx-bar .send{ width:22px; height:22px; flex:0 0 auto; color:var(--hx-cyan); cursor:pointer; }
+  .hx-bar input{ flex:1 1 auto; background:transparent; border:0; outline:0; color:var(--hx-text); font-size:15px; font-weight:300; -webkit-user-select:text; user-select:text; }
+  .hx-bar input::placeholder{ color:var(--hx-dim); }
+  .hx-bar .mic.live{ filter:drop-shadow(0 0 8px rgba(127,217,212,.7)); animation:hxmic 1.1s ease-in-out infinite; }
+  @keyframes hxmic{ 0%,100%{opacity:.6} 50%{opacity:1} }
+  /* sleep tab specifics */
+  .hx-sleep-big{ text-align:center; margin:18px 0 8px; }
+  .hx-sleep-big .n{ font-size:52px; font-weight:600; color:#eaf6f3; letter-spacing:.5px; text-shadow:0 0 22px rgba(127,217,212,.25); }
+  .hx-sleep-big .n small{ font-size:22px; color:var(--hx-dim); font-weight:300; }
+  .hx-sleep-big .sub{ font-size:12px; letter-spacing:1.5px; text-transform:uppercase; color:var(--hx-faint); margin-top:6px; }
+  .hx-week{ display:flex; align-items:flex-end; justify-content:space-between; gap:6px; height:120px; padding:16px 16px 12px; }
+  .hx-week .bar{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:6px; height:100%; }
+  .hx-week .col{ width:100%; max-width:26px; border-radius:6px 6px 3px 3px; background:linear-gradient(180deg, var(--hx-cyan), rgba(127,217,212,.25));
+    box-shadow:0 0 10px rgba(127,217,212,.3); transition:height .7s cubic-bezier(.2,.8,.2,1); }
+  .hx-week .col.low{ background:linear-gradient(180deg, #f3c75a, rgba(243,199,90,.25)); box-shadow:0 0 10px rgba(243,199,90,.3); }
+  .hx-week .dl{ font-size:10px; color:var(--hx-faint); letter-spacing:.5px; }
 
   /* ===== PLAN (First Things First — Covey Habit 3) ===== */
   #screenPlan.active { display:flex; flex-direction:column; overflow:hidden; }
@@ -1362,6 +1437,7 @@
         <div class="fcard" data-learn="1"><div class="ic"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H19v13H6.5A2.5 2.5 0 0 0 4 19.5z"/><path d="M4 6.5V19.5A2.5 2.5 0 0 0 6.5 22H19v-3"/></svg></div><div class="lbl">Tutor</div></div>
         <div class="fcard" data-radar="1"><div class="ic"><svg class="ico-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="3.4"/><path d="M12 1.6v3M12 19.4v3M1.6 12h3M19.4 12h3"/></svg></div><div class="lbl">Review Radar</div></div>
         <div class="fcard" data-health="1"><div class="ic"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M12 20.5S4 15 4 9.2A4.2 4.2 0 0 1 12 7a4.2 4.2 0 0 1 8 2.2C20 15 12 20.5 12 20.5Z"/><path d="M7.5 12h2l1.2-2.4L13 14l1.3-2h2.2"/></svg></div><div class="lbl">Health</div></div>
+        <div class="fcard" data-sleep="1"><div class="ic"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M20 14a8 8 0 1 1-9-11 7 7 0 0 0 9 11z"/></svg></div><div class="lbl">Sleep</div></div>
       </div>
 
       <div class="section-h">Today</div>
@@ -1737,33 +1813,81 @@
     </div>
   </div>
 
-  <!-- ===== HEALTH (photo meal logging) ===== -->
+  <!-- ===== HEALTH (Aether wellbeing — food, hydration, movement) ===== -->
   <div class="screen" id="screenHealth">
-    <div class="hl-top">
-      <button class="hl-back" id="hlBack" type="button" aria-label="Back to home">‹</button>
-      <div class="hl-title">Health</div>
-      <button class="hl-goal" id="hlGoalBtn" type="button" aria-label="Set daily calorie goal">Goal</button>
-    </div>
-    <div class="hl-scroll">
-      <div class="hl-rings">
-        <div class="hl-ring-main">
-          <div class="hl-kcal" id="hlKcal">0</div>
-          <div class="hl-kcal-sub">of <span id="hlGoal">2200</span> kcal</div>
-        </div>
-        <div class="hl-macros">
-          <div class="hl-macro"><span class="hl-m-k">Protein</span><span class="hl-m-v" id="hlP">0g</span></div>
-          <div class="hl-macro"><span class="hl-m-k">Carbs</span><span class="hl-m-v" id="hlC">0g</span></div>
-          <div class="hl-macro"><span class="hl-m-k">Fat</span><span class="hl-m-v" id="hlF">0g</span></div>
-        </div>
+    <div class="hx-scroll">
+      <header class="hx-head">
+        <button class="hx-ibtn" id="hxBack" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5 L8 12 L15 19"/></svg></button>
+        <button class="hx-ibtn ring" id="hxSleepBtn" aria-label="Sleep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14a8 8 0 1 1-9-11 7 7 0 0 0 9 11z"/></svg></button>
+      </header>
+      <section class="hx-hero">
+        <div class="hx-orb-wrap" id="hxOrbWrap"><div class="hx-orb-glow"></div><canvas id="hxOrb" aria-hidden="true"></canvas></div>
+        <h1 class="hx-title">Health</h1>
+        <p class="hx-summary" id="hxSummary">A steady day — good energy, a little room left for protein.</p>
+        <p class="hx-kcal" id="hxKcal"></p>
+        <p class="hx-nudge" id="hxNudge"></p>
+      </section>
+      <div class="hx-rings" id="hxRings">
+        <div class="hx-ring" data-key="protein"><div class="holder"><svg viewBox="0 0 84 84"><circle class="track" cx="42" cy="42" r="34"/><circle class="arc" id="hxarc-protein" cx="42" cy="42" r="34"/></svg><span class="val" id="hxval-protein">—</span></div><span class="lab">protein</span><span class="ctx" id="hxctx-protein"></span></div>
+        <div class="hx-ring" data-key="carbs"><div class="holder"><svg viewBox="0 0 84 84"><circle class="track" cx="42" cy="42" r="34"/><circle class="arc" id="hxarc-carbs" cx="42" cy="42" r="34"/></svg><span class="val" id="hxval-carbs">—</span></div><span class="lab">carbs</span><span class="ctx" id="hxctx-carbs"></span></div>
+        <div class="hx-ring" data-key="fat"><div class="holder"><svg viewBox="0 0 84 84"><circle class="track" cx="42" cy="42" r="34"/><circle class="arc" id="hxarc-fat" cx="42" cy="42" r="34"/></svg><span class="val" id="hxval-fat">—</span></div><span class="lab">fat</span><span class="ctx" id="hxctx-fat"></span></div>
       </div>
-      <button class="hl-snap" id="hlSnap" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5A1.5 1.5 0 0 1 5.5 7h1.7l1.1-1.6A1 1 0 0 1 10.1 5h3.8a1 1 0 0 1 .8.4L15.8 7h2.7A1.5 1.5 0 0 1 20 8.5v9A1.5 1.5 0 0 1 18.5 19h-13A1.5 1.5 0 0 1 4 17.5z"/><circle cx="12" cy="13" r="3.3"/></svg>
-        Snap a meal
-      </button>
-      <input id="hlFile" type="file" accept="image/*" capture="environment" style="display:none">
-      <div class="hl-status" id="hlStatus" style="display:none"></div>
-      <div class="section-h" id="hlTodayH">Today</div>
-      <div id="hlList"></div>
+      <div class="hx-ambient hx-glass">
+        <div class="hx-amb" data-q="water"><span class="av" id="hxA-water">0.0L</span><span class="al">hydration</span></div>
+        <div class="hx-amb" data-q="move"><span class="av" id="hxA-move">—</span><span class="al">movement</span></div>
+        <div class="hx-amb" id="hxA-sleepBtn"><span class="av" id="hxA-sleep">—</span><span class="al">sleep · last night</span></div>
+      </div>
+      <p class="hx-eyebrow">Today</p>
+      <div class="hx-log hx-glass" id="hxLog"></div>
+      <div class="hx-spark hx-glass">
+        <span class="k">Hydration · this week</span>
+        <svg viewBox="0 0 300 48" preserveAspectRatio="none"><polyline class="line" id="hxSpark" points="0,30 50,22 100,18 150,26 200,14 250,20 300,10"/></svg>
+      </div>
+      <p class="hx-reflect" id="hxReflect">You move best on mornings you sleep past seven — worth protecting.</p>
+    </div>
+    <div class="hx-dock">
+      <div class="hx-chips">
+        <button class="hx-chip snap" id="hxSnap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.2"/></svg>Snap a meal</button>
+        <input type="file" id="hxCam" accept="image/*" capture="environment" hidden />
+        <button class="hx-chip" data-q="food"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v8a3 3 0 0 0 6 0V3M9 3v18M18 3c-1.5 1-2 3-2 6s.5 4 2 4v8"/></svg>Food</button>
+        <button class="hx-chip" data-q="water"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/></svg>Water</button>
+        <button class="hx-chip" data-q="move"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2 6 4-14 2 8h6"/></svg>Move</button>
+        <button class="hx-chip" data-q="mood"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 14c1 1.5 2.5 2 4 2s3-.5 4-2M9 9h.01M15 9h.01"/></svg>Mood</button>
+      </div>
+      <div class="hx-bar hx-glass">
+        <svg class="mic" id="hxMic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+        <input id="hxEntry" type="text" placeholder="Tell Aether what you ate or did…" aria-label="Log an entry" />
+        <svg class="send" id="hxSend" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12 L20 5 L14 12 L20 19 Z"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SLEEP (its own tab — last night, weekly trend, cross-domain insight) ===== -->
+  <div class="screen" id="screenSleep">
+    <div class="hx-scroll nodock">
+      <header class="hx-head">
+        <button class="hx-ibtn" id="hxsBack" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5 L8 12 L15 19"/></svg></button>
+        <button class="hx-ibtn ring" id="hxHealthBtn" aria-label="Health"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5S4 15 4 9.2A4.2 4.2 0 0 1 12 7a4.2 4.2 0 0 1 8 2.2C20 15 12 20.5 12 20.5Z"/></svg></button>
+      </header>
+      <section class="hx-hero">
+        <div class="hx-orb-wrap" id="hxsOrbWrap"><div class="hx-orb-glow"></div><canvas id="hxsOrb" aria-hidden="true"></canvas></div>
+        <h1 class="hx-title">Sleep</h1>
+        <p class="hx-summary" id="hxsSummary">Rest is where the day before gets paid off.</p>
+      </section>
+      <div class="hx-sleep-big">
+        <div class="n" id="hxsBig">—<small> </small></div>
+        <div class="sub" id="hxsSub">last night</div>
+      </div>
+      <p class="hx-eyebrow">This week</p>
+      <div class="hx-week hx-glass" id="hxWeek"></div>
+      <p class="hx-eyebrow" style="margin-top:24px">Last 7 nights</p>
+      <div class="hx-log hx-glass" id="hxsLog"></div>
+      <p class="hx-reflect" id="hxsReflect">Log a few nights and Aether will tell you how sleep is shaping your days.</p>
+      <div class="hx-bar hx-glass" style="margin-top:10px">
+        <svg class="mic" id="hxsMic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+        <input id="hxsEntry" type="text" placeholder="Log sleep — e.g. “slept 7h 20m, woke once”" aria-label="Log sleep" />
+        <svg class="send" id="hxsSend" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12 L20 5 L14 12 L20 19 Z"/></svg>
+      </div>
     </div>
   </div>
 
@@ -1839,6 +1963,7 @@ document.querySelectorAll('.nav button').forEach(b=>{
     document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
     b.classList.add('active'); $(b.dataset.screen).classList.add('active'); haptic();
     stopPlan(); if(typeof stopLearn==='function') stopLearn();
+    if(typeof stopHealthOrbs==='function') stopHealthOrbs();
     if(b.dataset.screen==='screenChat'){ scrollChat(); startAmbient(); } else { stopAmbient(); }
     if(b.dataset.screen==='screenHome'){ loadState(); refreshMenuBadges(); renderRecent(); if(window.__voiceHome) window.__voiceHome(); }
     if(b.dataset.screen==='screenStream'){ startStream(); } else { stopStream(); }
@@ -2793,7 +2918,7 @@ function openPlan(){
   document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   $('screenPlan').classList.add('active');
-  stopStream(); stopAmbient(); stopStudio&&stopStudio();
+  stopStream(); stopAmbient(); stopStudio&&stopStudio(); stopHealthOrbs&&stopHealthOrbs();
   if(typeof stopLearn==='function') stopLearn();
   haptic(); startPlan();
 }
@@ -2815,184 +2940,336 @@ function startPlan(){
 }
 function stopPlan(){ if(__planTimer){ clearInterval(__planTimer); __planTimer=null; } }
 
-/* ===== HEALTH — photo meal logging =========================================
-   Snap/pick a meal photo -> resize -> upload to the tailnet (existing
-   UPLOAD_TOPIC) -> ask the jarvis agent to estimate macros via its vision tool
-   -> poll its out-topic for a JSON reply -> store the entry in localStorage and
-   render today's meals + running totals. Reuses the Review-Radar round-trip
-   pattern; no new keys/deps. State is fully local so history survives reloads. */
+/* ===== HEALTH + SLEEP — the Aether wellbeing experience =====================
+   Voice-first / photo-first logging with a synthesis line that reads across
+   food + movement + sleep. Photo macros come from the LOCAL vision model
+   (vision_local.py, Ollama) — free, private, no cloud credits — with the
+   jarvis/ntfy round-trip as fallback. All state in localStorage so history
+   survives reloads. Calm teal world; the orb "drinks" each logged entry. */
 const HL_AGENT = (typeof AGENTS!=='undefined' && AGENTS.find(a=>a.id==='jarvis')) || (typeof activeAgent!=='undefined'?activeAgent:null);
-// Local vision proxy (Ollama qwen2.5vl on the host) — free, fast, no cloud
-// credits, keeps images on the machine. Preferred path; the ntfy/jarvis
-// round-trip is the fallback if it's unreachable. Toggle off via localStorage
-// 'aetherLocalVision'==='0'.
 const VISION_PROXY = (typeof NTFY==='string'? NTFY : '') + '/aether-vision';
 function hlLocalVisionOn(){ return localStorage.getItem('aetherLocalVision')!=='0'; }
+const HL_MAX_EDGE=1024, HL_JPEG_Q=0.82;
+const HL_SYSTEM = "You are a nutrition estimator. The user sends ONE photo of a meal. Identify the food and estimate its nutrition for the portion shown. Respond with ONLY a JSON object, no code fences, no preamble, in EXACTLY this shape: {\"name\":\"short dish name\",\"calories\":<int kcal>,\"protein\":<int grams>,\"carbs\":<int grams>,\"fat\":<int grams>,\"confidence\":\"high\"|\"medium\"|\"low\"}. If you cannot see food clearly, still return the object with your best guess and confidence \"low\". Numbers only — no units inside the numbers.";
+
+async function hlFetch(url,opts,timeoutMs){ const c=new AbortController(); const t=setTimeout(()=>c.abort(),timeoutMs||30000);
+  try{ return await fetch(url,{...opts,signal:c.signal}); } finally{ clearTimeout(t); } }
 async function hlLocalVision(imageUrl, prompt){
   const r=await hlFetch(VISION_PROXY+'/analyze',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({image_url:imageUrl, prompt})}, 180000);
   if(!r.ok) throw new Error('vision http '+r.status);
   const j=await r.json(); return (j&&j.text)||'';
 }
-const HL_MAX_EDGE=1024, HL_JPEG_Q=0.82;
-const HL_SYSTEM = "You are a nutrition estimator. The user sends ONE photo of a meal. Identify the food and estimate its nutrition for the portion shown. Respond with ONLY a JSON object, no code fences, no preamble, in EXACTLY this shape: {\"name\":\"short dish name\",\"calories\":<int kcal>,\"protein\":<int grams>,\"carbs\":<int grams>,\"fat\":<int grams>,\"confidence\":\"high\"|\"medium\"|\"low\"}. If you cannot see food clearly, still return the object with your best guess and confidence \"low\". Numbers only — no units inside the numbers.";
-let __hlMeals = JSON.parse(localStorage.getItem('aetherMeals')||'[]');
-let __hlGoal = parseInt(localStorage.getItem('aetherKcalGoal')||'2200',10) || 2200;
-let __hlBusy = false;
-
-function hlUid(){ return 'm'+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36); }
-function hlSave(){ localStorage.setItem('aetherMeals', JSON.stringify(__hlMeals.slice(-400))); }
-function hlTodayKey(){ const d=new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
-function hlEsc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
 function hlResize(file){
-  return new Promise((resolve)=>{
-    const fr=new FileReader();
+  return new Promise((resolve)=>{ const fr=new FileReader();
     fr.onload=()=>{ const img=new Image();
       img.onload=()=>{ let w=img.width,h=img.height; const sc=Math.min(1,HL_MAX_EDGE/Math.max(w,h));
-        w=Math.round(w*sc); h=Math.round(h*sc);
-        const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
-        cv.getContext('2d').drawImage(img,0,0,w,h);
-        let d; try{ d=cv.toDataURL('image/jpeg',HL_JPEG_Q); }catch(e){ d=fr.result; } resolve(d); };
+        w=Math.round(w*sc); h=Math.round(h*sc); const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+        cv.getContext('2d').drawImage(img,0,0,w,h); let d; try{ d=cv.toDataURL('image/jpeg',HL_JPEG_Q); }catch(e){ d=fr.result; } resolve(d); };
       img.onerror=()=>resolve(fr.result); img.src=fr.result; };
-    fr.onerror=()=>resolve(null); fr.readAsDataURL(file);
-  });
+    fr.onerror=()=>resolve(null); fr.readAsDataURL(file); });
 }
 function hlDataUrlToBlob(d){ const [head,b64]=d.split(','); const mime=(head.match(/:(.*?);/)||[])[1]||'image/jpeg';
   const bin=atob(b64); const u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i); return new Blob([u],{type:mime}); }
-async function hlFetch(url,opts,timeoutMs){ const c=new AbortController(); const t=setTimeout(()=>c.abort(),timeoutMs||30000);
-  try{ return await fetch(url,{...opts,signal:c.signal}); } finally{ clearTimeout(t); } }
-
-function hlParse(raw){
-  if(!raw) return null;
+function hlParse(raw){ if(!raw) return null;
   let s=raw.trim().replace(/^```(json)?/i,'').replace(/```$/,'').trim();
   const a=s.indexOf('{'), b=s.lastIndexOf('}'); if(a<0||b<0||b<a) return null;
   let o; try{ o=JSON.parse(s.slice(a,b+1)); }catch(e){ return null; }
   const num=(v)=>{ const n=Math.round(parseFloat(v)); return isFinite(n)&&n>=0?n:0; };
   return { name:(''+(o.name||'Meal')).slice(0,60), calories:num(o.calories), protein:num(o.protein),
-           carbs:num(o.carbs), fat:num(o.fat),
-           confidence:/^(high|medium|low)$/i.test(o.confidence||'')?o.confidence.toLowerCase():'low' };
-}
-async function hlPollResult(sinceTs){
-  if(!HL_AGENT) return null;
+           carbs:num(o.carbs), fat:num(o.fat), confidence:/^(high|medium|low)$/i.test(o.confidence||'')?o.confidence.toLowerCase():'low' }; }
+async function hlPollResult(sinceTs){ if(!HL_AGENT) return null;
   const HARD=Date.now()+3*60000; const seen=new Set();
-  while(Date.now()<HARD){
-    try{
+  while(Date.now()<HARD){ try{
       const r=await hlFetch(`${NTFY}/${HL_AGENT.out}/json?poll=1&since=${sinceTs}`,{cache:'no-store'},20000);
       const lines=(await r.text()).trim().split('\n').filter(Boolean);
       for(const ln of lines){ let o; try{o=JSON.parse(ln);}catch(e){continue;}
         if(o.event!=='message'||!o.id||seen.has(o.id))continue; seen.add(o.id);
-        if(o.time&&o.time<sinceTs)continue;
-        const msg=(o.message||'').trim();
+        if(o.time&&o.time<sinceTs)continue; const msg=(o.message||'').trim();
         if(typeof sniffCredits==='function'){ try{ sniffCredits(msg); }catch(e){} }
-        if(/\"calories\"\s*:/.test(msg) || (/^[\s`]*\{/.test(msg) && /\"name\"/.test(msg))) return msg;
-      }
-    }catch(e){}
-    await new Promise(r=>setTimeout(r,2500));
+        if(/\"calories\"\s*:/.test(msg) || (/^[\s`]*\{/.test(msg) && /\"name\"/.test(msg))) return msg; }
+    }catch(e){} await new Promise(r=>setTimeout(r,2500)); }
+  return null; }
+function hlBuildMessage(url){ return [HL_SYSTEM,'',
+  'Here is the meal photo. Call your vision tool (vision_analyze) DIRECTLY ON THIS URL — pass the https URL straight to the tool. Do NOT download the file, do NOT use the terminal, do NOT convert to a data URL.',
+  url,'','Respond with ONLY the JSON object — no code fences, no preamble.'].join('\n'); }
+async function hlUpload(blob,name){ if(typeof tailnetUpload==='function') return await tailnetUpload(blob,name,(u,o)=>hlFetch(u,o,45000));
+  const r=await hlFetch(`${NTFY}/${UPLOAD_TOPIC}`,{method:'PUT',headers:{'Filename':name},body:blob},45000);
+  const o=await r.json(); const u=o&&o.attachment&&o.attachment.url; if(!u) throw new Error('upload failed'); return u; }
+
+/* ---- data model: one entries[] across all domains ---- */
+let HX_ENTRIES = JSON.parse(localStorage.getItem('aetherHealth')||'null');
+if(!Array.isArray(HX_ENTRIES)){
+  // seed a believable first day so the screen reads as alive on first open
+  const td=hxDayKey(new Date());
+  HX_ENTRIES=[
+    {id:hxUid(),type:'sleep',t:Date.now()-13*3600e3,day:td,text:'Woke up · slept 7h 10m',min:430},
+    {id:hxUid(),type:'move',t:Date.now()-12.5*3600e3,day:td,text:'5k run, easy pace'},
+    {id:hxUid(),type:'food',t:Date.now()-12*3600e3,day:td,text:'Eggs & coffee',p:14,c:6,f:18,kcal:250},
+    {id:hxUid(),type:'water',t:Date.now()-9*3600e3,day:td,text:'Water · 500 ml',ml:500},
+    {id:hxUid(),type:'food',t:Date.now()-6*3600e3,day:td,text:'Chicken & rice bowl',p:42,c:60,f:12,kcal:520},
+    {id:hxUid(),type:'mood',t:Date.now()-4*3600e3,day:td,text:'Felt focused after the walk'}
+  ];
+}
+const HX_TARGETS={protein:150, carbs:240, fat:75};
+let __hxBusy=false, __hxStubI=0;
+function hxUid(){ return 'h'+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36); }
+function hxDayKey(d){ d=d||new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
+function hxSave(){ localStorage.setItem('aetherHealth', JSON.stringify(HX_ENTRIES.slice(-800))); }
+function hxEsc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function hxTime(t){ return new Date(t).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'}); }
+const HX_ICON={
+  food:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v8a3 3 0 0 0 6 0V3M9 3v18M18 3c-1.5 1-2 3-2 6s.5 4 2 4v8"/></svg>',
+  water:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/></svg>',
+  move:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2 6 4-14 2 8h6"/></svg>',
+  sleep:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14a8 8 0 1 1-9-11 7 7 0 0 0 9 11z"/></svg>',
+  mood:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 14c1 1.5 2.5 2 4 2s3-.5 4-2M9 9h.01M15 9h.01"/></svg>'
+};
+function hxToday(){ const d=hxDayKey(); return HX_ENTRIES.filter(e=>e.day===d); }
+function hxFoodTotals(){ const t={protein:0,carbs:0,fat:0,kcal:0};
+  for(const e of hxToday()){ if(e.type==='food'&&!e.pending){ t.protein+=e.p||0; t.carbs+=e.c||0; t.fat+=e.f||0; t.kcal+=e.kcal||0; } } return t; }
+function hxWaterL(){ let ml=0; for(const e of hxToday()){ if(e.type==='water') ml+=e.ml||250; } return ml/1000; }
+function hxMoveCount(){ return hxToday().filter(e=>e.type==='move').length; }
+function hxLastSleep(){ const s=HX_ENTRIES.filter(e=>e.type==='sleep'&&e.min).sort((a,b)=>b.t-a.t)[0]; return s?s.min:0; }
+function hxFmtMin(m){ if(!m) return '—'; const h=Math.floor(m/60), mm=m%60; return h+'h'+(mm?(' '+mm+'m'):''); }
+
+function hxPulse(id){ const w=document.getElementById(id); if(!w) return; w.classList.remove('pulse'); void w.offsetWidth; w.classList.add('pulse'); }
+const HX_C=2*Math.PI*34;
+function hxDrawRing(key){ const t=hxFoodTotals(); const grams=Math.round(t[key]); const frac=Math.min(1, grams/HX_TARGETS[key]);
+  const arc=document.getElementById('hxarc-'+key); if(!arc) return; arc.style.strokeDasharray=HX_C; arc.style.strokeDashoffset=HX_C*(1-frac);
+  document.getElementById('hxval-'+key).textContent=grams+'g'; document.getElementById('hxctx-'+key).textContent=Math.round(frac*100)+'% of aim'; }
+
+/* the synthesis line — local, instant, cross-domain, kind (never lags, works offline) */
+function hxSynth(){
+  const t=hxFoodTotals(); const fr=k=>t[k]/HX_TARGETS[k];
+  const low=['protein','carbs','fat'].sort((a,b)=>fr(a)-fr(b))[0];
+  const sleepMin=hxLastSleep(), sleepH=sleepMin/60, moved=hxMoveCount()>0, hour=new Date().getHours();
+  let line;
+  if(moved && fr('protein')<0.6) line="You moved today — your body will put protein to use, and you're a little under. Worth a top-up.";
+  else if(sleepH>=7 && t.kcal<800 && hour<14) line="Good sleep behind you — a solid lunch keeps that focus going through the afternoon.";
+  else if(sleepMin && sleepH<6.5 && hour<12) line="Short night — go a little easier today, and water + protein will help more than caffeine.";
+  else if(fr(low)<0.85) line="Coming together nicely — just room for a little more "+low+" to round out the day.";
+  else line="A balanced day — nourishment, movement, and rest all in a good place.";
+  const sm=document.getElementById('hxSummary'); if(sm) sm.innerHTML='<b>Aether noticed</b> — '+line;
+  const kc=document.getElementById('hxKcal'); if(kc) kc.textContent='≈ '+Math.round(t.kcal)+' kcal logged';
+  const nu=document.getElementById('hxNudge');
+  if(nu) nu.textContent = fr('protein')<0.6 ? "Idea: a Greek yogurt or a handful of nuts would nudge protein up."
+    : (t.kcal<700 && hour>=15 ? "Idea: you've eaten light — something real before evening would help." : "");
+}
+function hxRenderRings(){ ['protein','carbs','fat'].forEach(hxDrawRing);
+  const t=hxFoodTotals(); const fr=k=>t[k]/HX_TARGETS[k]; const low=['protein','carbs','fat'].sort((a,b)=>fr(a)-fr(b))[0];
+  document.querySelectorAll('#hxRings .hx-ring').forEach(r=>r.classList.toggle('attn', r.dataset.key===low)); }
+function hxRenderAmbient(){
+  const w=document.getElementById('hxA-water'); if(w) w.textContent=hxWaterL().toFixed(1)+'L';
+  const mv=document.getElementById('hxA-move'); if(mv){ const n=hxMoveCount(); mv.textContent=n?(n+(n>1?' moves':' move')):'—'; }
+  const sl=document.getElementById('hxA-sleep'); if(sl) sl.textContent=hxFmtMin(hxLastSleep()); }
+function hxRenderLog(){
+  const log=document.getElementById('hxLog'); if(!log) return;
+  const today=hxToday().slice().sort((a,b)=>b.t-a.t);
+  if(!today.length){ log.innerHTML='<div class="hx-empty">Nothing logged yet today.<br>Snap a meal or just tell Aether what you ate.</div>'; return; }
+  log.innerHTML='';
+  for(const e of today){
+    const row=document.createElement('div'); row.className='hx-entry'+(e.pending?' new':'');
+    const ec=e.thumb?('<img class="thumb" src="'+e.thumb+'" alt="">'):('<span class="ec">'+(HX_ICON[e.type]||HX_ICON.food)+'</span>');
+    const macros=(e.type==='food'&&!e.pending&&(e.p||e.c||e.f))?(' <span class="macros" title="tap to adjust">'+(e.p||0)+'P · '+(e.c||0)+'C · '+(e.f||0)+'F</span>'):'';
+    row.innerHTML=ec+'<span class="et"><span class="when">'+hxTime(e.t)+'</span><span class="what">'+hxEsc(e.text)+(e.pending?' …':'')+macros+'</span></span>'+
+      (e.pending?'':'<button class="del" aria-label="Delete">×</button>');
+    const del=row.querySelector('.del'); if(del) del.addEventListener('click',()=>{ HX_ENTRIES=HX_ENTRIES.filter(x=>x.id!==e.id); hxSave(); hxRenderAll(); haptic&&haptic(); });
+    const mac=row.querySelector('.macros'); if(mac) hxAttachEdit(mac,e,row);
+    log.appendChild(row);
   }
-  return null;
 }
-function hlBuildMessage(url){
-  return [HL_SYSTEM,'',
-    'Here is the meal photo. Call your vision tool (vision_analyze) DIRECTLY ON THIS URL — pass the https URL straight to the tool. Do NOT download the file, do NOT use the terminal, do NOT convert to a data URL.',
-    url,'',
-    'Respond with ONLY the JSON object — no code fences, no preamble.'].join('\n');
-}
+function hxAttachEdit(mac,e,row){ mac.addEventListener('click',()=>{ if(mac.dataset.ed) return; mac.dataset.ed='1';
+  const mk=v=>{ const i=document.createElement('input'); i.type='number'; i.min='0'; i.value=v; return i; };
+  const ip=mk(e.p||0),ic=mk(e.c||0),iff=mk(e.f||0),ok=document.createElement('button'); ok.textContent='✓';
+  mac.textContent=''; const wrap=document.createElement('span'); wrap.className='hx-medit'; wrap.append(ip,ic,iff,ok); mac.appendChild(wrap); ip.focus();
+  ok.addEventListener('click',ev=>{ ev.stopPropagation(); e.p=+ip.value||0; e.c=+ic.value||0; e.f=+iff.value||0; e.kcal=Math.round(e.p*4+e.c*4+e.f*9); delete mac.dataset.ed; hxSave(); hxRenderAll(); }); }); }
+function hxRenderSpark(){ const days=hxLastNDays(7).map(d=>{ let ml=0; HX_ENTRIES.forEach(e=>{ if(e.type==='water'&&e.day===d) ml+=e.ml||250; }); return ml/1000; });
+  const max=Math.max(2,...days); const pts=days.map((v,i)=>{ const x=i*(300/6); const y=44-(v/max)*40; return x+','+y.toFixed(1); }).join(' ');
+  const sp=document.getElementById('hxSpark'); if(sp) sp.setAttribute('points',pts); }
+function hxLastNDays(n){ const out=[]; for(let i=n-1;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); out.push(hxDayKey(d)); } return out; }
+function hxRenderAll(){ hxRenderRings(); hxRenderAmbient(); hxRenderLog(); hxRenderSpark(); hxSynth(); }
 
-function hlSetStatus(msg, isErr){ const el=$('hlStatus'); if(!el) return;
-  if(!msg){ el.style.display='none'; el.textContent=''; el.classList.remove('err'); return; }
-  el.style.display='block'; el.textContent=msg; el.classList.toggle('err',!!isErr); }
+/* ---- adding entries ---- */
+function hxAdd(e){ e.id=e.id||hxUid(); e.t=e.t||Date.now(); e.day=e.day||hxDayKey(); HX_ENTRIES.push(e); hxSave(); }
+function hxAddFood(name,p,c,f,kcal,thumb){ p=Math.round(p||0);c=Math.round(c||0);f=Math.round(f||0);kcal=Math.round(kcal||(p*4+c*4+f*9));
+  hxAdd({type:'food',text:name,p,c,f,kcal,thumb}); hxRenderAll(); hxPulse('hxOrbWrap'); }
+function hxAddSimple(type,text,extra){ hxAdd(Object.assign({type,text},extra||{})); hxRenderAll(); hxPulse('hxOrbWrap');
+  const sm=document.getElementById('hxSummary');
+  if(sm) sm.innerHTML='<b>Logged.</b> '+({water:'Hydration topped up.',move:'Movement counts — nice.',sleep:'Rest logged.',mood:'Thanks for checking in.'}[type]||'Noted.'); }
 
-async function hlSnap(file){
-  if(!file) return;
-  if(!HL_AGENT){ hlSetStatus('No agent configured to analyze meals.',true); return; }
-  if(__hlBusy){ toast('Still analyzing the last photo…',true); return; }
-  __hlBusy=true; $('hlSnap').disabled=true; haptic();
-  const id=hlUid();
-  let thumb=null;
+/* ---- text classify / question ---- */
+function hxClassify(s){ s=s.toLowerCase();
+  if(/water|drink|coffee|tea|hydrate|glass|ml|oz|bottle/.test(s)) return 'water';
+  if(/run|walk|gym|lift|ruck|bike|workout|basketball|swim|move|5k|10k|steps/.test(s)) return 'move';
+  if(/sleep|slept|nap|bed|woke|rest/.test(s)) return 'sleep';
+  if(/feel|felt|mood|tired|energi|stress|calm|anxious|great|good|low|off/.test(s)) return 'mood';
+  return 'food'; }
+function hxIsQ(s){ return /\?\s*$/.test(s) || /^(what|should|how|why|am i|do i|can i|when|is |are )/i.test(s); }
+function hxParseSleepMin(s){ let m=0; const hm=s.match(/(\d+)\s*h(?:ours?)?(?:\s*(\d+)\s*m)?/i); if(hm){ m=(+hm[1])*60+(+(hm[2]||0)); }
+  else { const mm=s.match(/(\d+(?:\.\d+)?)\s*hours?/i); if(mm) m=Math.round(parseFloat(mm[1])*60); } return m; }
+function hxAnswer(q){ const t=hxFoodTotals(); const fr=k=>t[k]/HX_TARGETS[k]; const low=['protein','carbs','fat'].sort((a,b)=>fr(a)-fr(b))[0];
+  const food={protein:'eggs, Greek yogurt, or chicken',carbs:'rice, oats, or fruit',fat:'nuts or avocado'}[low];
+  const sm=document.getElementById('hxSummary'); if(sm) sm.innerHTML='<b>Aether</b> — you’re lowest on '+low+' right now, so something like '+food+' would round out the day.';
+  const nu=document.getElementById('hxNudge'); if(nu) nu.textContent=''; }
+function hxSubmit(){ const inp=document.getElementById('hxEntry'); const v=(inp.value||'').trim(); if(!v) return; inp.value='';
+  if(hxIsQ(v)){ hxAnswer(v); return; }
+  const t=hxClassify(v);
+  if(t==='food'){ hxAdd({type:'food',text:v}); hxRenderAll(); hxPulse('hxOrbWrap'); const sm=document.getElementById('hxSummary'); if(sm) sm.innerHTML='<b>Logged.</b> Snap a photo and I can estimate the macros too.'; }
+  else if(t==='water'){ const oz=v.match(/(\d+)\s*(ml|oz)/i); const ml=oz?(oz[2].toLowerCase()==='oz'?Math.round(+oz[1]*29.6):+oz[1]):250; hxAddSimple('water',v,{ml}); }
+  else if(t==='sleep'){ hxAddSimple('sleep',v,{min:hxParseSleepMin(v)}); hxRenderSleep&&hxRenderSleep(); }
+  else hxAddSimple(t,v); }
+
+/* ---- photo → macros (local vision first) ---- */
+const HX_STUB=[{name:"Grilled chicken & greens",p:38,c:16,f:14,kcal:340},{name:"Oatmeal & berries",p:11,c:52,f:7,kcal:320},
+  {name:"Salmon, rice & veg",p:34,c:48,f:18,kcal:470},{name:"Greek yogurt & honey",p:18,c:24,f:5,kcal:210}];
+async function hxSnap(file){ if(!file) return;
+  if(__hxBusy){ toast&&toast('Still reading the last photo…',true); return; }
+  __hxBusy=true; haptic&&haptic();
+  const id=hxUid(); let thumb=null;
   try{
     const dataUrl=await hlResize(file); thumb=dataUrl;
-    // optimistic pending row so the user sees it land immediately
-    __hlMeals.push({id, name:'Analyzing…', calories:0, protein:0, carbs:0, fat:0, confidence:'low', thumb, t:Date.now(), day:hlTodayKey(), pending:true});
-    hlRender();
-    hlSetStatus('Uploading photo…');
-    const blob=hlDataUrlToBlob(dataUrl);
-    const url=await hlUpload(blob,'meal-'+id+'.jpg');
-    const sentAt=Math.floor(Date.now()/1000)-1;
+    hxAdd({id,type:'food',text:'Reading your plate…',thumb,pending:true}); hxRenderAll();
+    const sm=document.getElementById('hxSummary'); if(sm) sm.innerHTML='<b>Reading your plate…</b>';
     let raw=null;
-    // 1) Local vision (Ollama on the host) — free, fast, no cloud credits.
-    if(hlLocalVisionOn()){
-      hlSetStatus('Estimating locally (on-device vision)…');
-      try{ raw=await hlLocalVision(url, HL_SYSTEM); }catch(e){ raw=null; }
-    }
-    // 2) Fallback to the jarvis agent over ntfy if local vision is unreachable.
-    if(!raw){
-      hlSetStatus('Estimating calories & macros…');
-      try{ await hlFetch(`${NTFY}/${HL_AGENT.in}`,{method:'POST',body:hlBuildMessage(url)},30000);
-        raw=await hlPollResult(sentAt); }catch(e){ raw=null; }
-    }
+    try{ const blob=hlDataUrlToBlob(dataUrl); const url=await hlUpload(blob,'meal-'+id+'.jpg'); const sentAt=Math.floor(Date.now()/1000)-1;
+      if(hlLocalVisionOn()){ try{ raw=await hlLocalVision(url, HL_SYSTEM); }catch(e){ raw=null; } }
+      if(!raw){ try{ await hlFetch(`${NTFY}/${HL_AGENT.in}`,{method:'POST',body:hlBuildMessage(url)},30000); raw=await hlPollResult(sentAt); }catch(e){ raw=null; } }
+    }catch(e){ raw=null; }
     const parsed=raw?hlParse(raw):null;
-    const m=__hlMeals.find(x=>x.id===id);
-    if(parsed && m){ Object.assign(m,parsed,{pending:false}); hlSave(); hlRender(); hlSetStatus(''); haptic(); }
-    else { if(m){ __hlMeals=__hlMeals.filter(x=>x.id!==id); hlRender(); }
-      hlSetStatus(raw?'Could not read a nutrition estimate from the reply. Try again.':'No estimate came back — is the local vision server (or the assistant) running? Try again.',true); }
-  }catch(e){
-    __hlMeals=__hlMeals.filter(x=>x.id!==id); hlRender();
-    hlSetStatus('Failed: '+((e&&e.message)||'network error')+'. Check connection and retry.',true);
-  }finally{ __hlBusy=false; $('hlSnap').disabled=false; }
-}
-async function hlUpload(blob,name){
-  if(typeof tailnetUpload==='function') return await tailnetUpload(blob,name,(u,o)=>hlFetch(u,o,45000));
-  const r=await hlFetch(`${NTFY}/${UPLOAD_TOPIC}`,{method:'PUT',headers:{'Filename':name},body:blob},45000);
-  const o=await r.json(); const u=o&&o.attachment&&o.attachment.url; if(!u) throw new Error('upload failed'); return u;
+    const m=HX_ENTRIES.find(x=>x.id===id);
+    if(parsed && m){ Object.assign(m,{text:parsed.name,p:parsed.protein,c:parsed.carbs,f:parsed.fat,kcal:parsed.calories,conf:parsed.confidence,pending:false}); }
+    else if(m){ const s=HX_STUB[__hxStubI++%HX_STUB.length]; Object.assign(m,{text:s.name+' (est)',p:s.p,c:s.c,f:s.f,kcal:s.kcal,conf:'low',pending:false}); }
+    hxSave(); hxRenderAll(); hxPulse('hxOrbWrap'); haptic&&haptic();
+  }catch(e){ HX_ENTRIES=HX_ENTRIES.filter(x=>x.id!==id); hxRenderAll();
+    const sm=document.getElementById('hxSummary'); if(sm) sm.innerHTML='<b>Hmm.</b> Couldn’t read that one — try again or type it.'; }
+  finally{ __hxBusy=false; }
 }
 
-function hlTotals(){ const day=hlTodayKey(); const t={cal:0,p:0,c:0,f:0};
-  for(const m of __hlMeals){ if(m.day===day && !m.pending){ t.cal+=m.calories||0; t.p+=m.protein||0; t.c+=m.carbs||0; t.f+=m.fat||0; } } return t; }
-function hlRender(){
-  const t=hlTotals();
-  if($('hlKcal')) $('hlKcal').textContent=t.cal;
-  if($('hlGoal')) $('hlGoal').textContent=__hlGoal;
-  if($('hlP')) $('hlP').textContent=t.p+'g';
-  if($('hlC')) $('hlC').textContent=t.c+'g';
-  if($('hlF')) $('hlF').textContent=t.f+'g';
-  const kc=$('hlKcal'); if(kc) kc.style.color = t.cal>__hlGoal ? 'var(--gold)' : 'var(--cyan)';
-  const list=$('hlList'); if(!list) return;
-  const day=hlTodayKey();
-  const today=__hlMeals.filter(m=>m.day===day).sort((a,b)=>b.t-a.t);
-  if(!today.length){ list.innerHTML='<div class="hl-empty">No meals logged today.<br>Tap “Snap a meal” to start.</div>'; return; }
-  list.innerHTML='';
-  for(const m of today){
-    const d=document.createElement('div'); d.className='hl-meal'+(m.pending?' pending':'');
-    const conf=(m.confidence==='low' && !m.pending)?'<span class="hl-conf low">est</span>':'';
-    const time=new Date(m.t).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
-    d.innerHTML=
-      (m.thumb?'<img src="'+m.thumb+'" alt="">':'<div style="width:56px;height:56px;border-radius:10px;background:var(--bg-2);flex:0 0 auto"></div>')+
-      '<div class="hl-meal-b"><div class="hl-meal-name">'+hlEsc(m.name)+conf+'</div>'+
-      '<div class="hl-meal-mac">'+(m.pending?time:('P '+m.protein+'g · C '+m.carbs+'g · F '+m.fat+'g · '+time))+'</div></div>'+
-      '<div class="hl-meal-kc">'+(m.pending?'…':m.calories)+'<small>KCAL</small></div>'+
-      (m.pending?'':'<button class="hl-del" aria-label="Delete">×</button>');
-    const del=d.querySelector('.hl-del'); if(del) del.addEventListener('click',()=>{ __hlMeals=__hlMeals.filter(x=>x.id!==m.id); hlSave(); hlRender(); haptic(); });
-    list.appendChild(d);
-  }
+/* ---- lightweight mic dictation into a field (uses webkitSpeechRecognition) ---- */
+function hxDictate(inputId, micId, onDone){
+  const SRC=window.SpeechRecognition||window.webkitSpeechRecognition; if(!SRC){ const i=document.getElementById(inputId); i&&i.focus(); return; }
+  const mic=document.getElementById(micId), inp=document.getElementById(inputId); if(!inp) return;
+  try{ const r=new SRC(); r.lang='en-US'; r.interimResults=true; r.continuous=false;
+    mic&&mic.classList.add('live');
+    r.onresult=(e)=>{ let t=''; for(let i=0;i<e.results.length;i++)t+=e.results[i][0].transcript; inp.value=t; };
+    r.onend=()=>{ mic&&mic.classList.remove('live'); if((inp.value||'').trim()&&onDone) onDone(); };
+    r.onerror=()=>{ mic&&mic.classList.remove('live'); };
+    r.start();
+  }catch(e){ inp.focus(); }
 }
+
+/* ---- SLEEP tab ---- */
+function hxSleepNights(){ // most recent sleep entry per day, last 7 days
+  const byDay={}; HX_ENTRIES.filter(e=>e.type==='sleep'&&e.min).forEach(e=>{ if(!byDay[e.day]||e.t>byDay[e.day].t) byDay[e.day]=e; });
+  return hxLastNDays(7).map(d=>({day:d, min:byDay[d]?byDay[d].min:0})); }
+function hxRenderSleep(){
+  const nights=hxSleepNights(); const last=hxLastSleep();
+  const big=document.getElementById('hxsBig'); if(big) big.innerHTML = last? (Math.floor(last/60)+'<small>h '+(last%60)+'m</small>') : '—<small></small>';
+  const logged=nights.filter(n=>n.min); const avg=logged.length?Math.round(logged.reduce((s,n)=>s+n.min,0)/logged.length):0;
+  const sub=document.getElementById('hxsSub'); if(sub) sub.textContent= last?('last night · '+(avg?('7-night avg '+hxFmtMin(avg)):'')):'no sleep logged yet';
+  // week bars
+  const wk=document.getElementById('hxWeek'); if(wk){ const max=Math.max(480,...nights.map(n=>n.min)); const DOW=['S','M','T','W','T','F','S'];
+    wk.innerHTML=''; nights.forEach(n=>{ const d=new Date(n.day.split('-')[0],+n.day.split('-')[1]-1,n.day.split('-')[2]);
+      const bar=document.createElement('div'); bar.className='bar'; const h=n.min?Math.max(6,(n.min/max)*100):4;
+      bar.innerHTML='<div class="col'+(n.min&&n.min<390?' low':'')+'" style="height:'+h+'%"></div><span class="dl">'+DOW[d.getDay()]+'</span>'; wk.appendChild(bar); }); }
+  // log list
+  const log=document.getElementById('hxsLog'); if(log){ const items=HX_ENTRIES.filter(e=>e.type==='sleep').sort((a,b)=>b.t-a.t).slice(0,7);
+    if(!items.length){ log.innerHTML='<div class="hx-empty">No sleep logged yet.<br>Tell Aether how you slept below.</div>'; }
+    else { log.innerHTML=''; items.forEach(e=>{ const row=document.createElement('div'); row.className='hx-entry';
+      row.innerHTML='<span class="ec">'+HX_ICON.sleep+'</span><span class="et"><span class="when">'+new Date(e.t).toLocaleDateString([], {weekday:'short', month:'short', day:'numeric'})+'</span><span class="what">'+hxEsc(e.text)+'</span></span><button class="del" aria-label="Delete">×</button>';
+      row.querySelector('.del').addEventListener('click',()=>{ HX_ENTRIES=HX_ENTRIES.filter(x=>x.id!==e.id); hxSave(); hxRenderSleep(); }); log.appendChild(row); }); } }
+  // cross-domain reflection
+  const rf=document.getElementById('hxsReflect');
+  if(rf){ if(!logged.length){ rf.textContent='Log a few nights and Aether will tell you how sleep is shaping your days.'; }
+    else if(avg>=420){ rf.textContent='You’re averaging '+hxFmtMin(avg)+' — and your best, most focused days follow the nights past seven hours. Worth protecting.'; }
+    else { rf.textContent='You’re averaging '+hxFmtMin(avg)+' this week — a touch under seven. Even 20 more minutes tends to show up as steadier focus the next day.'; } }
+  const ss=document.getElementById('hxsSummary');
+  if(ss){ if(!last) ss.innerHTML='Rest is where the day before gets paid off.';
+    else if(last>=420) ss.innerHTML='<b>Solid rest</b> — '+hxFmtMin(last)+' last night. Your body’s ready.';
+    else ss.innerHTML='<b>'+hxFmtMin(last)+' last night</b> — go a little gentler today; it pays you back.'; }
+}
+
+/* ---- scoped water orb (runs only while a health screen is active) ---- */
+function hxMakeOrb(canvasId){
+  const cv=document.getElementById(canvasId); if(!cv) return {start(){},stop(){}};
+  const gl=cv.getContext('webgl',{premultipliedAlpha:false,alpha:true,antialias:true});
+  if(!gl){ cv.style.background='radial-gradient(circle at 40% 34%, rgba(127,217,212,.5), rgba(6,40,44,.6))'; return {start(){},stop(){}}; }
+  const VS='attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}';
+  const FS=`precision highp float; uniform vec2 uRes; uniform float uTime;
+  float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+  float vn(vec2 p){vec2 i=floor(p),f=fract(p);float a=hash(i),b=hash(i+vec2(1,0)),c=hash(i+vec2(0,1)),d=hash(i+vec2(1,1));vec2 u=f*f*(3.-2.*f);return mix(mix(a,b,u.x),mix(c,d,u.x),u.y);}
+  float fbm(vec2 p){float v=0.,a=.5;mat2 m=mat2(1.6,1.2,-1.2,1.6);for(int i=0;i<5;i++){v+=a*vn(p);p=m*p;a*=.5;}return v;}
+  float wH(vec2 p,float t){vec2 fl=vec2(t*.10,-t*.08);vec2 q=vec2(fbm(p*1.1+fl),fbm(p*1.1+vec2(4.3,1.7)-fl));
+    float h=fbm(p*1.7+1.3*q+fl);h+=.45*fbm(p*3.6+1.0*q-fl*1.6);h+=.20*sin(dot(p,vec2(.6,.8))*2.+t*.7);return (h-.85)*1.5;}
+  void main(){ vec2 uv=(gl_FragCoord.xy/uRes)*2.-1.; float r=length(uv); if(r>1.05){gl_FragColor=vec4(0.);return;}
+    float z=sqrt(max(0.,1.-min(r,1.)*min(r,1.))); vec3 N0=vec3(uv,z); vec2 wp=uv/(z*.35+.65)*2.4; float e=.012;
+    float h=wH(wp,uTime),hx=wH(wp+vec2(e,0.),uTime),hy=wH(wp+vec2(0.,e),uTime); vec2 grad=vec2(hx-h,hy-h)/e;
+    vec3 N=normalize(vec3(N0.xy-grad*.16,N0.z)); vec3 V=vec3(0.,0.,1.); vec3 L=normalize(vec3(-.45,.6,.72)),L2=normalize(vec3(.4,.5,.6));
+    float diff=clamp(dot(N,L),0.,1.); float spec=pow(clamp(dot(N,normalize(L+V)),0.,1.),90.); float spec2=pow(clamp(dot(N,normalize(L2+V)),0.,1.),26.);
+    float fres=pow(1.-clamp(dot(N,V),0.,1.),3.); vec3 deep=vec3(.01,.16,.17),mid=vec3(0.,.42,.40),bright=vec3(.05,.74,.69);
+    vec3 col=mix(deep,mid,.35+.5*z); col+=mid*diff*.30; col+=bright*spec*1.8; col+=vec3(1.,1.,.98)*spec2*.40; col+=vec3(.45,.88,.83)*fres*.22; col*=mix(.66,1.04,z);
+    float fa=fbm(uv*1.6+vec2(uTime*.05,-uTime*.04)),fb=fbm(uv*1.6+vec2(11.,3.)-vec2(uTime*.05));
+    vec2 flow=normalize(vec2(fb-.5,-(fa-.5))+1e-4); vec2 sp=uv*2.6+flow*.7; float wisp=fbm(sp+vec2(uTime*.1,-uTime*.08));
+    float rr=r+(wisp-.5)*.42; float core=smoothstep(.88,.42,rr); float haze=smoothstep(1.05,.5,r)*fbm(sp*1.8-vec2(uTime*.08))*.4;
+    float alpha=clamp(core+haze*core,0.,1.)*.97; col+=bright*(1.-core)*haze*1.4; gl_FragColor=vec4(col,alpha); }`;
+  function sh(t,s){const o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);return o;}
+  const pr=gl.createProgram(); gl.attachShader(pr,sh(gl.VERTEX_SHADER,VS)); gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,FS)); gl.linkProgram(pr); gl.useProgram(pr);
+  const bf=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,bf); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+  const lp=gl.getAttribLocation(pr,'p'); gl.enableVertexAttribArray(lp); gl.vertexAttribPointer(lp,2,gl.FLOAT,false,0,0);
+  gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+  const uR=gl.getUniformLocation(pr,'uRes'),uT=gl.getUniformLocation(pr,'uTime');
+  function rs(){ const d=Math.min(devicePixelRatio||1,2),b=cv.getBoundingClientRect(); cv.width=Math.max(1,b.width*d|0); cv.height=Math.max(1,b.height*d|0); gl.viewport(0,0,cv.width,cv.height); }
+  let ph=0,last=0,raf=0,running=false;
+  function loop(ms){ if(!running) return; const t=ms/1000; let dt=t-(last||t); last=t; ph+=Math.min(.05,dt)*0.7;
+    gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT); gl.uniform2f(uR,cv.width,cv.height); gl.uniform1f(uT,ph); gl.drawArrays(gl.TRIANGLES,0,3); raf=requestAnimationFrame(loop); }
+  return { start(){ if(running) return; rs(); running=true; last=0; raf=requestAnimationFrame(loop); }, stop(){ running=false; if(raf)cancelAnimationFrame(raf); } };
+}
+let __hxOrb=null, __hxsOrb=null;
+function stopHealthOrbs(){ if(__hxOrb)__hxOrb.stop(); if(__hxsOrb)__hxsOrb.stop(); }
+
 function openHealth(){
   document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   $('screenHealth').classList.add('active');
   stopStream&&stopStream(); stopAmbient&&stopAmbient(); stopStudio&&stopStudio();
-  if(typeof stopPlan==='function') stopPlan();
-  if(typeof stopLearn==='function') stopLearn();
-  haptic(); hlRender();
+  if(typeof stopPlan==='function') stopPlan(); if(typeof stopLearn==='function') stopLearn();
+  if(__hxsOrb) __hxsOrb.stop();
+  haptic&&haptic(); hxRenderAll();
+  if(!__hxOrb) __hxOrb=hxMakeOrb('hxOrb'); __hxOrb.start();
 }
-$('hlBack') && $('hlBack').addEventListener('click', ()=>{ navTo('screenHome'); });
-$('hlSnap') && $('hlSnap').addEventListener('click', ()=>{ $('hlFile').click(); });
-$('hlFile') && $('hlFile').addEventListener('change', (e)=>{ const f=e.target.files&&e.target.files[0]; e.target.value=''; if(f) hlSnap(f); });
-$('hlGoalBtn') && $('hlGoalBtn').addEventListener('click', ()=>{
-  const v=prompt('Daily calorie goal (kcal):', __hlGoal);
-  if(v===null) return; const n=parseInt(v,10);
-  if(isFinite(n) && n>0){ __hlGoal=n; localStorage.setItem('aetherKcalGoal',String(n)); hlRender(); haptic(); }
-});
+function openSleep(){
+  document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $('screenSleep').classList.add('active');
+  stopStream&&stopStream(); stopAmbient&&stopAmbient(); stopStudio&&stopStudio();
+  if(typeof stopPlan==='function') stopPlan(); if(typeof stopLearn==='function') stopLearn();
+  if(__hxOrb) __hxOrb.stop();
+  haptic&&haptic(); hxRenderSleep();
+  if(!__hxsOrb) __hxsOrb=hxMakeOrb('hxsOrb'); __hxsOrb.start();
+}
+
+/* ---- wiring ---- */
+$('hxBack') && $('hxBack').addEventListener('click', ()=>{ if(__hxOrb)__hxOrb.stop(); navTo('screenHome'); });
+$('hxsBack') && $('hxsBack').addEventListener('click', ()=>{ if(__hxsOrb)__hxsOrb.stop(); navTo('screenHome'); });
+$('hxSleepBtn') && $('hxSleepBtn').addEventListener('click', openSleep);
+$('hxA-sleepBtn') && $('hxA-sleepBtn').addEventListener('click', openSleep);
+$('hxHealthBtn') && $('hxHealthBtn').addEventListener('click', openHealth);
+$('hxSnap') && $('hxSnap').addEventListener('click', ()=>$('hxCam').click());
+$('hxCam') && $('hxCam').addEventListener('change', (e)=>{ const f=e.target.files&&e.target.files[0]; e.target.value=''; if(f) hxSnap(f); });
+$('hxSend') && $('hxSend').addEventListener('click', hxSubmit);
+$('hxEntry') && $('hxEntry').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); hxSubmit(); } });
+$('hxMic') && $('hxMic').addEventListener('click', ()=>hxDictate('hxEntry','hxMic', hxSubmit));
+document.querySelectorAll('#screenHealth .hx-chip[data-q], #screenHealth .hx-amb[data-q]').forEach(c=>c.addEventListener('click',()=>{
+  const q=c.dataset.q;
+  if(q==='food'){ $('hxEntry').focus(); return; }
+  hxAddSimple(q, {water:'Water · 250 ml',move:'Short walk',mood:'Feeling good'}[q]||'Logged', q==='water'?{ml:250}:null); }));
+function hxsSubmit(){ const inp=$('hxsEntry'); const v=(inp.value||'').trim(); if(!v) return; inp.value='';
+  hxAdd({type:'sleep',text:v,min:hxParseSleepMin(v)}); hxSave(); hxRenderSleep(); hxPulse('hxsOrbWrap'); haptic&&haptic(); }
+$('hxsSend') && $('hxsSend').addEventListener('click', hxsSubmit);
+$('hxsEntry') && $('hxsEntry').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); hxsSubmit(); } });
+$('hxsMic') && $('hxsMic').addEventListener('click', ()=>hxDictate('hxsEntry','hxsMic', hxsSubmit));
+
 
 function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function renderPlan(){
@@ -3072,7 +3349,7 @@ function openLearn(){
   document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   $('screenLearn').classList.add('active');
-  stopStream(); stopAmbient(); stopStudio&&stopStudio(); stopPlan&&stopPlan();
+  stopStream(); stopAmbient(); stopStudio&&stopStudio(); stopPlan&&stopPlan(); stopHealthOrbs&&stopHealthOrbs();
   haptic(); startLearn();
 }
 async function learnTick(){
@@ -3317,6 +3594,7 @@ document.querySelectorAll('.fcard').forEach(c=>{
   c.addEventListener('click', ()=>{
     if(c.dataset.radar){ haptic(); navTo('screenRadar'); return; }
     if(c.dataset.health){ haptic(); openHealth(); return; }
+    if(c.dataset.sleep){ haptic(); openSleep(); return; }
     if(c.dataset.studio){ haptic(); navTo('screenStudio'); return; }
     if(c.dataset.learn){ haptic(); openLearn(); return; }
     const a=AGENTS.find(x=>x.id===c.dataset.agent)||activeAgent; switchAgent(a); goChat();

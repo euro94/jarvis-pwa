@@ -10,6 +10,20 @@ Status keys: `[ ]` todo · `[~]` on a branch awaiting review · `[x]` shipped to
 
 ## Now (top of stack)
 
+- [~] **Health experience overhaul + Sleep tab** — replaced the basic meal-logger
+  with the full Aether wellbeing screen (Yaro's aether-health.html mockup): small
+  water orb + cross-domain **synthesis line** ("Aether noticed — …"), macro rings
+  with the lowest one accented, ambient strip (hydration/movement/sleep), voice +
+  photo + chip logging dock, timeline, hydration sparkline, orb "drinks" each log.
+  **Sleep is its own screen** (`screenSleep`): last-night big number, 7-night bar
+  chart, sleep→performance reflection. One `HX_ENTRIES[]` localStorage model
+  across food/water/move/sleep/mood. Photo→macros still routes to LOCAL vision
+  first (vision_local.py) then jarvis fallback. Namespaced `hx-`, scoped teal
+  world, battery-safe orbs (stop when screen inactive). Home cards for Health +
+  Sleep. sw v86->v87. _Verified: verify.py 15/15; headless Chrome run — openHealth/
+  openSleep execute clean, 6 entries render, rings compute (56g protein), synthesis
+  fires cross-domain, 7 week bars, water log updates ambient. No JS errors._
+
 - [x] **Local vision backend (Ollama) — UNBLOCKS Health, no cloud/credits** —
   SHIPPED. Installed Ollama on the host + pulled `qwen2.5vl:7b` (runs on the RTX
   5070). Added `vision_local.py` (stdlib proxy port 8846, `POST /analyze`
