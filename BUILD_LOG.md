@@ -102,6 +102,31 @@ Newest first. One entry per run: what shipped / what's on a branch / what's bloc
 - **Open blocker:** Health meal AI estimate, pending a credit top-up + possible
   AGENTS.md vision-on-URL rule.
 
+## 2026-06-18 — run 8 (LOCAL VISION — the credit blocker, solved)
+
+- **Pulled:** Yaro asked "can we have a local model see the pics on my screen" —
+  chose a general local-vision backend (unblocks Health + Radar privacy).
+- **Host setup:** RTX 5070 (12GB) confirmed. Installed Ollama 0.30.6 via winget
+  (server auto-starts on 127.0.0.1:11434); pulled `qwen2.5vl:7b` (6GB, fits VRAM,
+  strong at reading text in images = good for Radar workpapers too).
+- **Server:** `vision_local.py` — stdlib HTTP proxy on 8846. `POST /analyze`
+  takes {image_url | image_b64, prompt}, fetches the image, base64s it, calls
+  Ollama `/api/generate` (non-streaming, one image), returns {text}. `/health`
+  reports model + ollama_up. CORS scoped to the PWA origin. `start_vision.bat`.
+- **Client:** Health now tries local vision FIRST (`hlLocalVision` -> VISION_PROXY
+  /analyze) and only falls back to the jarvis/ntfy round-trip if it's unreachable.
+  Settings → "Local Vision" toggle (`aetherLocalVision`, default on). hlParse
+  already strips the model's ```json fences. sw v85->v86.
+- **VERIFIED END-TO-END (the make-or-break):** first run loads 6GB into VRAM (~slow
+  once), then a real meal photo -> tailnet upload -> POST {image_url} to the proxy
+  -> qwen2.5vl returned correct JSON: chicken/rice/broccoli, 450 kcal, 35P/25C/15F,
+  confidence high. Tested both base64 and image_url paths; CORS preflight OK;
+  hlParse round-trips the fenced output to a clean meal object; verify.py 15/15.
+- **Status:** PR opened on `feat/local-vision`.
+- **Host setup needed (one-time, Yaro):** run `start_vision.bat` and
+  `tailscale serve --bg --set-path /aether-vision http://127.0.0.1:8846`. Then
+  Health works with zero cloud credits. (Ollama + model already installed.)
+
 ## 2026-06-18 — run 5
 
 - **Pulled:** Health tab — photo meal logging (Yaro asked for it directly).
