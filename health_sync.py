@@ -37,7 +37,7 @@ import time
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-PORT = int(os.environ.get("HEALTH_SYNC_PORT", "8848"))
+PORT = int(os.environ.get("HEALTH_SYNC_PORT", "8849"))
 TOKEN = os.environ.get("AETHER_SYNC_TOKEN", "aether-sync-7e3f9c")  # CHANGE THIS
 ALLOW_ORIGIN = os.environ.get("SYNC_ALLOW_ORIGIN", "https://euro94.github.io")
 STORE = os.environ.get("HEALTH_SYNC_STORE", os.path.join(os.path.dirname(os.path.abspath(__file__)), "health_sync_store.json"))

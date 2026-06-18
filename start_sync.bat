@@ -9,10 +9,10 @@ REM IMPORTANT: set a private token and use the SAME one on the iPhone + in the
 REM app's Settings -> iOS Health Sync field. Change the value below.
 if "%AETHER_SYNC_TOKEN%"=="" set "AETHER_SYNC_TOKEN=aether-sync-7e3f9c"
 
-echo Starting AETHER health-sync on port 8848 (Ctrl+C to stop)...
+echo Starting AETHER health-sync on port 8849 (Ctrl+C to stop)...
 echo Token: %AETHER_SYNC_TOKEN%
 echo Expose it to your phone (tailnet + funnel):
-echo    tailscale funnel --bg --set-path /aether-sync http://127.0.0.1:8848
+echo    tailscale funnel --bg --set-path /aether-sync http://127.0.0.1:8849
 echo.
 python health_sync.py
 echo.
