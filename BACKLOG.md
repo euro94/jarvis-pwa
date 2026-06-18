@@ -116,6 +116,7 @@ finish or revert, never ship red, never auto-merge. Log lives in BUILD_LOG.md._
 
 ## Ideas (eval-generated)
 
+- [ ] **✨ Smart Task Scheduling** [Plan] — Implement an AI-driven task scheduler that automatically assigns tasks based on user's calendar and past performance. This feature would help users prioritize their tasks more effectively, ensuring they are aligned with their schedule and goals. `effort:large` `impact:high` _(epic idea, eval 2026-06-17)_
 - [ ] **Voice Orb Interaction** [Talk] — The orb is visually distinct, but there's no clear visual feedback when it's tapped or active. `effort:small` `impact:medium` _(eval 2026-06-17)_
 - [ ] **✨ Visual Feedback for Voice Activation** [Talk] — Add a small icon or light that turns on when the orb is tapped and active, providing clear visual feedback to users. This would enhance the user experience by making it more intuitive. `effort:small` `impact:high` _(epic idea, eval 2026-06-17)_
 - [ ] **Voice Recognition Feedback** [Talk] — The app could provide feedback to the user when voice recognition is active or processing. `effort:small` `impact:medium` _(eval 2026-06-17)_
