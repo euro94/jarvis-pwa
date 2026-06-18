@@ -81,6 +81,27 @@ Newest first. One entry per run: what shipped / what's on a branch / what's bloc
   app silently uses native dictation (still works, still re-asks).
 - **Status:** PR open on `feat/persistent-mic-whisper`. Awaiting review/merge.
 
+## 2026-06-18 — runs 5-7 (batch)
+
+- **Run 5 — Health tab (photo meal logging):** built `screenHealth` + Home fcard;
+  snap/pick photo -> upload -> jarvis vision estimate JSON -> localStorage ->
+  today's meals + macro totals vs. editable goal. Reuses the Radar spine.
+  Shipped to main (PR #5, `96ad49c`). NOTE: live AI estimate UNVERIFIED — account
+  hit a credit limit mid-test and jarvis looked "in Downloads" instead of calling
+  vision_analyze on the URL. Tracked as a `[!]` blocked backlog item.
+- **Run 6 — Build version + Force update:** root-caused a "phone shows X but repo
+  doesn't" report to PWA cache opacity (no visible build signal). Added Settings →
+  About showing the running SW build, a waiting-update flag, and a Force-update
+  button (skip-waiting + clear caches + reload). SW gained get-version/skip-waiting
+  message handlers. sw v84->v85. Shipped to main (PR #6, `ff9b48a`).
+- **Run 7 — Pre-ship verify script:** `verify.py` codifies the checks that would
+  have caught the 3 earlier silent bugs — JS syntax (sw.js + inline scripts),
+  manifest JSON + theme/bg color, precache-asset existence, meta/manifest theme
+  parity. Verified passing on main (15 checks) AND failing (exit 1) on three
+  deliberately broken inputs. Shipped to main.
+- **Open blocker:** Health meal AI estimate, pending a credit top-up + possible
+  AGENTS.md vision-on-URL rule.
+
 ## 2026-06-18 — run 5
 
 - **Pulled:** Health tab — photo meal logging (Yaro asked for it directly).

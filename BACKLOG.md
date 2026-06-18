@@ -10,17 +10,28 @@ Status keys: `[ ]` todo · `[~]` on a branch awaiting review · `[x]` shipped to
 
 ## Now (top of stack)
 
-- [~] **Health tab — photo meal logging** — SHIPPED on branch
-  `feat/health-meal-logging`. New `screenHealth` (opened from a Home fcard, like
-  Plan/Learn). Snap/pick a meal photo -> resize -> upload to UPLOAD_TOPIC -> ask
-  the jarvis agent for `{name,calories,protein,carbs,fat,confidence}` JSON via
-  its vision tool -> poll jarvis-out -> store in localStorage -> render today's
-  meals + running macro totals vs. an editable kcal goal. Optimistic pending row,
-  per-meal delete, low-confidence "est" tag, sw v83->v84. Reuses the Radar
-  round-trip spine; no new keys/deps. _Verified: node --check clean; live
-  round-trip (upload->jarvis->JSON) tested; totals math + persistence checked._
-  Future upgrade (icebox): swap the agent estimate for a real nutrition API
-  (Nutritionix/USDA) for precise macros — needs an account + key.
+- [x] **Pre-ship verify script** — SHIPPED to main. `verify.py` checks JS syntax
+  (sw.js + all inline scripts via node --check), manifest JSON + theme/bg ==
+  `#021014`, every SHELL_ASSETS precache file exists, and `<meta theme-color>` ==
+  manifest. _Verified: passes clean on main (15 checks, exit 0); catches all 3
+  failure modes (color mismatch, missing asset, JS syntax) with exit 1._
+
+- [!] **Health meal AI estimate — BLOCKED on credits** — feature shipped (PR #5)
+  but the live nutrition estimate is unverified: Nous account hit a credit limit
+  mid-test ("Model 'anthropic/claude-opus-4.8' requires available credits"), and
+  jarvis looked for the attachment "in Downloads" instead of calling
+  vision_analyze on the URL. _Unblock: Yaro tops up credits, then re-test a real
+  meal photo; if jarvis still mis-routes, add a vision-on-URL rule to AGENTS.md._
+
+- [x] **Health tab — photo meal logging** — SHIPPED to main (PR #5, squash
+  `96ad49c`). `screenHealth` from a Home fcard; snap/pick photo -> upload ->
+  jarvis estimates `{name,calories,protein,carbs,fat,confidence}` -> localStorage
+  -> today's meals + macro totals vs. editable kcal goal. Reuses Radar spine.
+
+- [x] **Build version + Force update** — SHIPPED to main (PR #6, `ff9b48a`).
+  Settings → About shows the running SW build (`aether-vNN`), flags a waiting
+  update, and a Force-update button clears caches + reloads. sw v84->v85. Durable
+  fix for "phone vs repo" cache confusion.
 
 - [x] **Persistent mic grant (getUserMedia + host Whisper)** — SHIPPED on branch
   `feat/persistent-mic-whisper` (PR open). Added `stt_proxy.py` (stdlib HTTP +
