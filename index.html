@@ -312,7 +312,13 @@
   /* lit top accent — a glowing brand hairline rides the top edge of every glass
      card surface (Home stats, Recent list, every settings card) so the whole app
      reads as one HUD system, not flat panels. Purely decorative (AA unaffected). */
-  .stat, .recent, .card2 { position:relative; }
+  .stat, .recent, .card2 {
+    position:relative;
+    /* soft top light-catch: a faint cyan bloom falls from the lit hairline into
+       the glass, so each card reads as a lit panel under the HUD's edge light.
+       Painted as a background layer (behind content) — purely decorative, AA-safe. */
+    background-image:radial-gradient(125% 78% at 50% -12%, rgba(60,210,255,.07) 0%, rgba(60,210,255,.025) 30%, transparent 62%);
+  }
   .stat::before, .recent::before, .card2::before {
     content:""; position:absolute; top:0; left:14px; right:14px; height:2px;
     border-radius:var(--r-pill); background:var(--grad);
