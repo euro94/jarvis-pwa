@@ -15,4 +15,5 @@ Newest first. One entry per run: what shipped / what's on a branch / what's bloc
 - **Did:** branch `feat/manifest-dark-theme`; set both manifest colors to `#021014`.
 - **Verified:** manifest parses as JSON; both colors == `#021014`; consistent with
   index.html `--bg` and meta theme-color.
-- **Status:** on branch `feat/manifest-dark-theme`, pushed, awaiting review. Not merged.
+- **Status:** SHIPPED. PR #1 merged (squash) to main as `6b27bea`; branch deleted.
+  Yaro approved the merge from the PR page.

@@ -10,12 +10,9 @@ Status keys: `[ ]` todo · `[~]` on a branch awaiting review · `[x]` shipped to
 
 ## Now (top of stack)
 
-- [~] **Manifest dark-theme parity** — `manifest.webmanifest` still ships the old
-  light palette (`theme_color`/`background_color` = `#EEF3FA`) while the app
-  rebranded to dark navy (`#021014`). Causes a white splash flash + wrong status
-  bar tint on install. Fix: set both to `#021014` to match `<meta theme-color>`
-  and `--bg`. _Accept: manifest is valid JSON; both colors == `#021014`; matches
-  index.html._
+- [x] **Manifest dark-theme parity** — set `theme_color`/`background_color` to
+  `#021014` to match `<meta theme-color>` and `--bg`. Shipped via PR #1 (squash
+  `6b27bea`).
 
 ## Next (unblocked, not yet pulled)
 
