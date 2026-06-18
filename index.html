@@ -2900,16 +2900,42 @@ async function sendFromInput(){
    instantly; only real actions are dispatched to Hermes by the proxy. Falls
    back to the normal ntfy agent path on any failure so nothing is ever lost. */
 const liveOn = ()=> !!VOICE_PROXY && localStorage.getItem('aetherLive')==='1';
-let __liveHist = [];  // {role, content} pairs for proxy continuity (capped)
+// Live voice/chat history is DERIVED from the persisted session (chatLog) so it
+// survives reloads, shares ONE continuous thread with typed messages, and only
+// resets when you start a new chat. No separate volatile buffer to drift out of
+// sync — this is what makes voice feel like ChatGPT/Claude: context flows turn
+// after turn until you explicitly say "new session."
+function buildLiveMessages(){
+  // Collapse chatLog into clean, API-valid turns: skip progress lines, drop
+  // empties, merge consecutive same-role bubbles, and ensure the list starts
+  // with a user turn (Anthropic requires strict user→assistant alternation).
+  const raw=[];
+  for(const m of chatLog){
+    if(m.progress) continue;
+    const content=(m.text||'').trim(); if(!content) continue;
+    const role=m.role==='me'?'user':'assistant';
+    if(raw.length && raw[raw.length-1].role===role){ raw[raw.length-1].content+='\n\n'+content; }
+    else raw.push({role, content});
+  }
+  let win=raw.slice(-60);                                  // generous continuity window
+  while(win.length && win[0].role!=='user') win.shift();   // window must lead with user
+  return win;
+}
 async function liveAsk(text, silent){
-  if(!silent) pushMsg('me', text);
+  if(!silent) pushMsg('me', text);                  // persist the user turn FIRST
   showTyping();
-  __liveHist.push({role:'user', content:text});
-  if(__liveHist.length>20) __liveHist=__liveHist.slice(-20);
+  const msgs = buildLiveMessages();                 // derived from persisted thread
+  // Silent/programmatic calls skip pushMsg, so their turn isn't in chatLog yet —
+  // append it (merging if the tail is already a user turn) to keep alternation valid.
+  if(silent){
+    if(msgs.length && msgs[msgs.length-1].role==='user'){ msgs[msgs.length-1].content+='\n\n'+text; }
+    else msgs.push({role:'user',content:text});
+  }
+  if(!msgs.length){ msgs.push({role:'user',content:text}); }   // never send empty
   let acc='', bubble=null;
   const ensureBubble=()=>{ if(!bubble){ hideTyping(); bubble=document.createElement('div'); bubble.className='msg ai'; $('chatThread').appendChild(bubble); } };
   try{
-    const r=await fetch(VOICE_PROXY+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:__liveHist})});
+    const r=await fetch(VOICE_PROXY+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:msgs})});
     if(!r.ok||!r.body) throw new Error('proxy '+r.status);
     const reader=r.body.getReader(), dec=new TextDecoder(); let buf='';
     for(;;){
@@ -2933,14 +2959,13 @@ async function liveAsk(text, silent){
     const reply=acc.trim();
     if(reply){
       if(bubble) bubble.remove();           // re-add via pushMsg so it persists + gets copy button
-      pushMsg('ai', reply);
-      __liveHist.push({role:'assistant', content:reply});
+      pushMsg('ai', reply);                  // persisted → becomes part of the continuous thread
       if(window.__voiceMode){ voiceModeAfterReply(reply); } else { enqueueSpeak(reply); }
     } else if(window.__voiceMode && !speaking){ voSetState('listening','Listening…'); setTimeout(()=>{ if(window.__voiceMode&&!speaking) startListening(); }, 300); }
   }catch(e){
-    if(bubble) bubble.remove(); hideTyping(); __liveHist.pop();
+    if(bubble) bubble.remove(); hideTyping();
     toast('Live proxy unreachable — using '+activeAgent.label+'.', true);
-    askAgent(text, true);                    // graceful fallback to the ntfy path
+    askAgent(text, true);                    // graceful fallback to the ntfy path (user turn already persisted)
   }
 }
 $('clearChat').addEventListener('click', ()=>{ startNewChat(); });
