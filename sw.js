@@ -1,5 +1,5 @@
 // AETHER service worker — Web Push + notification taps + offline app shell
-const VERSION = 'aether-v81';
+const VERSION = 'aether-v82';
 const SHELL = 'aether-shell-' + VERSION;
 
 // The static shell. Cached on install so the app opens (and shows a real
@@ -9,9 +9,12 @@ const SHELL_ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
+  './icons/icon-180.png',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/maskable-192.png',
+  './icons/maskable-512.png',
+  './icons/mark-256.png',
   './assets/aether-logo.svg'
 ];
 

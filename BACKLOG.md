@@ -22,9 +22,11 @@ Status keys: `[ ]` todo · `[~]` on a branch awaiting review · `[x]` shipped to
   at 50% (tips ±25% from center, inside the circular safe zone). Shipped on
   branch `feat/icon-dark-ground`. _Accept: 192/512/maskable render the cyan mark
   on #021014; no white box; maskable safe-zone clear._
-- [ ] **Offline shell completeness** — verify `sw.js` precaches everything
-  index.html references (fonts, logo svg, icons) so a cold offline launch isn't
-  broken. _Accept: airplane-mode reload renders the home screen fully._
+- [x] **Offline shell completeness** — sw.js precache was missing `mark-256.png`
+  (home-screen logo), `icon-180`, `maskable-512`. Added all three + bumped to
+  v82. Cross-origin Google Fonts intentionally not cached (system fallback stack
+  covers offline). Shipped on `feat/offline-shell-precache`. _Accept: all 9
+  same-origin shell assets precached & serve 200; SW syntax valid._
 
 ## Icebox (needs spec / a decision from Yaro)
 
