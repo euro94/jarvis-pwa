@@ -1765,7 +1765,7 @@ $('streamSend') && $('streamSend').addEventListener('click', streamSend);
 $('streamInput') && $('streamInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); streamSend(); } });
 $('streamInput') && $('streamInput').addEventListener('input', function(){ this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,90)+'px'; });
 $('streamMic') && $('streamMic').addEventListener('click', ()=>{
-  if(!SR){ toast('Voice input not supported here.',true); return; }
+  if(!recog){ toast('Voice input not supported here.',true); return; }
   if(listening){ recog.stop(); return; }
   haptic();
   // dictate into the stream input (reuse recog; route result there)
@@ -2231,7 +2231,7 @@ async function studioVoiceDispatch(said){
   catch(e){ /* fire-and-forget — never block the mic */ }
 }
 function startStudioVoice(){
-  if(!SR){ toast('Voice mode not supported on this browser.',true); return; }
+  if(!recog){ toast('Voice mode not supported on this browser.',true); return; }
   if(!ST_BUILDER){ toast('Builder agent not configured.',true); return; }
   primeTTS(); primeAudio();               // unlock iOS speech/audio inside this tap
   startStudio();                          // begin polling the builder OUT feed
@@ -2302,11 +2302,11 @@ $('stShip') && $('stShip').addEventListener('click', shipStudio);
 $('stClear') && $('stClear').addEventListener('click', clearStudioFeed);
 $('stReload') && $('stReload').addEventListener('click', reloadToLatest);
 $('stVoiceBtn') && $('stVoiceBtn').addEventListener('click', ()=>{
-  if(!SR){ toast('Voice mode not supported on this browser.',true); return; }
+  if(!recog){ toast('Voice mode not supported on this browser.',true); return; }
   haptic(); startStudioVoice();
 });
 $('stMic') && $('stMic').addEventListener('click', ()=>{
-  if(!SR){ toast('Voice input not supported here.',true); return; }
+  if(!recog){ toast('Voice input not supported here.',true); return; }
   if(listening){ recog.stop(); return; }
   haptic();
   // dictate the design request straight into the Studio composer
@@ -3033,7 +3033,7 @@ function renderHistory(){
   }
   function startMicTalk(){
     if(longFired) return;
-    if(!SR){ goChat(); setTimeout(()=>$('chatInput').focus(),120); toast('Voice not supported here — type instead.',true); return; }
+    if(!recog){ goChat(); setTimeout(()=>$('chatInput').focus(),120); toast('Voice not supported here — type instead.',true); return; }
     primeTTS(); primeAudio();   // unlock speech/audio inside this tap
     openVoiceSessChooser();     // ask New / Continue / pick past — don't force a new chat
   }
@@ -3113,9 +3113,106 @@ let recog=null, listening=false, __streamDictation=false, __studioDictation=fals
 // leaving a "zombie" that never advances. A stale heartbeat = dead recognizer.
 let __recogAlive=0;
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-if(SR){ recog=new SR(); recog.lang='en-US'; recog.interimResults=true; recog.continuous=false;
-  recog.onstart=()=>{ __recogAlive=Date.now(); };
-  recog.onresult=(e)=>{
+
+/* ===== HOST WHISPER CAPTURE (persistent-mic path) ============================
+   iPhone Safari's webkitSpeechRecognition re-prompts for the mic EVERY session.
+   An installed PWA's getUserMedia grant, by contrast, persists. So when the host
+   STT endpoint is reachable we capture audio with getUserMedia + MediaRecorder,
+   auto-endpoint on silence (VAD), and POST the clip to stt_proxy.py — no browser
+   speech permission, no re-ask. makeSttRecognizer() returns an object with the
+   SAME interface as webkitSpeechRecognition (.start/.stop/.abort + on* handlers)
+   so the entire voice loop below runs unchanged. If the endpoint is down we fall
+   back to native SR (which works, but re-asks). */
+const STT_PROXY = (typeof NTFY==='string'? NTFY : '') + '/aether-stt';
+const __canRecord = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+// default ON when we can record; localStorage 'aetherSTT'==='0' forces native SR.
+let __useStt = __canRecord && (localStorage.getItem('aetherSTT')!=='0');
+const VOICE_OK = !!(SR || __useStt);
+
+function makeSttRecognizer(){
+  let stream=null, rec=null, chunks=[], ac=null, an=null, data=null;
+  let raf=0, hbTimer=0, active=false, stopping=false, done=false;
+  let speechSeen=false, lastLoud=0, startedAt=0;
+  const SILENCE_MS=1100, MIN_MS=350, MAX_MS=15000, THRESH=0.020;
+  const api={ lang:'en-US', interimResults:true, continuous:false,
+              onstart:null, onresult:null, onend:null, onerror:null, __isStt:true };
+  function pickMime(){
+    const cands=['audio/mp4','audio/webm;codecs=opus','audio/webm','audio/ogg'];
+    for(const m of cands){ try{ if(MediaRecorder.isTypeSupported(m)) return m; }catch(e){} }
+    return '';
+  }
+  async function ensureStream(){
+    if(stream && stream.active) return stream;
+    stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+    return stream;
+  }
+  function teardownMeter(){ if(raf)cancelAnimationFrame(raf); raf=0; if(hbTimer)clearInterval(hbTimer); hbTimer=0; try{ if(an)an.disconnect(); }catch(e){} an=null; }
+  function meterLoop(){
+    if(!an||!active) return;
+    an.getByteTimeDomainData(data);
+    let s=0; for(let i=0;i<data.length;i++){ const x=(data[i]-128)/128; s+=x*x; }
+    const rms=Math.sqrt(s/data.length); const now=Date.now();
+    if(rms>THRESH){ speechSeen=true; lastLoud=now; }
+    const dur=now-startedAt;
+    if(dur>MAX_MS){ finish(); return; }
+    if(speechSeen && (now-lastLoud)>SILENCE_MS && dur>MIN_MS){ finish(); return; }
+    raf=requestAnimationFrame(meterLoop);
+  }
+  function finish(){ if(stopping||!active) return; stopping=true;
+    try{ if(rec && rec.state!=='inactive') rec.stop(); else doTranscribe(); }catch(e){ doTranscribe(); } }
+  async function doTranscribe(){
+    if(done) return; done=true; active=false; teardownMeter();
+    const blob=new Blob(chunks,{type:(rec&&rec.mimeType)||'audio/mp4'}); chunks=[];
+    if(!blob.size){ if(api.onend)api.onend(); return; }
+    try{
+      const r=await fetch(STT_PROXY+'/transcribe',{method:'POST',headers:{'Content-Type':blob.type||'application/octet-stream'},body:blob});
+      if(!r.ok) throw new Error('http '+r.status);
+      const j=await r.json(); const text=((j&&j.text)||'').trim();
+      if(api.onresult) api.onresult({results:[[{transcript:text}]]});
+      if(api.onend) api.onend();
+    }catch(err){
+      if(api.onerror) api.onerror({error:'stt-network', message:String((err&&err.message)||err)});
+      if(api.onend) api.onend();
+    }
+  }
+  api.start=async function(){
+    if(active) return; stopping=false; done=false; speechSeen=false; chunks=[];
+    try{
+      await ensureStream();
+      const mime=pickMime();
+      rec = mime ? new MediaRecorder(stream,{mimeType:mime}) : new MediaRecorder(stream);
+      rec.ondataavailable=(e)=>{ if(e.data&&e.data.size) chunks.push(e.data); };
+      rec.onstop=()=>{ doTranscribe(); };
+      rec.start();
+      active=true; startedAt=Date.now(); lastLoud=Date.now();
+      ac=ac||new (window.AudioContext||window.webkitAudioContext)();
+      if(ac.state==='suspended'){ try{ await ac.resume(); }catch(e){} }
+      const src=ac.createMediaStreamSource(stream);
+      an=ac.createAnalyser(); an.fftSize=1024; an.smoothingTimeConstant=0.5; src.connect(an);
+      data=new Uint8Array(an.fftSize);
+      __recogAlive=Date.now(); if(api.onstart) api.onstart();
+      // keep the zombie-watchdog satisfied during a long utterance
+      hbTimer=setInterval(()=>{ if(active) __recogAlive=Date.now(); }, 1500);
+      raf=requestAnimationFrame(meterLoop);
+    }catch(err){
+      active=false; teardownMeter();
+      const code=(err&&err.name==='NotAllowedError')?'not-allowed':'audio-capture';
+      if(api.onerror) api.onerror({error:code, message:String(err)});
+      if(api.onend) api.onend();
+    }
+  };
+  api.stop=function(){ if(active) finish(); };
+  api.abort=function(){ stopping=true; active=false; done=true; teardownMeter();
+    try{ if(rec&&rec.state!=='inactive'){ rec.onstop=null; rec.stop(); } }catch(e){}
+    chunks=[]; try{ if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; } }catch(e){} };
+  return api;
+}
+
+// Bind the (shared) loop handlers onto whichever recognizer is live — native SR
+// or the STT shim. Bodies are identical regardless of capture backend.
+function bindRecogHandlers(r){
+  r.onstart=()=>{ __recogAlive=Date.now(); };
+  r.onresult=(e)=>{
     __recogAlive=Date.now();
     let t=''; for(let i=0;i<e.results.length;i++)t+=e.results[i][0].transcript;
     if(window.__voiceMode){ $('voTranscript').textContent=t; }
@@ -3123,7 +3220,7 @@ if(SR){ recog=new SR(); recog.lang='en-US'; recog.interimResults=true; recog.con
     else if(__studioDictation){ const si=$('stInput'); if(si){ si.value=t; si.dispatchEvent(new Event('input')); } }
     else { $('chatInput').value=t; }
   };
-  recog.onend=()=>{
+  r.onend=()=>{
     listening=false; $('micBtn').classList.remove('listening'); $('homeMic')&&$('homeMic').classList.remove('rec'); $('streamMic')&&$('streamMic').classList.remove('listening'); $('stMic')&&$('stMic').classList.remove('listening');
     if(window.__voiceMode){
       const said=($('voTranscript').textContent||'').trim();
@@ -3145,18 +3242,40 @@ if(SR){ recog=new SR(); recog.lang='en-US'; recog.interimResults=true; recog.con
     if(__streamDictation){ __streamDictation=false; const inp=$('streamInput'); if(inp){ inp.focus(); inp.dispatchEvent(new Event('input')); } return; }
     const v=$('chatInput').value.trim(); if(v){ $('chatInput').value=''; askAgent(v,false);} 
   };
-  recog.onerror=(e)=>{
+  r.onerror=(e)=>{
+    // STT endpoint unreachable -> drop to native device dictation for the rest of
+    // the session (works, but re-asks the mic). Then continue the loop's normal
+    // restart so the user isn't stranded.
+    if(e && e.error==='stt-network'){ fallbackToSR(); }
     listening=false; __streamDictation=false; __studioDictation=false; $('micBtn').classList.remove('listening'); $('homeMic')&&$('homeMic').classList.remove('rec'); $('streamMic')&&$('streamMic').classList.remove('listening'); $('stMic')&&$('stMic').classList.remove('listening');
     // 'no-speech'/'aborted' are normal in a loop — just restart listening
     if(window.__voiceMode && !speaking){ setTimeout(()=>{ if(window.__voiceMode && !speaking) startListening(); }, 600); }
   };
 }
-function startListening(){ if(!SR||listening||speaking)return; listening=true; voPaused=false;
+
+// One-time graceful degrade: swap the live recognizer to native SR.
+function fallbackToSR(){
+  if(!SR || (recog && recog.__isStt===undefined)) return false;  // no SR, or already native
+  try{ if(recog && recog.abort) recog.abort(); }catch(e){}
+  __useStt=false;
+  recog=new SR();
+  try{ recog.lang='en-US'; recog.interimResults=true; recog.continuous=false; }catch(e){}
+  bindRecogHandlers(recog);
+  try{ toast('Voice transcription offline — using device dictation.', true); }catch(e){}
+  return true;
+}
+
+if(VOICE_OK){
+  recog = __useStt ? makeSttRecognizer() : new SR();
+  try{ recog.lang='en-US'; recog.interimResults=true; recog.continuous=false; }catch(e){}
+  bindRecogHandlers(recog);
+}
+function startListening(){ if(!recog||listening||speaking)return; listening=true; voPaused=false;
   if(window.__voiceMode){ voSetState('listening','Listening…'); $('voTranscript').textContent=''; }
   else { $('micBtn').classList.add('listening'); $('chatInput').value=''; }
   try{recog.start();}catch(e){ listening=false; if(window.__voiceMode) setTimeout(()=>{ if(window.__voiceMode&&!speaking) startListening(); },500); }
 }
-$('micBtn').addEventListener('click', ()=>{ if(!SR){ toast('Voice input not supported here.',true); return;} if(listening){recog.stop();return;} haptic(); startListening(); });
+$('micBtn').addEventListener('click', ()=>{ if(!recog){ toast('Voice input not supported here.',true); return;} if(listening){recog.stop();return;} haptic(); startListening(); });
 
 /* ===== SUSPEND / RESUME RECOVERY =====
    iOS suspends the speech recognizer (and throttles timers) when the PWA is
@@ -3176,7 +3295,7 @@ function voShowResume(){
   $('voTranscript').textContent='';
 }
 function reviveVoiceLoop(reason){
-  if(!SR || !window.__voiceMode) return;
+  if(!recog || !window.__voiceMode) return;
   if(speaking) return;                 // mid-reply: the speak path owns the resume
   // Hard-kill the (possibly zombie) recognizer, ignoring its internal state.
   try{ recog.abort(); }catch(e){}
@@ -3388,7 +3507,7 @@ async function acquireWakeLock(){
 }
 function releaseWakeLock(){ try{ if(__wakeLock){ __wakeLock.release(); __wakeLock=null; } }catch(e){} }
 function startVoiceConversation(){
-  if(!SR){ toast('Voice mode not supported on this browser.',true); return; }
+  if(!recog){ toast('Voice mode not supported on this browser.',true); return; }
   primeTTS();                 // unlock iOS speech inside this tap
   primeAudio();               // unlock <audio> autoplay for the AI voice
   // Warm up the local neural voice (downloads once, then cached) AND resume its
@@ -3437,7 +3556,7 @@ $('voConvo2') && $('voConvo2').addEventListener('click', (e)=>{ e.stopPropagatio
 $('voOrb').addEventListener('click', (e)=>{ e.stopPropagation(); voiceInterrupt(); });
 $('voiceOverlay').addEventListener('click', (e)=>{ if(e.target&&e.target.closest&&e.target.closest('#voStop'))return; voiceInterrupt(); });
 $('voiceModeBtn').addEventListener('click', ()=>{
-  if(!SR){ toast('Voice mode not supported on this browser.',true); return; }
+  if(!recog){ toast('Voice mode not supported on this browser.',true); return; }
   if(window.__voiceMode){ stopVoiceConversation(); } else { openVoiceSessChooser(); }
 });
 

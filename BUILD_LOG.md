@@ -50,3 +50,33 @@ Newest first. One entry per run: what shipped / what's on a branch / what's bloc
   over a local http.server every asset returns 200 (so `cache.addAll`, which
   rejects atomically on any 404, will succeed).
 - **Status:** PR #3 squash-merged to main. Branch deleted.
+
+## 2026-06-18 — run 4
+
+- **Pulled:** Persistent mic grant (Yaro's pick — kills the iPhone mic re-ask).
+- **Root cause:** Safari's `webkitSpeechRecognition` re-prompts for the mic every
+  session. `getUserMedia` (already used for the orb meter) persists its grant in
+  an installed PWA. So capture via getUserMedia and transcribe on the host.
+- **Server (`stt_proxy.py`):** stdlib HTTP + faster-whisper (`base` model, already
+  cached), lazy-loaded so startup is instant. `POST /transcribe` accepts a raw
+  audio body or multipart; `GET /health`; CORS scoped to the PWA origin; 25 MB
+  cap; VAD filter on. Port 8847. `start_stt.bat` launcher mirrors start_voice.bat.
+- **Client:** `makeSttRecognizer()` returns a getUserMedia + MediaRecorder object
+  exposing the SAME interface as webkitSpeechRecognition (`.start/.stop/.abort`,
+  `on*`), with an AnalyserNode VAD that auto-endpoints on ~1.1s silence (350ms
+  min, 15s max). So the entire battle-tested voice loop (zombie watchdog, resume,
+  studio voice) runs UNCHANGED — only what `recog` *is* changed. `bindRecogHandlers`
+  shares the loop bodies across both backends. Native SR kept as automatic
+  fallback via `fallbackToSR()` on `stt-network` error. Swapped all 8 `!SR`
+  control-flow guards to `!recog`/`VOICE_OK` so STT-only devices aren't blocked.
+  Bumped sw v82 -> v83.
+- **Verified:** server transcribed real synthesized clips in mp3, webm/opus
+  (Chromium MediaRecorder) and m4a/aac (Safari MediaRecorder) — all correct;
+  empty-body -> 400; CORS preflight returns the right headers; all 8 inline
+  scripts pass `node --check`; no leftover bare `!SR` control guards; STT URL
+  resolves to `https://yaro.tail6a3c7a.ts.net/aether-stt/transcribe`.
+- **Host setup needed (one-time, Yaro):** run `start_stt.bat` and
+  `tailscale serve --bg --set-path /aether-stt http://127.0.0.1:8847`. Then on the
+  iPhone PWA the mic is granted once and not re-asked. Until that path is live the
+  app silently uses native dictation (still works, still re-asks).
+- **Status:** PR open on `feat/persistent-mic-whisper`. Awaiting review/merge.

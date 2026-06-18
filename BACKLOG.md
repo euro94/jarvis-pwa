@@ -10,9 +10,18 @@ Status keys: `[ ]` todo · `[~]` on a branch awaiting review · `[x]` shipped to
 
 ## Now (top of stack)
 
-- [x] **Manifest dark-theme parity** — set `theme_color`/`background_color` to
-  `#021014` to match `<meta theme-color>` and `--bg`. Shipped via PR #1 (squash
-  `6b27bea`).
+- [~] **Persistent mic grant (getUserMedia + host Whisper)** — SHIPPED on branch
+  `feat/persistent-mic-whisper` (PR open). Added `stt_proxy.py` (stdlib HTTP +
+  faster-whisper `base`, lazy-loaded; `/transcribe` + `/health`; CORS for the PWA
+  origin) and `start_stt.bat`. Client: `makeSttRecognizer()` — a getUserMedia +
+  MediaRecorder shim with the SAME interface as webkitSpeechRecognition (VAD
+  auto-endpoint on silence), so the whole voice loop runs unchanged; native SR
+  kept as automatic fallback (`fallbackToSR`) if the endpoint is down. All `!SR`
+  control-flow guards swapped to `!recog`/`VOICE_OK`. Expose tailnet-only:
+  `tailscale serve --bg --set-path /aether-stt http://127.0.0.1:8847`.
+  _Verified: server transcribes real mp3/webm-opus/m4a-aac clips correctly; CORS
+  preflight OK; all 8 inline scripts pass node --check. Live payoff = Yaro's
+  iPhone: grant mic once, no re-ask next session._
 
 ## Next (unblocked, not yet pulled)
 
