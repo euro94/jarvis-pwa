@@ -12,3 +12,5 @@ ghpr.sh
 eval_loop.py
 start_eval.bat
 /tmp/aether_eval_*.md
+.voicevenv/
+register_voice_task.bat

@@ -36,7 +36,7 @@ import anthropic
 
 # ---- config ----
 PORT       = int(os.environ.get("VOICE_PROXY_PORT", "8848"))
-MODEL      = os.environ.get("VOICE_MODEL", "claude-sonnet-4-6")  # fast turns; heavy work goes to Hermes
+MODEL      = os.environ.get("VOICE_MODEL", "claude-sonnet-4-5-20250929")  # fast turns; heavy work goes to Hermes
 MAX_TOKENS = int(os.environ.get("VOICE_MAX_TOKENS", "1024"))
 NTFY       = os.environ.get("AETHER_NTFY", "https://yaro.tail6a3c7a.ts.net")
 # Allow the PWA origin to call us from the browser.
@@ -51,7 +51,24 @@ AGENT_TOPICS = {
     "builder":  "hermes-yaro-builder-in-c7b4c5ae80",   # Claude Code — edits & ships the app
 }
 
-client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from the environment
+# Auth: prefer the Claude Code OAuth token (Pro/Max plan, no per-token API cost).
+# When present we authenticate via auth_token + the oauth beta header, exactly as
+# the Claude Code CLI does, and the first system block MUST carry the Claude Code
+# identity or the API rejects the OAuth credential. Falls back to a standard
+# ANTHROPIC_API_KEY if no OAuth token is set.
+_OAUTH = os.environ.get("CLAUDE_CODE_OAUTH_TOKEN", "").strip()
+if _OAUTH:
+    client = anthropic.Anthropic(
+        auth_token=_OAUTH,
+        default_headers={"anthropic-beta": "oauth-2025-04-20"},
+    )
+    AUTH_MODE = "oauth"
+else:
+    client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from the environment
+    AUTH_MODE = "apikey"
+
+# Required first system block when using the OAuth (Claude Code) credential.
+CLAUDE_CODE_IDENTITY = "You are Claude Code, Anthropic's official CLI for Claude."
 
 SYSTEM = (
     "You are AETHER, Yaro's voice assistant, speaking aloud through his phone. "
@@ -170,13 +187,15 @@ class Handler(BaseHTTPRequestHandler):
         try:
             # Agentic loop: stream text, run any tool calls, continue until end_turn.
             for _ in range(6):  # safety cap on tool round-trips
+                _system = []
+                if AUTH_MODE == "oauth":
+                    _system.append({"type": "text", "text": CLAUDE_CODE_IDENTITY})
+                _system.append({"type": "text", "text": SYSTEM, "cache_control": {"type": "ephemeral"}})
                 with client.messages.stream(
                     model=MODEL,
                     max_tokens=MAX_TOKENS,
-                    system=[{"type": "text", "text": SYSTEM, "cache_control": {"type": "ephemeral"}}],
+                    system=_system,
                     tools=TOOLS,
-                    thinking={"type": "disabled"},          # fast voice turns
-                    output_config={"effort": "low"},
                     messages=messages,
                 ) as stream:
                     for event in stream:

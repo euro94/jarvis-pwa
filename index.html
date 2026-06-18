@@ -3561,6 +3561,11 @@ async function liveAsk(text, silent){
   try{
     const r=await fetch(VOICE_PROXY+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:msgs})});
     if(!r.ok||!r.body) throw new Error('proxy '+r.status);
+    // Guard: a real proxy reply streams Server-Sent Events. If the route is down
+    // the request falls through to ntfy and returns application/json (the echoed
+    // body) with 200 — detect that and bail to the ntfy-agent fallback.
+    const ct=(r.headers.get('content-type')||'');
+    if(!/event-stream/i.test(ct) && /json/i.test(ct)) throw new Error('proxy not streaming ('+ct+')');
     const reader=r.body.getReader(), dec=new TextDecoder(); let buf='';
     for(;;){
       const {value,done}=await reader.read(); if(done) break;
@@ -3585,7 +3590,15 @@ async function liveAsk(text, silent){
       if(bubble) bubble.remove();           // re-add via pushMsg so it persists + gets copy button
       pushMsg('ai', reply);                  // persisted → becomes part of the continuous thread
       if(window.__voiceMode){ voiceModeAfterReply(reply); } else { enqueueSpeak(reply); }
-    } else if(window.__voiceMode && !speaking){ voSetState('listening','Listening…'); setTimeout(()=>{ if(window.__voiceMode&&!speaking) startListening(); }, 300); }
+    } else {
+      // Proxy answered but produced no usable text — e.g. the /aether-voice route
+      // is down and the request fell through to ntfy, which echoes the body back
+      // (HTTP 200, no SSE). Don't fail silently: fall back to the ntfy Hermes
+      // agent, which is always running and carries full persistent context.
+      if(bubble) bubble.remove();
+      toast('Live voice unavailable — using '+activeAgent.label+'.', true);
+      askAgent(text, true);                  // user turn already persisted
+    }
   }catch(e){
     if(bubble) bubble.remove(); hideTyping();
     toast('Live proxy unreachable — using '+activeAgent.label+'.', true);
