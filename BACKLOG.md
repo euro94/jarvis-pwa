@@ -10,6 +10,21 @@ Status keys: `[ ]` todo · `[~]` on a branch awaiting review · `[x]` shipped to
 
 ## Now (top of stack)
 
+- [~] **iOS Health sync (Shortcuts + Health Auto Export)** — a PWA can't read
+  HealthKit directly, so the iPhone PUSHES Health data to a host receiver and the
+  app PULLS it. `health_sync.py` (stdlib, port 8848): `POST /ingest` accepts BOTH
+  the Apple Shortcuts shape AND the Health Auto Export nested shape, normalizes to
+  one record list (sleep/steps/workouts) with stable `sid`s so re-syncs upsert (no
+  dupes); `GET /latest` serves them; token-guarded (public funnel). Client:
+  `hxPullSync()` merges by `sid` into HX_ENTRIES on open (throttled 60s), steps
+  show in the ambient strip, synced sleep flows into the Sleep tab. Settings → iOS
+  Health Sync (token field + "Sync now"). `start_sync.bat` + Startup launcher;
+  funnel route `/aether-sync`. sw v87->v88. _Verified: receiver normalizes both
+  payloads + dedupes (re-POST stayed 6, value updated 437->450); PUBLIC funnel path
+  ingest+latest OK; headless app merge — changed=true, 6 synced, re-pull stayed 6,
+  2 sleep nights into Sleep tab; verify.py 15/15; no JS errors._ iPhone-side setup
+  recipe handed to Yaro (Shortcuts automation + Health Auto Export config).
+
 - [~] **Health experience overhaul + Sleep tab** — replaced the basic meal-logger
   with the full Aether wellbeing screen (Yaro's aether-health.html mockup): small
   water orb + cross-domain **synthesis line** ("Aether noticed — …"), macro rings

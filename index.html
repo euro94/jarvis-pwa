@@ -1536,6 +1536,12 @@
         <div class="note">When on, meal photos (and Radar reviews) are read by a local vision model on your PC — no cloud, no credits. Needs <b>vision_local.py</b> running. Falls back to the cloud agent if the local server is offline.</div>
       </div>
       <div class="card2">
+        <h3>iOS Health Sync</h3>
+        <div class="row"><span class="k">Sync token</span><input type="text" id="syncToken" placeholder="paste your token" autocomplete="off" autocapitalize="off" spellcheck="false" style="flex:1;min-width:0;margin-left:10px;background:rgba(2,30,32,.5);border:1px solid var(--line);border-radius:8px;color:var(--fg);font-size:12px;padding:7px 9px"></div>
+        <button class="btn btn-ghost" id="syncNow" style="margin-top:8px">Sync from iPhone now</button>
+        <div class="note" id="syncNote">Pulls sleep, steps &amp; workouts your iPhone pushes to the host. Set up Apple Shortcuts or the Health Auto Export app to POST to <b>/aether-sync/ingest</b> with this token. Leave blank to disable.</div>
+      </div>
+      <div class="card2">
         <h3>Chat</h3>
         <button class="btn btn-ghost" id="clearChat">Clear this conversation</button>
       </div>
@@ -2949,6 +2955,11 @@ function stopPlan(){ if(__planTimer){ clearInterval(__planTimer); __planTimer=nu
 const HL_AGENT = (typeof AGENTS!=='undefined' && AGENTS.find(a=>a.id==='jarvis')) || (typeof activeAgent!=='undefined'?activeAgent:null);
 const VISION_PROXY = (typeof NTFY==='string'? NTFY : '') + '/aether-vision';
 function hlLocalVisionOn(){ return localStorage.getItem('aetherLocalVision')!=='0'; }
+// iOS Health sync: the iPhone pushes Health data to the host receiver
+// (health_sync.py); we PULL the normalized records and merge them in. Token is
+// stored locally (set in Settings) and sent on every pull.
+const SYNC_PROXY = (typeof NTFY==='string'? NTFY : '') + '/aether-sync';
+function hxSyncToken(){ return localStorage.getItem('aetherSyncToken')||''; }
 const HL_MAX_EDGE=1024, HL_JPEG_Q=0.82;
 const HL_SYSTEM = "You are a nutrition estimator. The user sends ONE photo of a meal. Identify the food and estimate its nutrition for the portion shown. Respond with ONLY a JSON object, no code fences, no preamble, in EXACTLY this shape: {\"name\":\"short dish name\",\"calories\":<int kcal>,\"protein\":<int grams>,\"carbs\":<int grams>,\"fat\":<int grams>,\"confidence\":\"high\"|\"medium\"|\"low\"}. If you cannot see food clearly, still return the object with your best guess and confidence \"low\". Numbers only — no units inside the numbers.";
 
@@ -3061,7 +3072,9 @@ function hxRenderRings(){ ['protein','carbs','fat'].forEach(hxDrawRing);
   document.querySelectorAll('#hxRings .hx-ring').forEach(r=>r.classList.toggle('attn', r.dataset.key===low)); }
 function hxRenderAmbient(){
   const w=document.getElementById('hxA-water'); if(w) w.textContent=hxWaterL().toFixed(1)+'L';
-  const mv=document.getElementById('hxA-move'); if(mv){ const n=hxMoveCount(); mv.textContent=n?(n+(n>1?' moves':' move')):'—'; }
+  const mv=document.getElementById('hxA-move'); if(mv){ const steps=hxStepsToday(); const n=hxMoveCount();
+    mv.textContent = steps? (steps>=1000?(steps/1000).toFixed(steps>=10000?0:1)+'k':steps+'') + ' steps'
+      : (n?(n+(n>1?' moves':' move')):'—'); }
   const sl=document.getElementById('hxA-sleep'); if(sl) sl.textContent=hxFmtMin(hxLastSleep()); }
 function hxRenderLog(){
   const log=document.getElementById('hxLog'); if(!log) return;
@@ -3089,6 +3102,38 @@ function hxRenderSpark(){ const days=hxLastNDays(7).map(d=>{ let ml=0; HX_ENTRIE
   const sp=document.getElementById('hxSpark'); if(sp) sp.setAttribute('points',pts); }
 function hxLastNDays(n){ const out=[]; for(let i=n-1;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); out.push(hxDayKey(d)); } return out; }
 function hxRenderAll(){ hxRenderRings(); hxRenderAmbient(); hxRenderLog(); hxRenderSpark(); hxSynth(); }
+
+/* ---- iOS Health sync: pull normalized records, upsert by sid ---- */
+let __hxSyncing=false, __hxSyncLast=0;
+function hxStepsToday(){ let s=0; for(const e of hxToday()){ if(e.type==='steps') s=Math.max(s, e.steps||0); } return s; }
+async function hxPullSync(force){
+  const tok=hxSyncToken(); if(!tok) return false;                 // not configured
+  if(__hxSyncing) return false;
+  if(!force && Date.now()-__hxSyncLast < 60000) return false;     // throttle 60s
+  __hxSyncing=true;
+  try{
+    const r=await hlFetch(SYNC_PROXY+'/latest?token='+encodeURIComponent(tok), {cache:'no-store'}, 12000);
+    if(!r.ok) return false;
+    const j=await r.json(); const recs=(j&&j.records)||[]; if(!recs.length){ __hxSyncLast=Date.now(); return false; }
+    const bySid={}; HX_ENTRIES.forEach((e,i)=>{ if(e.sid) bySid[e.sid]=i; });
+    let changed=false;
+    for(const rec of recs){
+      if(!rec.sid) continue;
+      const ent={id:'sy'+rec.sid, sid:rec.sid, type:rec.type, text:rec.text, t:rec.t||Date.now(),
+        day:rec.day||hxDayKey(), src:'ios'};
+      if(rec.type==='sleep') ent.min=rec.min||0;
+      else if(rec.type==='steps') ent.steps=rec.steps||0;
+      else if(rec.type==='move'){ ent.min=rec.min||0; ent.km=rec.km||0; }
+      if(rec.sid in bySid){ HX_ENTRIES[bySid[rec.sid]]=Object.assign(HX_ENTRIES[bySid[rec.sid]], ent); }
+      else { HX_ENTRIES.push(ent); }
+      changed=true;
+    }
+    if(changed){ hxSave(); }
+    __hxSyncLast=Date.now();
+    return changed;
+  }catch(e){ return false; }
+  finally{ __hxSyncing=false; }
+}
 
 /* ---- adding entries ---- */
 function hxAdd(e){ e.id=e.id||hxUid(); e.t=e.t||Date.now(); e.day=e.day||hxDayKey(); HX_ENTRIES.push(e); hxSave(); }
@@ -3236,6 +3281,7 @@ function openHealth(){
   if(typeof stopPlan==='function') stopPlan(); if(typeof stopLearn==='function') stopLearn();
   if(__hxsOrb) __hxsOrb.stop();
   haptic&&haptic(); hxRenderAll();
+  hxPullSync().then(ch=>{ if(ch) hxRenderAll(); });
   if(!__hxOrb) __hxOrb=hxMakeOrb('hxOrb'); __hxOrb.start();
 }
 function openSleep(){
@@ -3246,6 +3292,7 @@ function openSleep(){
   if(typeof stopPlan==='function') stopPlan(); if(typeof stopLearn==='function') stopLearn();
   if(__hxOrb) __hxOrb.stop();
   haptic&&haptic(); hxRenderSleep();
+  hxPullSync().then(ch=>{ if(ch) hxRenderSleep(); });
   if(!__hxsOrb) __hxsOrb=hxMakeOrb('hxsOrb'); __hxsOrb.start();
 }
 
@@ -4140,6 +4187,20 @@ $('ttsToggle').addEventListener('change', function(){ localStorage.setItem('aeth
 if($('localVisionToggle')){
   $('localVisionToggle').checked = localStorage.getItem('aetherLocalVision')!=='0';
   $('localVisionToggle').addEventListener('change', function(){ localStorage.setItem('aetherLocalVision', this.checked?'1':'0'); toast(this.checked?'On-device vision on.':'On-device vision off — using cloud agent.'); });
+}
+if($('syncToken')){
+  $('syncToken').value = localStorage.getItem('aetherSyncToken')||'';
+  $('syncToken').addEventListener('change', function(){ localStorage.setItem('aetherSyncToken', this.value.trim()); toast(this.value.trim()?'Sync token saved.':'Sync disabled.'); });
+}
+if($('syncNow')){
+  $('syncNow').addEventListener('click', async function(){
+    const tok=(localStorage.getItem('aetherSyncToken')||'').trim();
+    if(!tok){ toast('Add your sync token first.',true); return; }
+    const note=$('syncNote'); if(note) note.textContent='Syncing…';
+    const ch=await (typeof hxPullSync==='function'?hxPullSync(true):Promise.resolve(false));
+    if(note) note.textContent=ch?'Synced — sleep, steps & workouts pulled from your iPhone.':'Connected, but nothing new to sync yet. Make sure your iPhone has pushed data.';
+    toast(ch?'Health synced from iPhone.':'Nothing new to sync.');
+  });
 }
 if($('liveToggle')){
   $('liveToggle').checked = localStorage.getItem('aetherLive')==='1';

@@ -1,8 +1,10 @@
-keys/
-subscriptions.json
+.builder_bridge.log
+.builder_env
 .builder_session
+.env
 __pycache__/
 *.pyc
-.builder_env
-.env
-.builder_bridge.log
+health_sync_store.json
+health_sync_store.json.tmp
+keys/
+subscriptions.json
