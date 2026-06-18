@@ -33,3 +33,20 @@ Newest first. One entry per run: what shipped / what's on a branch / what's bloc
   centered cyan mark, no clipping, dark ground. apple-touch-icon → icon-180
   (opaque, iOS-safe).
 - **Status:** on branch `feat/icon-dark-ground`, pushed. PR opened. Not merged.
+
+## 2026-06-17 — run 3
+
+- **Pulled:** Offline shell completeness.
+- **Found:** sw.js `SHELL_ASSETS` precached 6 items but index.html references
+  `icons/mark-256.png` (home-screen logo, used twice) which was NOT cached — an
+  offline cold launch showed a broken logo. Also missing: `icon-180` (apple-touch)
+  and `maskable-512`. Google Fonts are cross-origin; the SW only handles
+  same-origin by design, and the CSS has full system fallbacks (Saira ->
+  -apple-system/system-ui), so fonts degrade gracefully offline — left as-is.
+- **Did:** branch `feat/offline-shell-precache`. Added mark-256, icon-180,
+  maskable-512 to SHELL_ASSETS (now 9 same-origin assets). Bumped VERSION
+  v81 -> v82 so existing installs re-precache on activate.
+- **Verified:** `node --check sw.js` passes; all 9 assets exist on disk; served
+  over a local http.server every asset returns 200 (so `cache.addAll`, which
+  rejects atomically on any 404, will succeed).
+- **Status:** PR #3 squash-merged to main. Branch deleted.
