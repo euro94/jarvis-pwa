@@ -128,17 +128,6 @@
   .screen { position:relative; z-index:1; flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior-y:contain; display:none; }
   .screen.active { display:block; animation:scrIn .42s var(--ease) both; }
   @keyframes scrIn { from{opacity:0; transform:translateY(10px) scale(.992); filter:blur(2px);} to{opacity:1; transform:none; filter:none;} }
-  /* swipe-world slide transitions — only applied when data-swipe-dir is set on body */
-  body[data-swipe-dir="left"] .screen.active  { animation:scrSlideLeft  .38s cubic-bezier(.2,.8,.2,1) both; }
-  body[data-swipe-dir="right"] .screen.active { animation:scrSlideRight .38s cubic-bezier(.2,.8,.2,1) both; }
-  @keyframes scrSlideLeft  { from{opacity:.4;transform:translateX(48px);}  to{opacity:1;transform:none;} }
-  @keyframes scrSlideRight { from{opacity:.4;transform:translateX(-48px);} to{opacity:1;transform:none;} }
-  /* swipe-world dot indicators (Home · Health · Radar) */
-  #swipeDots{ position:fixed; bottom:calc(var(--safe-b,0px) + 66px); left:0; right:0; z-index:9;
-    display:flex; justify-content:center; gap:7px; pointer-events:none; }
-  #swipeDots[hidden]{ display:none!important; }
-  .sw-dot{ width:6px; height:6px; border-radius:50%; background:rgba(60,210,255,.22); transition:all .25s ease; }
-  .sw-dot.on{ background:rgba(60,210,255,.8); width:18px; border-radius:3px; box-shadow:0 0 6px rgba(60,210,255,.5); }
   #screenChat.active { display:flex; flex-direction:column; overflow:hidden; }
   ::selection { background:rgba(60,210,255,.24); color:var(--fg); }
   #chatThread, #hdList, .stream-feed { overscroll-behavior-y:contain; }
@@ -823,61 +812,7 @@
     --sev-med:#FFCB45;  --sev-med-bg:rgba(255,203,69,.14);
     --sev-low:#8AA0B8;  --sev-low-bg:rgba(138,160,184,.14);
   }
-  /* ---- teal world for Radar (same world tokens as Health, scoped to avoid leakage) ---- */
-  #screenRadar{
-    --hx-cyan:#7fd9d4; --hx-text:#cbdedb; --hx-dim:#6f8d8a; --hx-faint:#4f6d6a; --hx-fill:rgba(3,42,42,.32); --hx-line:rgba(127,217,212,.16);
-    background:
-      radial-gradient(120% 60% at 50% 4%, #015a54 0%, rgba(1,90,84,0) 42%),
-      radial-gradient(90% 50% at 16% 12%, #013a38 0%, rgba(1,58,56,0) 55%),
-      radial-gradient(150% 120% at 50% 8%, #012b2b 0%, #00141a 76%), #00141a;
-    padding:0;
-  }
-  /* Radar hero: orb + title + lede (teal world variant) */
-  .rr-hero{ display:flex; flex-direction:column; align-items:center; text-align:center; margin:8px 0 18px; }
-  .rr-orb-wrap{ position:relative; width:80px; height:80px; margin-bottom:6px; }
-  .rr-orb-wrap canvas{ position:absolute; inset:0; width:100%; height:100%; border-radius:50%; filter:drop-shadow(0 0 20px rgba(7,185,177,.4)); }
-  .rr-orb-glow{ position:absolute; inset:-36px; border-radius:50%; pointer-events:none; background:radial-gradient(circle,rgba(7,185,177,.28) 0%,rgba(7,185,177,0) 62%); opacity:.7; }
-  .rr-hero-title{ font-size:27px; font-weight:600; letter-spacing:.3px; color:#eaf6f3; text-shadow:0 0 16px rgba(127,217,212,.2); }
-  .rr-hero-sub{ font-size:13px; line-height:1.5; color:var(--hx-dim); margin-top:6px; max-width:290px; }
-  /* Rules engine pre-review badge — shown when deterministic checks fire */
-  .rr-rules{ margin-bottom:14px; }
-  .rr-rule-badge{ display:flex; align-items:flex-start; gap:10px; padding:10px 14px; border-radius:12px; margin-bottom:8px;
-    background:rgba(127,217,212,.07); border:1px solid rgba(127,217,212,.22); }
-  .rr-rule-badge.warn{ background:var(--sev-med-bg); border-color:rgba(255,203,69,.4); }
-  .rr-rule-badge.flag{ background:var(--sev-high-bg); border-color:rgba(255,93,108,.4); }
-  .rr-rule-icon{ font-size:16px; flex:0 0 auto; margin-top:1px; }
-  .rr-rule-text{ font-size:13px; line-height:1.4; color:var(--hx-text); }
-  .rr-rule-text b{ font-weight:600; }
-  /* streaming finding cards — appear one-by-one as the LLM returns each */
-  .rr-stream-head{ font-size:11px; letter-spacing:2px; color:var(--hx-faint); font-weight:600; text-transform:uppercase; margin:18px 0 10px 2px; }
-  .rr-finding-card{ margin-bottom:10px; padding:14px 16px; border-radius:14px;
-    background:linear-gradient(180deg, rgba(127,217,212,.07) 0%, rgba(127,217,212,0) 100%), rgba(3,42,42,.28);
-    border:1px solid rgba(127,217,212,.15); animation:rfadeIn .4s ease; }
-  @keyframes rfadeIn{ from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
-  .rr-finding-card.sev-high{ border-color:rgba(255,93,108,.45); background:var(--sev-high-bg); }
-  .rr-finding-card.sev-med{ border-color:rgba(255,203,69,.35); }
-  .rr-finding-card.sev-low{ border-color:rgba(138,160,184,.25); }
-  .rr-fc-top{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
-  .rr-fc-badge{ font-size:10px; padding:2px 9px; border-radius:999px; font-weight:600; }
-  .rr-fc-badge.sev-high{ background:var(--sev-high-bg); color:var(--sev-high); border:1px solid rgba(255,93,108,.4); }
-  .rr-fc-badge.sev-med{ background:var(--sev-med-bg); color:var(--sev-med); border:1px solid rgba(255,203,69,.4); }
-  .rr-fc-badge.sev-low{ background:var(--sev-low-bg); color:var(--sev-low); border:1px solid rgba(138,160,184,.3); }
-  .rr-fc-section{ font-size:10px; padding:2px 9px; border-radius:999px; color:var(--hx-dim); border:1px solid rgba(127,217,212,.2); }
-  .rr-fc-type{ font-size:10px; padding:2px 9px; border-radius:999px; color:var(--hx-dim); border:1px solid rgba(127,217,212,.16); }
-  .rr-fc-text{ font-size:14px; line-height:1.45; color:var(--hx-text); font-weight:300; }
-  .rr-fc-fix{ font-size:12.5px; line-height:1.4; color:var(--hx-dim); margin-top:6px; padding-top:6px; border-top:1px solid rgba(127,217,212,.12); }
-  .rr-fc-fix b{ color:var(--hx-cyan); font-weight:500; }
-  /* addressed / dismiss controls */
-  .rr-fc-actions{ display:flex; gap:8px; margin-top:10px; }
-  .rr-fc-btn{ appearance:none; font:inherit; font-size:12px; padding:6px 14px; border-radius:999px; cursor:pointer; }
-  .rr-fc-btn.addressed{ background:rgba(127,217,212,.12); border:1px solid rgba(127,217,212,.4); color:var(--hx-cyan); }
-  .rr-fc-btn.dismiss{ background:transparent; border:1px solid rgba(127,217,212,.18); color:var(--hx-faint); }
-  .rr-finding-card.done{ opacity:.45; }.rr-finding-card.done .rr-fc-text{ text-decoration:line-through; text-decoration-color:rgba(127,217,212,.35); }
-  /* sections summary count bar */
-  .rr-section-counts{ display:flex; gap:10px; padding:8px 2px 10px; flex-wrap:wrap; }
-  .rr-sc{ font-size:11px; padding:4px 10px; border-radius:999px; color:var(--hx-dim); border:1px solid rgba(127,217,212,.2); }
-  .rr-sc.present{ border-color:rgba(127,217,212,.5); color:var(--hx-cyan); background:rgba(127,217,212,.08); }
-  .rr-sc.missing{ border-color:rgba(255,203,69,.35); color:var(--sev-med); background:var(--sev-med-bg); }
+  #screenRadar { padding:0; }
   .rr-pad { padding:calc(env(safe-area-inset-top) + 18px) 16px calc(var(--safe-b) + 28px); }
   .rr-head { display:flex; align-items:center; gap:12px; margin-bottom:4px; }
   .rr-head .rr-ic { font-size:24px; filter:drop-shadow(0 4px 14px rgba(33,230,255,.4)); }
@@ -1750,12 +1685,12 @@
   <!-- ===== REVIEW RADAR ===== -->
   <div class="screen" id="screenRadar">
     <div class="rr-pad">
-      <!-- teal-world hero: orb + title -->
-      <div class="rr-hero">
-        <div class="rr-orb-wrap" id="rrOrbWrap"><div class="rr-orb-glow"></div><canvas id="rrOrb" aria-hidden="true"></canvas></div>
-        <h1 class="rr-hero-title">Review Radar</h1>
-        <p class="rr-hero-sub" id="rrHeroSub">Snap or pick your workpaper sections — the rules engine runs first, then the model reviews judgment.</p>
+      <div class="rr-head">
+        <span class="rr-ic">⌖</span>
+        <span class="rr-ttl">Review Radar</span>
+        <span class="rr-by">Pre-review</span>
       </div>
+      <p class="rr-lede">Photograph your workpapers. Catch the footing errors, broken tie-outs, date mismatches and flawed logic a sharp reviewer would flag — before they do.</p>
 
       <div id="rrPrivacy" class="rr-privacy" style="display:none;">
         <span>🔒</span><span>Privacy mode: review runs on the local Hermes VLM. No cloud, no client data leaves the host.</span>
@@ -1766,26 +1701,21 @@
         <div class="rr-eng">
           <input id="rrEng" type="text" placeholder="Client / engagement (e.g. ACM, UTG)" autocomplete="off" spellcheck="false" aria-label="Client or engagement code">
         </div>
-        <div class="rr-drop" id="rrDrop" role="button" tabindex="0" aria-label="Add workpaper files">
+        <div class="rr-drop" id="rrDrop" role="button" tabindex="0" aria-label="Add workpaper photos">
           <div class="rr-drop-ic">📄</div>
-          <div class="rr-drop-t">Add workpaper sections</div>
-          <div class="rr-drop-s">Photos, PDFs, or files from your engagement software · labeled by section</div>
+          <div class="rr-drop-t">Add workpaper photos</div>
+          <div class="rr-drop-s">Drag &amp; drop, or use the buttons below · resized on-device before upload</div>
         </div>
-        <!-- section presence summary (filled by rules engine) -->
-        <div class="rr-section-counts" id="rrSectionCounts" style="display:none;"></div>
-        <!-- rules engine flags (deterministic, shown before LLM) -->
-        <div class="rr-rules" id="rrRules" style="display:none;"></div>
         <div class="rr-cap-row">
-          <button class="btn rr-soft" id="rrCamBtn">📷 Snap section</button>
-          <button class="btn rr-soft" id="rrPickBtn">📁 From Files app</button>
+          <button class="btn rr-soft" id="rrCamBtn">📷 Take photo</button>
+          <button class="btn rr-soft" id="rrPickBtn">🖼️ Choose files</button>
         </div>
         <div class="rr-strip" id="rrStrip"></div>
         <div class="rr-cta">
           <button class="btn btn-primary" id="rrReviewBtn" disabled>Review workpapers</button>
         </div>
         <input type="file" id="rrCam" accept="image/*" capture="environment" multiple style="display:none;">
-        <!-- any file: images, PDFs, XLSX, even .doc from engagement software -->
-        <input type="file" id="rrPick" accept="image/*,application/pdf,.pdf,.xlsx,.xls,.csv,.doc,.docx,*/*" multiple style="display:none;">
+        <input type="file" id="rrPick" accept="image/*" multiple style="display:none;">
 
         <!-- saved reviews -->
         <div class="rr-saved" id="rrSaved"></div>
@@ -1797,7 +1727,7 @@
           <div class="rr-spin"></div>
           <div class="rr-load-msg" id="rrLoadMsg">Reading the workpapers</div>
           <div class="rr-load-bar"><i></i></div>
-          <div class="rr-load-sub" id="rrLoadSub">Rules engine running — deterministic checks first, then model review.</div>
+          <div class="rr-load-sub" id="rrLoadSub">Sent as one connected set so tie-outs across workpapers get caught.</div>
           <button class="btn rr-soft" id="rrCancelBtn" style="margin-top:18px;">Cancel</button>
         </div>
       </div>
@@ -1817,7 +1747,7 @@
         </div>
       </div>
 
-      <!-- RESULTS: streaming cards appear here one-by-one as findings arrive -->
+      <!-- RESULTS -->
       <div id="rrResults" style="display:none;">
         <div class="rr-summary">
           <div class="rr-counts" id="rrCounts"></div>
@@ -1828,10 +1758,7 @@
             <button class="rr-newbtn" id="rrNewBtn">＋ New review</button>
           </div>
         </div>
-        <!-- rules engine findings stream first (deterministic) -->
-        <div id="rrRulesStream"></div>
-        <!-- streaming-friendly list: one card per finding, each persisted as it arrives -->
-        <div class="rr-stream-head" id="rrStreamHead" style="display:none;">LLM findings — judgment layer</div>
+        <div class="rr-filters" id="rrFilters"></div>
         <div class="rr-list" id="rrList"></div>
         <button class="rr-collapse-toggle" id="rrToggleResolved" style="display:none;"></button>
       </div>
@@ -1983,12 +1910,6 @@
 
   <div class="toast" id="toast"></div>
   <div id="netPill" role="status" aria-live="polite"><span class="np-dot"></span><span class="np-txt"></span></div>
-  <!-- swipe-world navigation dots: Home · Health · Radar -->
-  <div id="swipeDots">
-    <div class="sw-dot on" data-world="0"></div>
-    <div class="sw-dot" data-world="1"></div>
-    <div class="sw-dot" data-world="2"></div>
-  </div>
   <div id="creditBadge" title="Reload credits"><span class="cb-ic">⚡</span><span class="cb-txt">Low credits</span></div>
 
   <!-- ===== LOG SHEET ===== -->
@@ -3380,7 +3301,7 @@ function hxMakeOrb(canvasId){
   return { start(){ if(running) return; rs(); running=true; last=0; raf=requestAnimationFrame(loop); }, stop(){ running=false; if(raf)cancelAnimationFrame(raf); } };
 }
 let __hxOrb=null, __hxsOrb=null;
-function stopHealthOrbs(){ if(__hxOrb)__hxOrb.stop(); if(__hxsOrb)__hxsOrb.stop(); if(typeof rrStopOrb==='function') rrStopOrb(); }
+function stopHealthOrbs(){ if(__hxOrb)__hxOrb.stop(); if(__hxsOrb)__hxsOrb.stop(); }
 
 function openHealth(){
   document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
@@ -3773,79 +3694,6 @@ document.querySelectorAll('.fcard').forEach(c=>{
 
 /* ===== HOME QUICK ACTIONS ===== */
 function navTo(screen){ const b=document.querySelector('.nav button[data-screen="'+screen+'"]'); if(b) b.click(); }
-
-/* ===== SWIPE NAV — slide between the three worlds (Home · Health · Radar) =====
-   A horizontal swipe anywhere on screen (that isn't a vertical scroll, a chip rail,
-   a sheet, or a focused input) moves between the three primary screens:
-     World 0: screenHome   — the dark-navy mission control
-     World 1: screenHealth — the teal wellbeing orb
-     World 2: screenRadar  — the teal workpaper reviewer
-   Left swipe = go to the NEXT world (0→1, 1→2). Right swipe = go BACK (2→1, 1→0).
-   The bottom-nav "world" screens (Rader is also accessible from the nav) stay in sync.
-   The dot indicators reflect which world you're on. */
-(function(){
-  const WORLDS = ['screenHome','screenHealth','screenRadar'];
-  const OPEN   = [
-    ()=>navTo('screenHome'),
-    ()=>openHealth(),
-    ()=>{ navTo('screenRadar'); if(typeof rrStartOrb==='function') setTimeout(rrStartOrb,50); },
-  ];
-  function currentWorld(){
-    for(let i=0;i<WORLDS.length;i++){ const s=document.getElementById(WORLDS[i]); if(s&&s.classList.contains('active')) return i; }
-    return -1; // not on a swipe-world screen
-  }
-  function updateDots(idx){
-    document.querySelectorAll('#swipeDots .sw-dot').forEach((d,i)=>d.classList.toggle('on',i===idx));
-    const dots=document.getElementById('swipeDots');
-    if(dots) dots.hidden = idx<0;
-  }
-  function swipeTo(dir){ // dir: +1 = go deeper (left swipe), -1 = go back (right swipe)
-    const cur=currentWorld(); if(cur<0) return;
-    const nxt=cur+dir; if(nxt<0||nxt>=WORLDS.length) return;
-    document.body.dataset.swipeDir = dir>0 ? 'left' : 'right';
-    OPEN[nxt]();
-    requestAnimationFrame(()=>requestAnimationFrame(()=>{ delete document.body.dataset.swipeDir; }));
-    updateDots(nxt);
-    haptic&&haptic();
-  }
-  // update dots whenever any screen becomes active (catches nav-button taps too)
-  const navBtns=document.querySelectorAll('.nav button');
-  navBtns.forEach(b=>b.addEventListener('click',()=>setTimeout(()=>updateDots(currentWorld()),50)));
-  // also hook openHealth/openSleep/openRadar (they bypass the nav)
-  const origOpenHealth=window.openHealth, origOpenSleep=window.openSleep;
-  window.openHealth=function(){ if(origOpenHealth) origOpenHealth.apply(this,arguments); setTimeout(()=>updateDots(currentWorld()),50); };
-  window.openSleep=function(){ if(origOpenSleep) origOpenSleep.apply(this,arguments); setTimeout(()=>updateDots(-1),50); }; // sleep is not a swipe-world screen
-  // Touch recognizer — fires on the main document, ignored inside scrollable rails and sheets
-  let tx=0,ty=0,locked=null;
-  document.addEventListener('touchstart',(e)=>{
-    if(currentWorld()<0) return;
-    const t=e.touches[0]; tx=t.clientX; ty=t.clientY; locked=null;
-  },{passive:true});
-  document.addEventListener('touchmove',(e)=>{
-    if(currentWorld()<0||locked==='v') return;
-    const dx=e.touches[0].clientX-tx, dy=e.touches[0].clientY-ty;
-    if(locked===null){ locked=Math.abs(dx)>Math.abs(dy)?'h':'v'; }
-    if(locked!=='h') return;
-    // ignore if we're inside a horizontally-scrollable chip rail or a capture sheet
-    const el=document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
-    if(el&&el.closest('.hx-chips,.chips,.rr-strip,.rr-cap-row,.presheet,.ps-card,.rr-thumb')) return;
-    if(Math.abs(dx)>8) e.preventDefault(); // claim the gesture
-  },{passive:false});
-  document.addEventListener('touchend',(e)=>{
-    if(currentWorld()<0||locked!=='h') return;
-    const dx=e.changedTouches[0].clientX-tx;
-    if(Math.abs(dx)>52) swipeTo(dx<0?1:-1);
-    locked=null;
-  },{passive:true});
-  // Keyboard shortcut: Alt+← / Alt+→ for desktop testing
-  document.addEventListener('keydown',(e)=>{
-    if(!e.altKey) return;
-    if(e.key==='ArrowRight') swipeTo(1);
-    if(e.key==='ArrowLeft') swipeTo(-1);
-  });
-  // initialise dots on first paint
-  setTimeout(()=>updateDots(currentWorld()),100);
-})();
 document.querySelectorAll('.qa').forEach(b=>{
   b.addEventListener('click', ()=>{
     haptic();
@@ -4167,27 +4015,106 @@ function primeAudio(){ // unlock autoplay inside a user gesture (iOS)
   try{ const a=ensureAudioEl(); a.muted=true; a.src='data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAACcQCA'; a.play().then(()=>{a.pause();a.muted=false;}).catch(()=>{a.muted=false;}); }catch(e){}
 }
 let __ttsNonceSeq=0;
-async function fetchAIVoiceUrl(text){
-  // Correlate request → audio with a unique nonce so we NEVER play a
-  // neighbouring/stale turn's clip. The bridge echoes the nonce back as `ref`
-  // (it reads the ntfy Title header). Only audio whose ref matches is accepted.
-  const since=Math.floor(Date.now()/1000)-2;
-  const nonce='v'+Date.now().toString(36)+'-'+(++__ttsNonceSeq);
-  try{ await fetch(`${NTFY}/${TTS_REQ_TOPIC}`,{method:'POST',headers:{'Title':nonce},body:text}); }catch(e){ return null; }
-  const deadline=Date.now()+14000;
-  while(Date.now()<deadline){
+
+/* ── STREAMING TTS CLIENT ───────────────────────────────────────────────────
+   The bridge now sends sentence-by-sentence audio: ref=nonce-s0, nonce-s1 ...
+   We poll with 200ms intervals (not 700ms), play s0 the moment it arrives,
+   and pre-fetch s1 while s0 is playing — gapless, low-latency.
+   Falls back gracefully sentence-by-sentence on poll timeout or bridge failure.
+
+   FLOW:
+     1. POST full text to TTS_REQ_TOPIC with nonce as Title.
+     2. Poll TTS_AUD_TOPIC for nonce-s0 (200ms intervals, 10s deadline).
+     3. When s0 arrives, start playing it AND immediately begin polling for s1.
+     4. When s1 is ready, queue it; when s0 ends, play s1 seamlessly.
+     5. Continue for s2..sN. If a sentence times out, proceed to resume().
+*/
+
+async function pollSentenceUrl(nonce, idx, since, deadlineMs){
+  // Poll for ref="nonce-sIDX"; returns the URL or null on timeout.
+  const refKey = nonce+'-s'+idx;
+  while(Date.now()<deadlineMs){
     try{
       const r=await fetch(`${NTFY}/${TTS_AUD_TOPIC}/json?poll=1&since=${since}`,{cache:'no-store'});
       const lines=(await r.text()).trim().split('\n').filter(Boolean);
       for(const ln of lines){ let o; try{o=JSON.parse(ln);}catch(e){continue;}
         if(o.event!=='message')continue;
-        try{ const d=JSON.parse(o.message||'{}'); if(d.audio && d.ref===nonce) return d.audio; }catch(e){}
+        try{ const d=JSON.parse(o.message||'{}'); if(d.audio && d.ref===refKey) return d.audio; }catch(e){}
       }
     }catch(e){}
-    await new Promise(r=>setTimeout(r,700));
+    await new Promise(r=>setTimeout(r,200));
   }
   return null;
 }
+
+function playUrl(url){
+  // Returns a promise that resolves when the clip ends (or rejects on error).
+  return new Promise((resolve,reject)=>{
+    const a=ensureAudioEl();
+    a.src=url; a.muted=false; a.currentTime=0;
+    a.onended=resolve; a.onerror=reject;
+    const p=a.play();
+    if(p&&p.catch) p.catch(reject);
+  });
+}
+
+async function streamAIVoice(text, myTurn, live, resume, fallbackLocal){
+  const since=Math.floor(Date.now()/1000)-2;
+  const nonce='v'+Date.now().toString(36)+'-'+(++__ttsNonceSeq);
+  // POST the full text to the bridge (it splits into sentences and posts each as nonce-sN)
+  try{ await fetch(`${NTFY}/${TTS_REQ_TOPIC}`,{method:'POST',headers:{'Title':nonce},body:text}); }
+  catch(e){ fallbackLocal(); return; }
+
+  // Wait for sentence 0 (first voice — must arrive within 12s or we fall back entirely)
+  const s0url = await pollSentenceUrl(nonce, 0, since, Date.now()+12000);
+  if(!s0url){ if(live()) fallbackLocal(); return; }
+  if(!live()){ return; } // barged-in before audio arrived
+
+  // Stream remaining sentences in the background while playing
+  let sentIdx=1;
+  const audioQueue=[]; // {url:string, pending:boolean, resolve}
+  let playing=false;
+
+  async function prefetch(idx){
+    // Poll for the next sentence for up to 8s (Kokoro is ~0.5-1s per short sentence)
+    const url=await pollSentenceUrl(nonce, idx, since, Date.now()+8000);
+    return url; // null = bridge didn't produce it (end of response or failed)
+  }
+
+  async function drainQueue(){
+    if(playing||!audioQueue.length) return;
+    const next=audioQueue.shift();
+    if(!next||!live()){ if(!audioQueue.length) resume(); return; }
+    playing=true;
+    try{
+      await playUrl(next);
+    }catch(e){}
+    playing=false;
+    if(live()) drainQueue(); else { resume(); }
+  }
+
+  // Play s0 immediately
+  audioQueue.push(s0url);
+  drainQueue();
+
+  // Pre-fetch remaining sentences concurrently with playback
+  (async()=>{
+    while(live()){
+      const url=await prefetch(sentIdx);
+      if(!url) break; // no more sentences
+      if(!live()) break;
+      audioQueue.push(url);
+      drainQueue();
+      sentIdx++;
+      if(sentIdx>20) break; // safety cap
+    }
+    // when prefetch exhausts, mark queue end with a sentinel: drain and call resume
+    const waitDone=setInterval(()=>{
+      if(!playing&&!audioQueue.length){ clearInterval(waitDone); if(live()) resume(); }
+    },150);
+  })();
+}
+
 function speakPhoneVoice(clean, resume){
   // fallback: the browser's built-in voice
   if(!window.speechSynthesis){ resume(); return; }
@@ -4209,7 +4136,7 @@ function voiceModeAfterReply(msg){
   // ALWAYS speak in voice mode, then resume listening when done.
   const resume=()=>{ if(myTurn!==__voiceTurn) return; speaking=false; if(window.__voiceMode){ setTimeout(()=>{ if(window.__voiceMode && !speaking) startListening(); }, 250); } };
   speaking=true;
-  const clean=msg.replace(/[*_`#>\[\]]/g,'').replace(/https?:\/\/\S+/g,'link').slice(0,700);
+  const clean=msg.replace(/[*_`#>\[\]]/g,'').replace(/https?:\/\/\S+/g,'link').slice(0,1500);
   const showText=()=>{ $('voTranscript').textContent=clean.slice(0,160)+(clean.length>160?'…':''); };
   const fallbackLocal=()=>{ // local on-device voices, last resort
     if(!live())return;
@@ -4227,27 +4154,15 @@ function voiceModeAfterReply(msg){
     }
     speakPhoneVoice(clean, resume);
   };
-  // SERVER NEURAL VOICE (primary): the host bridge generates the real AETHER
-  // voice (local Kokoro on the host, ~2s) and posts an mp3 URL back. We play it
-  // through the <audio> element that was primed inside the start gesture, so iOS
-  // allows autoplay. This is the reliable path on iPhone — in-browser WebGPU
-  // Kokoro can't load on Safari, so it stays a fallback only. Text shows
-  // immediately; audio follows a beat later.
+  // SERVER NEURAL VOICE (primary, streaming sentence-by-sentence):
+  // The bridge splits the reply into sentences and posts each as nonce-sN.
+  // The app plays sentence 0 the moment it arrives, pre-fetches sentence 1
+  // while 0 plays, queues 1 for gapless playback, etc.
+  // Text shows immediately; first audio follows ~Kokoro latency (~0.5-1s).
   showText();
   voSetState('speaking','AETHER · tap to interrupt');
   if(aiVoiceOn){
-    fetchAIVoiceUrl(clean).then(url=>{
-      if(!live()){ return; }
-      if(!url){ fallbackLocal(); return; }   // bridge failed → local voice
-      try{
-        const a=ensureAudioEl();
-        a.src=url; a.muted=false; a.currentTime=0;
-        a.onended=()=>{ resume(); };
-        a.onerror=()=>{ if(live()) fallbackLocal(); };
-        const p=a.play();
-        if(p && p.catch) p.catch(()=>{ if(live()) fallbackLocal(); });
-      }catch(e){ fallbackLocal(); }
-    }).catch(()=>{ if(live()) fallbackLocal(); });
+    streamAIVoice(clean, myTurn, live, resume, fallbackLocal);
     return;
   }
   fallbackLocal();
@@ -4609,163 +4524,12 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
   const SEV_CLASS = { high:'h', medium:'m', low:'l' };
 
   // ---- state ----
-  let rrImages = [];          // {id,name,label,dataUrl,isImage}
+  let rrImages = [];          // {id,name,label,dataUrl}
   let rrReview = null;        // active ReviewResult + meta
   let rrFilterCats = new Set();
   let rrFilterSevs = new Set();
   let rrShowResolved = false;
   let rrBusy = false;
-  let rrStreamFindings = [];  // finding cards added during streaming, persisted one-by-one
-
-  // ---- Radar water orb (teal world, same WebGL kernel as Health) ----
-  let __rrOrb = null;
-  function rrStartOrb(){ if(!__rrOrb) __rrOrb = hxMakeOrb('rrOrb'); __rrOrb.start(); }
-  function rrStopOrb(){ if(__rrOrb) __rrOrb.stop(); }
-
-  // ===================================================================
-  // RULES ENGINE — deterministic checks that run BEFORE the LLM.
-  // Exact checks code can do. Model does everything else.
-  // Returns [{level:'flag'|'warn'|'info', icon, title, detail}]
-  // ===================================================================
-  const RR_SECTION_VOCAB = {
-    lead:    ['lead','lead schedule','lead sched','tb lead','workpaper lead'],
-    detail:  ['detail','detail schedule','additions','support','supporting','workpaper detail','invoice'],
-    totals:  ['totals','total','total page','tb','trial balance','trial bal','tb excerpt'],
-    prior:   ['prior','py','prior year','prior-year','prior yr','beginning balance','beg bal','opening'],
-    memo:    ['memo','memorandum','narrative','conclusion'],
-    signoff: ['sign','signoff','sign-off','initials','preparer'],
-  };
-  function rrNormLabel(lbl){ return (lbl||'').toLowerCase().trim(); }
-  function rrClassifySection(lbl){
-    const n = rrNormLabel(lbl);
-    for(const [key,vocab] of Object.entries(RR_SECTION_VOCAB)){
-      if(vocab.some(v=>n.includes(v))) return key;
-    }
-    return null;
-  }
-  // stale-date heuristic: if any label contains a year older than last year
-  function rrCheckDates(imgs){
-    const thisYear = new Date().getFullYear();
-    const flags = [];
-    imgs.forEach(im=>{
-      const years = (im.label||'').match(/\b(20\d{2})\b/g)||[];
-      years.forEach(y=>{
-        const yr = +y;
-        if(yr < thisYear-1){
-          flags.push({level:'warn', icon:'📅', title:'Potentially stale date in label',
-            detail:`Label "${im.label}" contains ${y} — confirm this section is current-year.`});
-        }
-      });
-    });
-    return flags;
-  }
-  function rrRunRules(imgs){
-    const findings = [];
-    // 1. Section presence
-    const present = new Set();
-    imgs.forEach(im=>{ const cls=rrClassifySection(im.label); if(cls) present.add(cls); });
-    // has lead but no detail?
-    if(present.has('lead') && !present.has('detail')){
-      findings.push({level:'warn',icon:'🔗',title:'Detail schedule not attached',
-        detail:'You have a lead but no detail schedule — tie-out across sections is limited. Add the detail.'});
-    }
-    // has detail but no lead?
-    if(present.has('detail') && !present.has('lead')){
-      findings.push({level:'flag',icon:'🔗',title:'Lead schedule missing',
-        detail:'Detail is present but no lead schedule — the tie-out is incomplete without the lead total.'});
-    }
-    // no trial balance / totals reference
-    if(!present.has('totals') && !present.has('prior') && imgs.length>=2){
-      findings.push({level:'info',icon:'📊',title:'No trial balance or prior-year reference',
-        detail:'Adding a TB excerpt or prior-year section unlocks cross-checks (opening balance, tie to TB).'});
-    }
-    // 2. Stale dates in labels
-    findings.push(...rrCheckDates(imgs));
-    // 3. Single-section review warning
-    if(imgs.length===1){
-      findings.push({level:'info',icon:'📸',title:'Single section — cross-checks not possible',
-        detail:'With one section the model can\'t check tie-outs ACROSS sections. Add the lead, detail, and TB to unlock those.'});
-    }
-    return findings;
-  }
-
-  // ===================================================================
-  // SECTION COUNTS UI — show which sections are present / missing
-  // ===================================================================
-  function rrRenderSectionCounts(imgs){
-    const el = $('rrSectionCounts'); if(!el) return;
-    const present = new Set();
-    imgs.forEach(im=>{ const c=rrClassifySection(im.label); if(c) present.add(c); });
-    const SHOW = [['lead','Lead'],['detail','Detail'],['totals','TB'],['prior','Prior-year'],['memo','Memo']];
-    el.innerHTML = SHOW.map(([k,lbl])=>
-      `<span class="rr-sc ${present.has(k)?'present':'missing'}">${lbl}</span>`
-    ).join('');
-    el.style.display = imgs.length ? '' : 'none';
-  }
-
-  // ===================================================================
-  // RULES BADGES UI — rendered before the LLM fires
-  // ===================================================================
-  function rrRenderRules(ruleFl){
-    const el=$('rrRules'); if(!el) return;
-    if(!ruleFl||!ruleFl.length){ el.style.display='none'; return; }
-    el.innerHTML=ruleFl.map(f=>`<div class="rr-rule-badge ${f.level}"><span class="rr-rule-icon">${f.icon}</span><div class="rr-rule-text"><b>${f.title}</b> — ${f.detail}</div></div>`).join('');
-    el.style.display='';
-  }
-
-  // ===================================================================
-  // STREAMING RENDERER — one card per finding, persisted as it arrives
-  // ===================================================================
-  function rrStreamFinding(finding, engId){
-    // Add to in-memory list + localStorage immediately (each card is its own DB row)
-    const f = {...finding, id: finding.id||uid(), ts: Date.now(), eng: engId||''};
-    rrStreamFindings.push(f);
-    // persist this one finding now
-    const stored = rrLoadStreamDb();
-    stored.unshift(f);
-    try{ localStorage.setItem('rrStream', JSON.stringify(stored.slice(0, 200))); }catch(e){}
-    // render the card into #rrList immediately
-    const listEl = $('rrList'); if(!listEl) return;
-    const sev = (f.severity||'med').replace('medium','med');
-    const card = document.createElement('div');
-    card.className = `rr-finding-card sev-${sev}`;
-    card.dataset.fid = f.id;
-    const esc2=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    card.innerHTML =
-      `<div class="rr-fc-top">
-        <span class="rr-fc-badge sev-${sev}">${sev==='high'?'HIGH':sev==='med'?'MED':'LOW'}</span>
-        ${f.workpaper||f.section?`<span class="rr-fc-section">${esc2(f.workpaper||f.section)}</span>`:''}
-        ${f.type?`<span class="rr-fc-type">${esc2(f.type)}</span>`:''}
-      </div>
-      <div class="rr-fc-text">${esc2(f.text||f.finding||f.issue||'')}</div>
-      ${f.draft||f.suggestion?`<div class="rr-fc-fix"><b>💡</b> ${esc2(f.draft||f.suggestion)}</div>`:''}
-      <div class="rr-fc-actions">
-        <button class="rr-fc-btn addressed">✓ Addressed</button>
-        <button class="rr-fc-btn dismiss">Dismiss</button>
-      </div>`;
-    card.querySelector('.addressed').addEventListener('click',()=>{ card.classList.toggle('done'); haptic&&haptic(); });
-    card.querySelector('.dismiss').addEventListener('click',()=>{ card.style.display='none'; haptic&&haptic(); });
-    listEl.appendChild(card);
-    // show the stream head once first card lands
-    const sh=$('rrStreamHead'); if(sh) sh.style.display='';
-    // scroll to new card on mobile
-    card.scrollIntoView({behavior:'smooth',block:'nearest'});
-  }
-  function rrLoadStreamDb(){ try{ return JSON.parse(localStorage.getItem('rrStream')||'[]'); }catch(e){ return []; } }
-
-  // Rules stream: render rules-engine findings into #rrRulesStream (deterministic tier)
-  function rrStreamRuleFindings(rules){
-    const el=$('rrRulesStream'); if(!el) return;
-    if(!rules||!rules.length){ el.innerHTML=''; return; }
-    const sev_map={flag:'high',warn:'med',info:'low'};
-    el.innerHTML='<p class="rr-stream-head">Rules engine — deterministic checks</p>' +
-      rules.map(r=>{
-        const sev=sev_map[r.level]||'low';
-        return `<div class="rr-finding-card sev-${sev}" style="border-left:3px solid var(--sev-${sev==='high'?'high':'med'}); padding-left:13px;">
-          <div class="rr-fc-top"><span class="rr-fc-badge sev-${sev}">RULES</span><span class="rr-fc-type">${r.icon}</span></div>
-          <div class="rr-fc-text"><b>${r.title}</b> — ${r.detail}</div></div>`;
-      }).join('');
-  }
   let rrAbort = null;         // AbortController for the in-flight review run
   let rrCancelled = false;    // set when the user cancels, so we exit quietly
   let rrLastSeen = '';        // last reviewer reply we saw that wasn't valid findings JSON (for diagnostics on timeout)
@@ -4827,35 +4591,15 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
 
   // ---- compose: add / render / remove images ----
   async function rrAddFiles(files){
-    const list=[...files].filter(f=>f.size>0);
+    const list=[...files].filter(f=>/^image\//.test(f.type));
     if(!list.length) return;
-    toast('Optimizing '+list.length+' file'+(list.length>1?'s':'')+'…');
+    toast('Optimizing '+list.length+' photo'+(list.length>1?'s':'')+'…');
     for(const f of list){
-      const isImage=/^image\//.test(f.type);
-      const dataUrl = isImage ? await rrResize(f) : await rrFileToDataUrl(f);
+      const dataUrl=await rrResize(f);
       if(!dataUrl) continue;
-      rrImages.push({ id:uid(), name:f.name||'workpaper', label:'', dataUrl, isImage });
+      rrImages.push({ id:uid(), name:f.name||'workpaper', label:'', dataUrl });
     }
     rrRenderStrip(); rrSyncCTA(); haptic();
-  }
-  // For non-image files: create a placeholder dataUrl (grey page icon + filename).
-  // The file name/label goes to the model as context; actual pixel analysis requires
-  // converting the doc to an image — for now we surface it as a labeled section.
-  function rrFileToDataUrl(f){
-    return new Promise(res=>{
-      const cv=document.createElement('canvas'); cv.width=390; cv.height=490;
-      const ctx=cv.getContext('2d');
-      ctx.fillStyle='#012b2b'; ctx.fillRect(0,0,390,490);
-      ctx.fillStyle='rgba(127,217,212,.7)'; ctx.font='bold 48px sans-serif'; ctx.textAlign='center'; ctx.fillText('📄',195,200);
-      ctx.fillStyle='rgba(203,222,219,.9)'; ctx.font='14px sans-serif';
-      const name=f.name||'file'; const words=name.split(' ').reduce((a,w)=>{
-        const last=a[a.length-1]; if(!last||last.length+w.length>34) a.push(w); else a[a.length-1]+=' '+w; return a;
-      },[]);
-      words.forEach((l,i)=>ctx.fillText(l,195,250+i*22));
-      ctx.fillStyle='rgba(127,217,212,.45)'; ctx.font='11px sans-serif';
-      ctx.fillText(f.type||'file',195,320);
-      res(cv.toDataURL('image/jpeg',0.8));
-    });
   }
   function rrRenderStrip(){
     const strip=$('rrStrip'); strip.innerHTML='';
@@ -4864,11 +4608,9 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
       d.innerHTML='<div class="rr-img-wrap"><img alt="" src="'+im.dataUrl+'"><button class="rr-x" aria-label="Remove">×</button></div>'+
                   '<input type="text" placeholder="Label (e.g. Cash lead)" value="'+esc(im.label)+'" aria-label="Workpaper label">';
       d.querySelector('.rr-x').addEventListener('click',()=>{ rrImages=rrImages.filter(x=>x.id!==im.id); rrRenderStrip(); rrSyncCTA(); haptic(); });
-      d.querySelector('input').addEventListener('input',(e)=>{ im.label=e.target.value; rrRenderSectionCounts(rrImages); rrRenderRules(rrRunRules(rrImages)); });
+      d.querySelector('input').addEventListener('input',(e)=>{ im.label=e.target.value; });
       strip.appendChild(d);
     });
-    rrRenderSectionCounts(rrImages);
-    rrRenderRules(rrRunRules(rrImages));
   }
   function rrSyncCTA(){ $('rrReviewBtn').disabled = rrImages.length===0 || rrBusy; }
 
@@ -4905,12 +4647,7 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
         await rrFetch(`${NTFY}/${RR_AGENT.in}`,{method:'POST',body},30000);
         const raw=await rrPollResult(sentAt);
         if(rrCancelled) return null;
-        if(raw){ let p; try{ p=rrParse(raw); }catch(e){} if(p){ p.findings.forEach(f=>{
-          const finding={...f,id:f.id||uid(),workpaper:f.workpaper||imgLabel};
-          allFindings.push(finding);
-          // stream each finding into the results panel immediately as it arrives
-          rrStreamFinding(finding, '');
-        }); lastSummary=p.summary||lastSummary; } }
+        if(raw){ let p; try{ p=rrParse(raw); }catch(e){} if(p){ p.findings.forEach(f=>{ allFindings.push({...f,id:f.id||uid(),workpaper:f.workpaper||imgLabel}); }); lastSummary=p.summary||lastSummary; } }
         if(ci<imgs.length-1 && subEl && allFindings.length) subEl.textContent='Found '+allFindings.length+' finding'+(allFindings.length!==1?'s':'')+' so far — reviewing next workpaper…';
       }catch(e){ if(rrCancelled) return null; }
     }
@@ -4970,20 +4707,8 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
       toast('Offline — review queued. It runs automatically when you reconnect.');
       return;
     }
-    // ── RULES ENGINE runs first: deterministic, synchronous, zero cost ──────────
-    const ruleFindings = rrRunRules(rrImages);
-    // Show results panel up-front so rules stream in immediately
-    rrStreamFindings=[];
-    $('rrList').innerHTML='';
-    $('rrRulesStream').innerHTML='';
-    rrShow('results');
-    rrStreamRuleFindings(ruleFindings);
-
     rrBusy=true; rrCancelled=false; rrAbort=new AbortController(); rrSyncCTA(); haptic();
-    // Brief loading banner while we upload + start LLM
-    $('rrLoadMsg').textContent='Uploading workpapers…';
-    $('rrLoadSub').textContent='Rules engine complete — '+ruleFindings.length+' check'+(ruleFindings.length!==1?'s':'')+(ruleFindings.length?' flagged.':' passed.')+' LLM judgment layer starting…';
-
+    rrShow('loading'); rrStartLoadCycle();
     try{
       // upload all (resized) images IN PARALLEL, with a live progress count so
       // the user can SEE it working instead of a silent multi-photo wait. Order
@@ -5234,7 +4959,7 @@ Output ONLY valid JSON matching this exact shape. No markdown, no code fences, n
     document.addEventListener('keydown',(e)=>{ if(e.key==='Escape' && $('rrDrawer').classList.contains('open')) rrCloseDrawer(); });
 
     // refresh saved list + privacy banner whenever Radar opens
-    $('radarNav').addEventListener('click', ()=>{ if(!rrReview) rrShow('compose'); rrRenderSaved(); $('rrPrivacy').style.display=rrPrivacyOn()?'flex':'none'; rrDrainQueue(); rrStartOrb(); });
+    $('radarNav').addEventListener('click', ()=>{ if(!rrReview) rrShow('compose'); rrRenderSaved(); $('rrPrivacy').style.display=rrPrivacyOn()?'flex':'none'; rrDrainQueue(); });
     // privacy toggle (Settings)
     const pt=$('rrPrivacyToggle'); if(pt){ pt.checked=rrPrivacyOn(); pt.addEventListener('change',function(){ window.rrSetPrivacy(this.checked); toast(this.checked?'Privacy mode on — local VLM only.':'Privacy mode off.'); }); }
     rrRenderSaved();
