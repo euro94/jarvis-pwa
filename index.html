@@ -134,7 +134,9 @@
   .screen, #chatThread, #hdList, .stream-feed { scroll-behavior:smooth; }
   @media (prefers-reduced-motion: reduce){ .screen, #chatThread, #hdList, .stream-feed { scroll-behavior:auto; } }
   /* premium focus + scrollbars */
-  :focus-visible { outline:none; box-shadow:var(--ring); border-radius:6px; }
+  /* dual-layer focus ring: a dark separator hugs the element, then the cyan glow —
+     so keyboard focus stays clearly AA-visible on both dark glass and bright cyan controls */
+  :focus-visible { outline:none; box-shadow:0 0 0 2px var(--bg), var(--ring); border-radius:6px; }
   .screen::-webkit-scrollbar, #chatThread::-webkit-scrollbar, #hdList::-webkit-scrollbar, .stream-feed::-webkit-scrollbar { width:8px; height:8px; }
   .screen::-webkit-scrollbar-thumb, #chatThread::-webkit-scrollbar-thumb, #hdList::-webkit-scrollbar-thumb, .stream-feed::-webkit-scrollbar-thumb { background:rgba(60,210,255,.20); border-radius:99px; border:2px solid transparent; background-clip:padding-box; }
   .screen::-webkit-scrollbar-thumb:hover { background:rgba(60,210,255,.38); background-clip:padding-box; }
