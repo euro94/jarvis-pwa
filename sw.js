@@ -1,5 +1,5 @@
 // AETHER service worker — Web Push + notification taps + offline app shell
-const VERSION = 'aether-v90';
+const VERSION = 'aether-v91';
 const SHELL = 'aether-shell-' + VERSION;
 
 // The static shell. Cached on install so the app opens (and shows a real
