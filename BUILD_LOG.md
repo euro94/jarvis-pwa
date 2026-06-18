@@ -80,3 +80,29 @@ Newest first. One entry per run: what shipped / what's on a branch / what's bloc
   iPhone PWA the mic is granted once and not re-asked. Until that path is live the
   app silently uses native dictation (still works, still re-asks).
 - **Status:** PR open on `feat/persistent-mic-whisper`. Awaiting review/merge.
+
+## 2026-06-18 — run 5
+
+- **Pulled:** Health tab — photo meal logging (Yaro asked for it directly).
+- **Decision:** route analysis through the existing **jarvis** agent's vision
+  tool (no new keys/deps), reusing the Review-Radar upload->ntfy->poll->JSON
+  spine. Entry via a Home fcard + `screenHealth` (not a 7th bottom-nav tab — 6 is
+  already crowded). State in localStorage so history survives reloads.
+- **Did:** branch `feat/health-meal-logging`. Added: Health fcard + handler;
+  `screenHealth` markup (totals card, Snap button w/ `capture=environment`,
+  today list); dark-HUD CSS; a self-contained JS module (resize, upload, agent
+  send, poll, strict JSON parse, optimistic pending row, per-meal delete,
+  editable kcal goal, low-confidence "est" tag). sw v83->v84.
+- **Verified (code):** all 8 inline scripts pass `node --check`; wiring tokens
+  present; upload PUT returned 200 + real URL; POST to jarvis-in 200; poll reads
+  jarvis-out replies correctly.
+- **BLOCKER (live AI step UNVERIFIED):** the live round-trip could NOT confirm a
+  nutrition estimate because (1) the Nous account is OUT OF CREDITS — agent
+  replied "Model 'anthropic/claude-opus-4.8' requires available credits"; and
+  (2) before that, jarvis said it was looking for the attachment "in Downloads"
+  rather than calling vision_analyze on the URL — a possible agent-compliance
+  issue that couldn't be diagnosed further once credits died. The app degrades
+  gracefully (shows a retry message) when no JSON comes back.
+- **Status:** PR opened on `feat/health-meal-logging`, **NOT merged** — held per
+  the "can't verify -> don't ship to main" rule. Needs: (a) credit top-up to
+  confirm the estimate, and possibly (b) a firmer vision-on-URL nudge for jarvis.

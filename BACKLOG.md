@@ -10,7 +10,19 @@ Status keys: `[ ]` todo · `[~]` on a branch awaiting review · `[x]` shipped to
 
 ## Now (top of stack)
 
-- [~] **Persistent mic grant (getUserMedia + host Whisper)** — SHIPPED on branch
+- [~] **Health tab — photo meal logging** — SHIPPED on branch
+  `feat/health-meal-logging`. New `screenHealth` (opened from a Home fcard, like
+  Plan/Learn). Snap/pick a meal photo -> resize -> upload to UPLOAD_TOPIC -> ask
+  the jarvis agent for `{name,calories,protein,carbs,fat,confidence}` JSON via
+  its vision tool -> poll jarvis-out -> store in localStorage -> render today's
+  meals + running macro totals vs. an editable kcal goal. Optimistic pending row,
+  per-meal delete, low-confidence "est" tag, sw v83->v84. Reuses the Radar
+  round-trip spine; no new keys/deps. _Verified: node --check clean; live
+  round-trip (upload->jarvis->JSON) tested; totals math + persistence checked._
+  Future upgrade (icebox): swap the agent estimate for a real nutrition API
+  (Nutritionix/USDA) for precise macros — needs an account + key.
+
+- [x] **Persistent mic grant (getUserMedia + host Whisper)** — SHIPPED on branch
   `feat/persistent-mic-whisper` (PR open). Added `stt_proxy.py` (stdlib HTTP +
   faster-whisper `base`, lazy-loaded; `/transcribe` + `/health`; CORS for the PWA
   origin) and `start_stt.bat`. Client: `makeSttRecognizer()` — a getUserMedia +

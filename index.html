@@ -1087,6 +1087,54 @@
   .lrn-err .le-why { font-size:12.5px; color:var(--faint); line-height:1.45; }
   .lrn-empty { text-align:center; color:var(--faint); font-size:13.5px; line-height:1.6; padding:34px 20px; }
 
+  /* ===== HEALTH (photo meal logging) ===== */
+  #screenHealth.active { display:flex; flex-direction:column; overflow:hidden; }
+  .hl-top { display:flex; align-items:center; gap:10px; padding:calc(env(safe-area-inset-top) + 14px) 14px 10px;
+    border-bottom:1px solid var(--line); background:rgba(7,13,22,.78); -webkit-backdrop-filter:blur(18px) saturate(140%); backdrop-filter:blur(18px) saturate(140%); }
+  .hl-back { flex:0 0 auto; width:34px; height:34px; border:1px solid var(--line); border-radius:10px; background:var(--card); color:var(--fg); font-size:22px; line-height:1; cursor:pointer; }
+  .hl-back:active { transform:scale(.92); }
+  .hl-title { font-family:'Chakra Petch','Saira',sans-serif; font-weight:800; letter-spacing:1px; font-size:16px;
+    background:linear-gradient(90deg,#bfe9ff,#3ce6ff); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+  .hl-goal { margin-left:auto; flex:0 0 auto; font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1.4px; text-transform:uppercase;
+    color:var(--gold); background:var(--sev-med-bg); border:1px solid rgba(243,199,90,.3); border-radius:99px; padding:6px 12px; cursor:pointer; }
+  .hl-goal:active { transform:scale(.95); }
+  .hl-scroll { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:16px 16px calc(var(--safe-b) + 90px); }
+  /* totals card */
+  .hl-rings { display:flex; align-items:center; gap:18px; background:linear-gradient(150deg,rgba(60,210,255,.08),var(--card));
+    border:1px solid rgba(60,210,255,.26); border-radius:var(--r-lg); padding:18px 18px; margin-bottom:16px; -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); }
+  .hl-ring-main { flex:0 0 auto; text-align:center; min-width:104px; }
+  .hl-kcal { font-family:'Chakra Petch',sans-serif; font-weight:800; font-size:38px; line-height:1; color:var(--cyan); text-shadow:0 0 18px var(--glow-cyan); }
+  .hl-kcal-sub { font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1px; color:var(--faint); margin-top:6px; text-transform:uppercase; }
+  .hl-macros { flex:1; display:flex; flex-direction:column; gap:9px; }
+  .hl-macro { display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--line-2); padding-bottom:7px; }
+  .hl-macro:last-child { border-bottom:none; padding-bottom:0; }
+  .hl-m-k { font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:1px; color:var(--faint); text-transform:uppercase; }
+  .hl-m-v { font-family:'Chakra Petch',sans-serif; font-weight:700; font-size:16px; color:var(--fg); }
+  /* snap button */
+  .hl-snap { width:100%; border:none; border-radius:var(--r-md); padding:16px; font-family:'Chakra Petch',sans-serif; font-size:15px; font-weight:700;
+    letter-spacing:.4px; cursor:pointer; color:#04263a; background:radial-gradient(circle at 40% 30%,#bfeeff,#3ce6ff 60%,#0d8fb8 100%);
+    box-shadow:0 0 20px var(--glow-cyan); margin-bottom:14px; display:flex; align-items:center; justify-content:center; gap:10px; }
+  .hl-snap:active { transform:scale(.98); } .hl-snap:disabled { opacity:.55; }
+  .hl-snap svg { width:21px; height:21px; }
+  /* status line during analysis */
+  .hl-status { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--cyan); text-align:center; padding:10px 12px; margin-bottom:12px;
+    border:1px dashed rgba(60,210,255,.3); border-radius:var(--r-md); background:rgba(60,210,255,.05); }
+  .hl-status.err { color:var(--sev-high); border-color:rgba(255,107,107,.4); background:var(--sev-high-bg); }
+  /* meal rows */
+  .hl-meal { display:flex; gap:12px; align-items:center; background:var(--card); border:1px solid var(--line); border-radius:var(--r-md); padding:11px; margin-bottom:10px; }
+  .hl-meal img { flex:0 0 auto; width:56px; height:56px; border-radius:10px; object-fit:cover; background:var(--bg-2); }
+  .hl-meal .hl-meal-b { flex:1; min-width:0; }
+  .hl-meal .hl-meal-name { font-size:14.5px; font-weight:600; color:var(--fg); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .hl-meal .hl-meal-mac { font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:.4px; color:var(--faint); margin-top:4px; }
+  .hl-meal .hl-meal-kc { flex:0 0 auto; font-family:'Chakra Petch',sans-serif; font-weight:800; font-size:18px; color:var(--cyan); text-align:right; }
+  .hl-meal .hl-meal-kc small { display:block; font-family:'JetBrains Mono',monospace; font-weight:400; font-size:8.5px; color:var(--faint); letter-spacing:1px; }
+  .hl-meal .hl-del { flex:0 0 auto; width:26px; height:26px; border:none; background:none; color:var(--faint); font-size:18px; cursor:pointer; align-self:flex-start; }
+  .hl-meal .hl-del:active { color:var(--sev-high); }
+  .hl-meal.pending { opacity:.7; }
+  .hl-meal .hl-conf { display:inline-block; font-family:'JetBrains Mono',monospace; font-size:8.5px; letter-spacing:.5px; padding:1px 6px; border-radius:99px; margin-left:6px; vertical-align:middle; }
+  .hl-conf.low { color:var(--gold); background:var(--sev-med-bg); }
+  .hl-empty { text-align:center; color:var(--faint); font-size:13.5px; line-height:1.6; padding:30px 20px; }
+
   /* ===== PLAN (First Things First — Covey Habit 3) ===== */
   #screenPlan.active { display:flex; flex-direction:column; overflow:hidden; }
   .plan-top { display:flex; align-items:center; gap:10px; padding:calc(env(safe-area-inset-top) + 14px) 16px 10px;
@@ -1313,6 +1361,7 @@
         <div class="fcard" data-studio="1"><div class="ic"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M12 3l1.9 5.6L19.5 10.5 13.9 12.4 12 18l-1.9-5.6L4.5 10.5 10.1 8.6 12 3Z"/><path d="M19 4v2.4M20.2 5.2h-2.4"/></svg></div><div class="lbl">Design Studio</div></div>
         <div class="fcard" data-learn="1"><div class="ic"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H19v13H6.5A2.5 2.5 0 0 0 4 19.5z"/><path d="M4 6.5V19.5A2.5 2.5 0 0 0 6.5 22H19v-3"/></svg></div><div class="lbl">Tutor</div></div>
         <div class="fcard" data-radar="1"><div class="ic"><svg class="ico-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="3.4"/><path d="M12 1.6v3M12 19.4v3M1.6 12h3M19.4 12h3"/></svg></div><div class="lbl">Review Radar</div></div>
+        <div class="fcard" data-health="1"><div class="ic"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M12 20.5S4 15 4 9.2A4.2 4.2 0 0 1 12 7a4.2 4.2 0 0 1 8 2.2C20 15 12 20.5 12 20.5Z"/><path d="M7.5 12h2l1.2-2.4L13 14l1.3-2h2.2"/></svg></div><div class="lbl">Health</div></div>
       </div>
 
       <div class="section-h">Today</div>
@@ -1674,6 +1723,36 @@
         Prioritize with my calendar
       </button>
       <div id="planBody"></div>
+    </div>
+  </div>
+
+  <!-- ===== HEALTH (photo meal logging) ===== -->
+  <div class="screen" id="screenHealth">
+    <div class="hl-top">
+      <button class="hl-back" id="hlBack" type="button" aria-label="Back to home">‹</button>
+      <div class="hl-title">Health</div>
+      <button class="hl-goal" id="hlGoalBtn" type="button" aria-label="Set daily calorie goal">Goal</button>
+    </div>
+    <div class="hl-scroll">
+      <div class="hl-rings">
+        <div class="hl-ring-main">
+          <div class="hl-kcal" id="hlKcal">0</div>
+          <div class="hl-kcal-sub">of <span id="hlGoal">2200</span> kcal</div>
+        </div>
+        <div class="hl-macros">
+          <div class="hl-macro"><span class="hl-m-k">Protein</span><span class="hl-m-v" id="hlP">0g</span></div>
+          <div class="hl-macro"><span class="hl-m-k">Carbs</span><span class="hl-m-v" id="hlC">0g</span></div>
+          <div class="hl-macro"><span class="hl-m-k">Fat</span><span class="hl-m-v" id="hlF">0g</span></div>
+        </div>
+      </div>
+      <button class="hl-snap" id="hlSnap" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5A1.5 1.5 0 0 1 5.5 7h1.7l1.1-1.6A1 1 0 0 1 10.1 5h3.8a1 1 0 0 1 .8.4L15.8 7h2.7A1.5 1.5 0 0 1 20 8.5v9A1.5 1.5 0 0 1 18.5 19h-13A1.5 1.5 0 0 1 4 17.5z"/><circle cx="12" cy="13" r="3.3"/></svg>
+        Snap a meal
+      </button>
+      <input id="hlFile" type="file" accept="image/*" capture="environment" style="display:none">
+      <div class="hl-status" id="hlStatus" style="display:none"></div>
+      <div class="section-h" id="hlTodayH">Today</div>
+      <div id="hlList"></div>
     </div>
   </div>
 
@@ -2724,6 +2803,165 @@ function startPlan(){
   __planTimer=setInterval(planTick, 2500);
 }
 function stopPlan(){ if(__planTimer){ clearInterval(__planTimer); __planTimer=null; } }
+
+/* ===== HEALTH — photo meal logging =========================================
+   Snap/pick a meal photo -> resize -> upload to the tailnet (existing
+   UPLOAD_TOPIC) -> ask the jarvis agent to estimate macros via its vision tool
+   -> poll its out-topic for a JSON reply -> store the entry in localStorage and
+   render today's meals + running totals. Reuses the Review-Radar round-trip
+   pattern; no new keys/deps. State is fully local so history survives reloads. */
+const HL_AGENT = (typeof AGENTS!=='undefined' && AGENTS.find(a=>a.id==='jarvis')) || (typeof activeAgent!=='undefined'?activeAgent:null);
+const HL_MAX_EDGE=1024, HL_JPEG_Q=0.82;
+const HL_SYSTEM = "You are a nutrition estimator. The user sends ONE photo of a meal. Identify the food and estimate its nutrition for the portion shown. Respond with ONLY a JSON object, no code fences, no preamble, in EXACTLY this shape: {\"name\":\"short dish name\",\"calories\":<int kcal>,\"protein\":<int grams>,\"carbs\":<int grams>,\"fat\":<int grams>,\"confidence\":\"high\"|\"medium\"|\"low\"}. If you cannot see food clearly, still return the object with your best guess and confidence \"low\". Numbers only — no units inside the numbers.";
+let __hlMeals = JSON.parse(localStorage.getItem('aetherMeals')||'[]');
+let __hlGoal = parseInt(localStorage.getItem('aetherKcalGoal')||'2200',10) || 2200;
+let __hlBusy = false;
+
+function hlUid(){ return 'm'+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36); }
+function hlSave(){ localStorage.setItem('aetherMeals', JSON.stringify(__hlMeals.slice(-400))); }
+function hlTodayKey(){ const d=new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
+function hlEsc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function hlResize(file){
+  return new Promise((resolve)=>{
+    const fr=new FileReader();
+    fr.onload=()=>{ const img=new Image();
+      img.onload=()=>{ let w=img.width,h=img.height; const sc=Math.min(1,HL_MAX_EDGE/Math.max(w,h));
+        w=Math.round(w*sc); h=Math.round(h*sc);
+        const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+        cv.getContext('2d').drawImage(img,0,0,w,h);
+        let d; try{ d=cv.toDataURL('image/jpeg',HL_JPEG_Q); }catch(e){ d=fr.result; } resolve(d); };
+      img.onerror=()=>resolve(fr.result); img.src=fr.result; };
+    fr.onerror=()=>resolve(null); fr.readAsDataURL(file);
+  });
+}
+function hlDataUrlToBlob(d){ const [head,b64]=d.split(','); const mime=(head.match(/:(.*?);/)||[])[1]||'image/jpeg';
+  const bin=atob(b64); const u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i); return new Blob([u],{type:mime}); }
+async function hlFetch(url,opts,timeoutMs){ const c=new AbortController(); const t=setTimeout(()=>c.abort(),timeoutMs||30000);
+  try{ return await fetch(url,{...opts,signal:c.signal}); } finally{ clearTimeout(t); } }
+
+function hlParse(raw){
+  if(!raw) return null;
+  let s=raw.trim().replace(/^```(json)?/i,'').replace(/```$/,'').trim();
+  const a=s.indexOf('{'), b=s.lastIndexOf('}'); if(a<0||b<0||b<a) return null;
+  let o; try{ o=JSON.parse(s.slice(a,b+1)); }catch(e){ return null; }
+  const num=(v)=>{ const n=Math.round(parseFloat(v)); return isFinite(n)&&n>=0?n:0; };
+  return { name:(''+(o.name||'Meal')).slice(0,60), calories:num(o.calories), protein:num(o.protein),
+           carbs:num(o.carbs), fat:num(o.fat),
+           confidence:/^(high|medium|low)$/i.test(o.confidence||'')?o.confidence.toLowerCase():'low' };
+}
+async function hlPollResult(sinceTs){
+  if(!HL_AGENT) return null;
+  const HARD=Date.now()+3*60000; const seen=new Set();
+  while(Date.now()<HARD){
+    try{
+      const r=await hlFetch(`${NTFY}/${HL_AGENT.out}/json?poll=1&since=${sinceTs}`,{cache:'no-store'},20000);
+      const lines=(await r.text()).trim().split('\n').filter(Boolean);
+      for(const ln of lines){ let o; try{o=JSON.parse(ln);}catch(e){continue;}
+        if(o.event!=='message'||!o.id||seen.has(o.id))continue; seen.add(o.id);
+        if(o.time&&o.time<sinceTs)continue;
+        const msg=(o.message||'').trim();
+        if(typeof sniffCredits==='function'){ try{ sniffCredits(msg); }catch(e){} }
+        if(/\"calories\"\s*:/.test(msg) || (/^[\s`]*\{/.test(msg) && /\"name\"/.test(msg))) return msg;
+      }
+    }catch(e){}
+    await new Promise(r=>setTimeout(r,2500));
+  }
+  return null;
+}
+function hlBuildMessage(url){
+  return [HL_SYSTEM,'',
+    'Here is the meal photo. Call your vision tool (vision_analyze) DIRECTLY ON THIS URL — pass the https URL straight to the tool. Do NOT download the file, do NOT use the terminal, do NOT convert to a data URL.',
+    url,'',
+    'Respond with ONLY the JSON object — no code fences, no preamble.'].join('\n');
+}
+
+function hlSetStatus(msg, isErr){ const el=$('hlStatus'); if(!el) return;
+  if(!msg){ el.style.display='none'; el.textContent=''; el.classList.remove('err'); return; }
+  el.style.display='block'; el.textContent=msg; el.classList.toggle('err',!!isErr); }
+
+async function hlSnap(file){
+  if(!file) return;
+  if(!HL_AGENT){ hlSetStatus('No agent configured to analyze meals.',true); return; }
+  if(__hlBusy){ toast('Still analyzing the last photo…',true); return; }
+  __hlBusy=true; $('hlSnap').disabled=true; haptic();
+  const id=hlUid();
+  let thumb=null;
+  try{
+    const dataUrl=await hlResize(file); thumb=dataUrl;
+    // optimistic pending row so the user sees it land immediately
+    __hlMeals.push({id, name:'Analyzing…', calories:0, protein:0, carbs:0, fat:0, confidence:'low', thumb, t:Date.now(), day:hlTodayKey(), pending:true});
+    hlRender();
+    hlSetStatus('Uploading photo…');
+    const blob=hlDataUrlToBlob(dataUrl);
+    const url=await hlUpload(blob,'meal-'+id+'.jpg');
+    hlSetStatus('Estimating calories & macros…');
+    const sentAt=Math.floor(Date.now()/1000)-1;
+    await hlFetch(`${NTFY}/${HL_AGENT.in}`,{method:'POST',body:hlBuildMessage(url)},30000);
+    const raw=await hlPollResult(sentAt);
+    const parsed=raw?hlParse(raw):null;
+    const m=__hlMeals.find(x=>x.id===id);
+    if(parsed && m){ Object.assign(m,parsed,{pending:false}); hlSave(); hlRender(); hlSetStatus(''); haptic(); }
+    else { if(m){ __hlMeals=__hlMeals.filter(x=>x.id!==id); hlRender(); }
+      hlSetStatus(raw?'Could not read a nutrition estimate from the reply. Try again.':'No response from the assistant — is it online? Try again.',true); }
+  }catch(e){
+    __hlMeals=__hlMeals.filter(x=>x.id!==id); hlRender();
+    hlSetStatus('Failed: '+((e&&e.message)||'network error')+'. Check connection and retry.',true);
+  }finally{ __hlBusy=false; $('hlSnap').disabled=false; }
+}
+async function hlUpload(blob,name){
+  if(typeof tailnetUpload==='function') return await tailnetUpload(blob,name,(u,o)=>hlFetch(u,o,45000));
+  const r=await hlFetch(`${NTFY}/${UPLOAD_TOPIC}`,{method:'PUT',headers:{'Filename':name},body:blob},45000);
+  const o=await r.json(); const u=o&&o.attachment&&o.attachment.url; if(!u) throw new Error('upload failed'); return u;
+}
+
+function hlTotals(){ const day=hlTodayKey(); const t={cal:0,p:0,c:0,f:0};
+  for(const m of __hlMeals){ if(m.day===day && !m.pending){ t.cal+=m.calories||0; t.p+=m.protein||0; t.c+=m.carbs||0; t.f+=m.fat||0; } } return t; }
+function hlRender(){
+  const t=hlTotals();
+  if($('hlKcal')) $('hlKcal').textContent=t.cal;
+  if($('hlGoal')) $('hlGoal').textContent=__hlGoal;
+  if($('hlP')) $('hlP').textContent=t.p+'g';
+  if($('hlC')) $('hlC').textContent=t.c+'g';
+  if($('hlF')) $('hlF').textContent=t.f+'g';
+  const kc=$('hlKcal'); if(kc) kc.style.color = t.cal>__hlGoal ? 'var(--gold)' : 'var(--cyan)';
+  const list=$('hlList'); if(!list) return;
+  const day=hlTodayKey();
+  const today=__hlMeals.filter(m=>m.day===day).sort((a,b)=>b.t-a.t);
+  if(!today.length){ list.innerHTML='<div class="hl-empty">No meals logged today.<br>Tap “Snap a meal” to start.</div>'; return; }
+  list.innerHTML='';
+  for(const m of today){
+    const d=document.createElement('div'); d.className='hl-meal'+(m.pending?' pending':'');
+    const conf=(m.confidence==='low' && !m.pending)?'<span class="hl-conf low">est</span>':'';
+    const time=new Date(m.t).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+    d.innerHTML=
+      (m.thumb?'<img src="'+m.thumb+'" alt="">':'<div style="width:56px;height:56px;border-radius:10px;background:var(--bg-2);flex:0 0 auto"></div>')+
+      '<div class="hl-meal-b"><div class="hl-meal-name">'+hlEsc(m.name)+conf+'</div>'+
+      '<div class="hl-meal-mac">'+(m.pending?time:('P '+m.protein+'g · C '+m.carbs+'g · F '+m.fat+'g · '+time))+'</div></div>'+
+      '<div class="hl-meal-kc">'+(m.pending?'…':m.calories)+'<small>KCAL</small></div>'+
+      (m.pending?'':'<button class="hl-del" aria-label="Delete">×</button>');
+    const del=d.querySelector('.hl-del'); if(del) del.addEventListener('click',()=>{ __hlMeals=__hlMeals.filter(x=>x.id!==m.id); hlSave(); hlRender(); haptic(); });
+    list.appendChild(d);
+  }
+}
+function openHealth(){
+  document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $('screenHealth').classList.add('active');
+  stopStream&&stopStream(); stopAmbient&&stopAmbient(); stopStudio&&stopStudio();
+  if(typeof stopPlan==='function') stopPlan();
+  if(typeof stopLearn==='function') stopLearn();
+  haptic(); hlRender();
+}
+$('hlBack') && $('hlBack').addEventListener('click', ()=>{ navTo('screenHome'); });
+$('hlSnap') && $('hlSnap').addEventListener('click', ()=>{ $('hlFile').click(); });
+$('hlFile') && $('hlFile').addEventListener('change', (e)=>{ const f=e.target.files&&e.target.files[0]; e.target.value=''; if(f) hlSnap(f); });
+$('hlGoalBtn') && $('hlGoalBtn').addEventListener('click', ()=>{
+  const v=prompt('Daily calorie goal (kcal):', __hlGoal);
+  if(v===null) return; const n=parseInt(v,10);
+  if(isFinite(n) && n>0){ __hlGoal=n; localStorage.setItem('aetherKcalGoal',String(n)); hlRender(); haptic(); }
+});
+
 function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function renderPlan(){
   const d=__planData; const body=$('planBody'); if(!body) return;
@@ -3046,6 +3284,7 @@ function renderHistory(){
 document.querySelectorAll('.fcard').forEach(c=>{
   c.addEventListener('click', ()=>{
     if(c.dataset.radar){ haptic(); navTo('screenRadar'); return; }
+    if(c.dataset.health){ haptic(); openHealth(); return; }
     if(c.dataset.studio){ haptic(); navTo('screenStudio'); return; }
     if(c.dataset.learn){ haptic(); openLearn(); return; }
     const a=AGENTS.find(x=>x.id===c.dataset.agent)||activeAgent; switchAgent(a); goChat();
