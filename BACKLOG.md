@@ -16,9 +16,12 @@ Status keys: `[ ]` todo · `[~]` on a branch awaiting review · `[x]` shipped to
 
 ## Next (unblocked, not yet pulled)
 
-- [ ] **Icon brand audit** — confirm `icons/*.png` are the current AETHER/JARVIS
-  mark on the dark ground, not a stale light-theme logo. _Accept: 192/512/maskable
-  render the cyan mark; no white-box padding on maskable._
+- [~] **Icon brand audit** — install icons had a stale light-theme ground
+  (`#f8fafc` white tile) clashing with the dark app. Recomposited the cyan AETHER
+  mark onto dark navy `#021014`: icon-180/192/512 at 76% scale; maskable-192/512
+  at 50% (tips ±25% from center, inside the circular safe zone). Shipped on
+  branch `feat/icon-dark-ground`. _Accept: 192/512/maskable render the cyan mark
+  on #021014; no white box; maskable safe-zone clear._
 - [ ] **Offline shell completeness** — verify `sw.js` precaches everything
   index.html references (fonts, logo svg, icons) so a cold offline launch isn't
   broken. _Accept: airplane-mode reload renders the home screen fully._
