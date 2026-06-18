@@ -1455,6 +1455,11 @@
         <div class="note">Changes the live Hermes model for the selected agent (sends /model). Each agent can run a different model.</div>
       </div>
       <div class="card2">
+        <h3>Local Vision · Health & Radar</h3>
+        <div class="row"><span class="k">Analyze images on-device</span><label class="switch"><input type="checkbox" id="localVisionToggle" checked><span class="track"></span></label></div>
+        <div class="note">When on, meal photos (and Radar reviews) are read by a local vision model on your PC — no cloud, no credits. Needs <b>vision_local.py</b> running. Falls back to the cloud agent if the local server is offline.</div>
+      </div>
+      <div class="card2">
         <h3>Chat</h3>
         <button class="btn btn-ghost" id="clearChat">Clear this conversation</button>
       </div>
@@ -2817,6 +2822,18 @@ function stopPlan(){ if(__planTimer){ clearInterval(__planTimer); __planTimer=nu
    render today's meals + running totals. Reuses the Review-Radar round-trip
    pattern; no new keys/deps. State is fully local so history survives reloads. */
 const HL_AGENT = (typeof AGENTS!=='undefined' && AGENTS.find(a=>a.id==='jarvis')) || (typeof activeAgent!=='undefined'?activeAgent:null);
+// Local vision proxy (Ollama qwen2.5vl on the host) — free, fast, no cloud
+// credits, keeps images on the machine. Preferred path; the ntfy/jarvis
+// round-trip is the fallback if it's unreachable. Toggle off via localStorage
+// 'aetherLocalVision'==='0'.
+const VISION_PROXY = (typeof NTFY==='string'? NTFY : '') + '/aether-vision';
+function hlLocalVisionOn(){ return localStorage.getItem('aetherLocalVision')!=='0'; }
+async function hlLocalVision(imageUrl, prompt){
+  const r=await hlFetch(VISION_PROXY+'/analyze',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({image_url:imageUrl, prompt})}, 180000);
+  if(!r.ok) throw new Error('vision http '+r.status);
+  const j=await r.json(); return (j&&j.text)||'';
+}
 const HL_MAX_EDGE=1024, HL_JPEG_Q=0.82;
 const HL_SYSTEM = "You are a nutrition estimator. The user sends ONE photo of a meal. Identify the food and estimate its nutrition for the portion shown. Respond with ONLY a JSON object, no code fences, no preamble, in EXACTLY this shape: {\"name\":\"short dish name\",\"calories\":<int kcal>,\"protein\":<int grams>,\"carbs\":<int grams>,\"fat\":<int grams>,\"confidence\":\"high\"|\"medium\"|\"low\"}. If you cannot see food clearly, still return the object with your best guess and confidence \"low\". Numbers only — no units inside the numbers.";
 let __hlMeals = JSON.parse(localStorage.getItem('aetherMeals')||'[]');
@@ -2901,15 +2918,24 @@ async function hlSnap(file){
     hlSetStatus('Uploading photo…');
     const blob=hlDataUrlToBlob(dataUrl);
     const url=await hlUpload(blob,'meal-'+id+'.jpg');
-    hlSetStatus('Estimating calories & macros…');
     const sentAt=Math.floor(Date.now()/1000)-1;
-    await hlFetch(`${NTFY}/${HL_AGENT.in}`,{method:'POST',body:hlBuildMessage(url)},30000);
-    const raw=await hlPollResult(sentAt);
+    let raw=null;
+    // 1) Local vision (Ollama on the host) — free, fast, no cloud credits.
+    if(hlLocalVisionOn()){
+      hlSetStatus('Estimating locally (on-device vision)…');
+      try{ raw=await hlLocalVision(url, HL_SYSTEM); }catch(e){ raw=null; }
+    }
+    // 2) Fallback to the jarvis agent over ntfy if local vision is unreachable.
+    if(!raw){
+      hlSetStatus('Estimating calories & macros…');
+      try{ await hlFetch(`${NTFY}/${HL_AGENT.in}`,{method:'POST',body:hlBuildMessage(url)},30000);
+        raw=await hlPollResult(sentAt); }catch(e){ raw=null; }
+    }
     const parsed=raw?hlParse(raw):null;
     const m=__hlMeals.find(x=>x.id===id);
     if(parsed && m){ Object.assign(m,parsed,{pending:false}); hlSave(); hlRender(); hlSetStatus(''); haptic(); }
     else { if(m){ __hlMeals=__hlMeals.filter(x=>x.id!==id); hlRender(); }
-      hlSetStatus(raw?'Could not read a nutrition estimate from the reply. Try again.':'No response from the assistant — is it online? Try again.',true); }
+      hlSetStatus(raw?'Could not read a nutrition estimate from the reply. Try again.':'No estimate came back — is the local vision server (or the assistant) running? Try again.',true); }
   }catch(e){
     __hlMeals=__hlMeals.filter(x=>x.id!==id); hlRender();
     hlSetStatus('Failed: '+((e&&e.message)||'network error')+'. Check connection and retry.',true);
@@ -3832,6 +3858,11 @@ $('vssCancel').addEventListener('click', ()=>{ closeVoiceSessChooser();
 /* ===== TTS ===== */
 $('ttsToggle').checked = localStorage.getItem('aetherTTS')==='1';
 $('ttsToggle').addEventListener('change', function(){ localStorage.setItem('aetherTTS', this.checked?'1':'0'); if(this.checked) speak('Voice enabled.'); });
+/* Local vision toggle (default ON) */
+if($('localVisionToggle')){
+  $('localVisionToggle').checked = localStorage.getItem('aetherLocalVision')!=='0';
+  $('localVisionToggle').addEventListener('change', function(){ localStorage.setItem('aetherLocalVision', this.checked?'1':'0'); toast(this.checked?'On-device vision on.':'On-device vision off — using cloud agent.'); });
+}
 if($('liveToggle')){
   $('liveToggle').checked = localStorage.getItem('aetherLive')==='1';
   if(!VOICE_PROXY){ $('liveToggle').disabled=true; }

@@ -10,6 +10,21 @@ Status keys: `[ ]` todo · `[~]` on a branch awaiting review · `[x]` shipped to
 
 ## Now (top of stack)
 
+- [x] **Local vision backend (Ollama) — UNBLOCKS Health, no cloud/credits** —
+  SHIPPED. Installed Ollama on the host + pulled `qwen2.5vl:7b` (runs on the RTX
+  5070). Added `vision_local.py` (stdlib proxy port 8846, `POST /analyze`
+  {image_url|image_b64, prompt} -> Ollama `/api/generate` -> {text}, CORS, health
+  check) + `start_vision.bat`. Wired Health to try local vision FIRST (free,
+  fast, private), falling back to the jarvis/ntfy path; Settings toggle
+  (`aetherLocalVision`, default on). sw v85->v86. _Verified END-TO-END: real meal
+  photo -> tailnet upload -> local model returned correct nutrition JSON
+  ({chicken/rice/broccoli, 450 kcal, 35P/25C/15F, high}); hlParse handles the
+  model's ```json fences; verify.py 15/15._ Expose:
+  `tailscale serve --bg --set-path /aether-vision http://127.0.0.1:8846`.
+
+- [!] **Health meal AI estimate — credit blocker RESOLVED via local vision** —
+  superseded by the local backend above; cloud credits no longer required.
+
 - [x] **Pre-ship verify script** — SHIPPED to main. `verify.py` checks JS syntax
   (sw.js + all inline scripts via node --check), manifest JSON + theme/bg ==
   `#021014`, every SHELL_ASSETS precache file exists, and `<meta theme-color>` ==
