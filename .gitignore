@@ -10,3 +10,4 @@ keys/
 subscriptions.json
 eval_daemon.log
 .voicevenv/
+eval_results.db

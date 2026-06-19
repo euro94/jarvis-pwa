@@ -408,6 +408,53 @@ def main():
         entries = results_to_backlog_entries(results)
         backlog_added = append_to_backlog(args.backlog, entries)
 
+    # ─── write to eval DB ───────────────────────────────────────────────────
+    try:
+        import eval_db as _edb
+        _edb.init_db()
+        t_run = time.time()
+        new_n = 0
+        for r in results:
+            sid = r.get("screen", "?")
+            for g in (r.get("gaps") or []):
+                title = (g.get("title") or "").strip()
+                if not title: continue
+                _, is_new = _edb.upsert_finding(
+                    screen=sid, category="gap", title=title,
+                    detail=(g.get("detail") or ""),
+                    effort=(g.get("effort") or "medium").lower(),
+                    impact=(g.get("impact") or "medium").lower(),
+                )
+                if is_new: new_n += 1
+            for c in (r.get("critical") or []):
+                title = (c.get("title") or "").strip()
+                if not title: continue
+                _, is_new = _edb.upsert_finding(
+                    screen=sid, category="critical", title=title,
+                    detail=(c.get("detail") or ""),
+                    effort="small", impact="high",
+                )
+                if is_new: new_n += 1
+            ei = r.get("epic_idea")
+            if ei and ei.get("title"):
+                _, is_new = _edb.upsert_finding(
+                    screen=sid, category="epic_idea",
+                    title=(ei.get("title") or "").strip(),
+                    detail=(ei.get("detail") or ""),
+                    effort=(ei.get("effort") or "medium").lower(),
+                    impact="high",
+                )
+                if is_new: new_n += 1
+        _edb.log_run(
+            screens=[r.get("screen") for r in results],
+            findings_n=sum(len(r.get("gaps") or []) + len(r.get("critical") or []) + (1 if r.get("epic_idea") else 0) for r in results),
+            new_n=new_n,
+            duration_s=round(time.time() - t_run, 1),
+        )
+        log(f"  DB: {new_n} new findings stored")
+    except Exception as _e:
+        log(f"  DB write skipped: {_e}")
+
     # ─── decide if there's anything worth reporting ─────────────────────────
     has_critical = any(r.get("critical") for r in results)
     has_gaps = any(r.get("gaps") for r in results)
