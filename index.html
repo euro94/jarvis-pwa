@@ -136,12 +136,7 @@
   body[data-swipe-dir="right"] .screen.active { animation:scrSlideRight .34s cubic-bezier(.2,.8,.2,1) both; }
   @keyframes scrSlideLeft  { from{opacity:.3;transform:translateX(52px);}  to{opacity:1;transform:none;} }
   @keyframes scrSlideRight { from{opacity:.3;transform:translateX(-52px);} to{opacity:1;transform:none;} }
-  /* sw-armed: subtle right-edge glow when long-press fires, signalling "ready to swipe" */
-  body.sw-armed::after { content:''; position:fixed; top:50%; right:0; transform:translateY(-50%);
-    width:4px; height:80px; border-radius:2px 0 0 2px;
-    background:rgba(60,230,255,.7); box-shadow:0 0 14px 3px rgba(60,230,255,.45);
-    animation:swArmedPulse .4s ease-out both; z-index:9999; pointer-events:none; }
-  @keyframes swArmedPulse { from{opacity:0;transform:translateY(-50%) scaleY(.4);} to{opacity:1;transform:translateY(-50%) scaleY(1);} }
+
   /* swipe-world dot indicators */
   #swipeDots { position:fixed; bottom:calc(var(--safe-b,0px) + 62px); left:0; right:0; z-index:9;
     display:flex; justify-content:center; gap:7px; pointer-events:none; }
@@ -4458,10 +4453,12 @@ navigator.serviceWorker && navigator.serviceWorker.addEventListener('controllerc
 setTimeout(refreshBuildInfo, 1200);
 
 /* ===== SWIPE NAV — Talk · Health · Radar ===========================================
-   GESTURE: long-press (~350 ms) then drag right → next world, drag left → previous.
-   Hold-to-navigate avoids conflict with chat scroll and tap-on-orb gestures.
-   A subtle ring pulses on the orb while the hold is recognised via CSS class
-   "sw-armed" on <body>. Cancel (lift early / move vertically) = no nav.
+   Plain horizontal swipe: drag left/right ≥40px to move between worlds.
+   Direction is locked within the first 12px of movement — if it's more vertical
+   than horizontal we hand back to native scroll immediately.
+   touchmove is passive:false so we can preventDefault once locked horizontal,
+   which stops iOS from also scrolling the page under the swipe.
+   Excludes chip rails / bottom sheets where horizontal scroll is intentional.
    Three dots above the nav show current position. */
 (function(){
   const WORLDS = ['screenChat','screenHealth','screenRadar'];
@@ -4483,7 +4480,7 @@ setTimeout(refreshBuildInfo, 1200);
     dotsEl.style.display = idx<0 ? 'none' : 'flex';
     dotsEl.querySelectorAll('.sw-dot').forEach((d,i)=>d.classList.toggle('on',i===idx));
   }
-  function swipeTo(dir){ // +1 = go right (deeper), -1 = go back
+  function swipeTo(dir){ // +1 = right (deeper), -1 = left (back)
     const cur=currentWorld(); if(cur<0) return;
     const nxt=cur+dir; if(nxt<0||nxt>=WORLDS.length) return;
     document.body.dataset.swipeDir = dir>0?'right':'left';
@@ -4501,66 +4498,53 @@ setTimeout(refreshBuildInfo, 1200);
   window.openHealth=function(){ if(_origOpenHealth) _origOpenHealth.apply(this,arguments); setTimeout(()=>updateDots(currentWorld()),60); };
   window.openSleep=function(){  if(_origOpenSleep)  _origOpenSleep.apply(this,arguments);  setTimeout(()=>updateDots(-1),60); };
 
-  /* ---- long-press + swipe recognizer ---- */
-  const HOLD_MS  = 280;   // hold duration before arm (snappy but clear)
-  const SWIPE_PX = 44;    // min horizontal drag to trigger nav
-  const CANCEL_V = 12;    // vertical movement that cancels the hold before arm
-  let tx=0, ty=0, armed=false, lpTimer=null;
+  /* ---- plain swipe recognizer ---- */
+  // 'h' = locked horizontal (we own it), 'v' = locked vertical (native scroll), null = undecided
+  let tx=0, ty=0, axis=null;
 
-  function arm(){
-    armed=true;
-    document.body.classList.add('sw-armed');
-    haptic&&haptic();
-  }
-  function disarm(){
-    armed=false;
-    clearTimeout(lpTimer); lpTimer=null;
-    document.body.classList.remove('sw-armed');
-  }
-
-  document.addEventListener('touchstart',e=>{
+  document.addEventListener('touchstart', e=>{
     if(currentWorld()<0) return;
-    // Ignore touches that start inside scrollable chip rails / sheets
-    const el=e.target;
-    if(el&&el.closest&&el.closest('.hx-chips,.chips,.rr-strip,.rr-cap-row,.ps-card,[id$="Sheet"]')) return;
-    tx=e.touches[0].clientX; ty=e.touches[0].clientY; armed=false;
-    lpTimer=setTimeout(arm, HOLD_MS);
-    // Calling preventDefault blocks the iOS long-press text-selection / callout menu
-    // (passive:false required — registered below)
-  },{passive:false});
+    tx=e.touches[0].clientX;
+    ty=e.touches[0].clientY;
+    axis=null;
+  }, {passive:true});
 
-  document.addEventListener('touchmove',e=>{
-    if(currentWorld()<0) return;
-    const dx=e.touches[0].clientX-tx;
-    const dy=e.touches[0].clientY-ty;
-    if(!armed){
-      // cancel the hold timer if user moves vertically before it fires
-      if(Math.abs(dy)>CANCEL_V || Math.abs(dx)>CANCEL_V){ clearTimeout(lpTimer); lpTimer=null; }
-      return;
+  document.addEventListener('touchmove', e=>{
+    if(currentWorld()<0 || axis==='v') return;
+    const dx=e.touches[0].clientX - tx;
+    const dy=e.touches[0].clientY - ty;
+    // Wait until we have enough movement to decide axis
+    if(axis===null){
+      if(Math.abs(dx)<8 && Math.abs(dy)<8) return;    // undecided — too small
+      // Skip if touch is inside a horizontally-scrollable widget
+      const el=document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
+      if(el && el.closest('.hx-chips,.chips,.rr-strip,.rr-cap-row,.ps-card,[id$="Sheet"]')){
+        axis='v'; return;
+      }
+      axis = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
+      if(axis==='v') return;
     }
-    // armed — prevent default scroll so the swipe feels clean
-    if(Math.abs(dx)>8) e.preventDefault();
-  },{passive:false});
+    // Locked horizontal — prevent the page from scrolling vertically under the swipe
+    e.preventDefault();
+  }, {passive:false});
 
-  document.addEventListener('touchend',e=>{
-    if(currentWorld()<0){ disarm(); return; }
-    const dx=e.changedTouches[0].clientX-tx;
-    if(armed && Math.abs(dx)>SWIPE_PX){
-      swipeTo(dx>0 ? 1 : -1);   // right = deeper, left = back
-    }
-    disarm();
-  },{passive:true});
+  document.addEventListener('touchend', e=>{
+    if(currentWorld()<0 || axis!=='h'){ axis=null; return; }
+    const dx=e.changedTouches[0].clientX - tx;
+    if(Math.abs(dx) > 40) swipeTo(dx > 0 ? 1 : -1);
+    axis=null;
+  }, {passive:true});
 
-  document.addEventListener('touchcancel',()=>disarm(),{passive:true});
+  document.addEventListener('touchcancel', ()=>{ axis=null; }, {passive:true});
 
   // Alt+Arrow for desktop testing
-  document.addEventListener('keydown',e=>{
+  document.addEventListener('keydown', e=>{
     if(!e.altKey) return;
     if(e.key==='ArrowRight') swipeTo(1);
     if(e.key==='ArrowLeft')  swipeTo(-1);
   });
   // Init dots on first paint
-  setTimeout(()=>updateDots(currentWorld()),200);
+  setTimeout(()=>updateDots(currentWorld()), 200);
 })();
 
 /* ===== MODEL SWITCHER (per agent, via /model over the gateway) ===== */
