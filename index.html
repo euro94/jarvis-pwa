@@ -748,6 +748,137 @@
   .toast { position:fixed; left:20px; right:20px; bottom:calc(var(--safe-b) + 76px); background:#0C1A2E; color:#fff; padding:14px 16px; border-radius:14px; text-align:center; font-size:14px; opacity:0; transform:translateY(10px); transition:.3s var(--ease); pointer-events:none; z-index:300; border:1px solid rgba(255,255,255,.08); box-shadow:0 16px 40px rgba(16,32,60,.30); }
   .toast.show { opacity:1; transform:translateY(0); } .toast.err { background:#B42334; border-color:rgba(255,122,138,.5); }
 
+  /* ===== BOTTOM QUICK SHEET ===== */
+  /* sits above the nav, slides up from behind it                             */
+  #bottomSheet {
+    position: fixed; left: 0; right: 0;
+    bottom: 0;                               /* hidden behind nav initially   */
+    z-index: 80;
+    /* translate so only the handle peek shows above the nav bar              */
+    transform: translateY(calc(100% - 28px - var(--safe-b, 0px)));
+    transition: transform .38s cubic-bezier(.4,0,.2,1);
+    display: flex; flex-direction: column;
+    pointer-events: auto;
+  }
+  #bottomSheet.open {
+    transform: translateY(0);
+  }
+  /* grab handle — the pill + chevron above the sheet body */
+  #bsHandle {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 8px 0 6px;
+    background: rgba(4,23,28,.90);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    backdrop-filter: blur(20px) saturate(160%);
+    border-top: 1px solid rgba(60,230,255,.18);
+    border-radius: 18px 18px 0 0;
+    cursor: grab; touch-action: none;
+  }
+  #bsHandle:active { cursor: grabbing; }
+  #bsHandle .bs-grip {
+    width: 36px; height: 4px; border-radius: 999px;
+    background: rgba(60,230,255,.45);
+    box-shadow: 0 0 8px rgba(60,230,255,.3);
+  }
+  #bsHandle .bs-chev {
+    width: 16px; height: 16px; color: rgba(60,230,255,.6);
+    transition: transform .35s ease;
+  }
+  #bottomSheet.open #bsHandle .bs-chev { transform: rotate(180deg); }
+  /* sheet body */
+  #bsBody {
+    background: rgba(4,23,28,.92);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    backdrop-filter: blur(24px) saturate(160%);
+    border-top: 1px solid rgba(60,230,255,.10);
+    padding: 14px 16px calc(var(--safe-b, 0px) + 68px);  /* 68px clears nav  */
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .bs-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 13px 16px;
+    border-radius: 14px;
+    background: rgba(60,230,255,.05);
+    border: 1px solid rgba(60,230,255,.12);
+    color: var(--dim); font-size: 14px; font-weight: 500; letter-spacing: .3px;
+    cursor: pointer; transition: background .18s ease, border-color .18s ease;
+    -webkit-user-select: none; user-select: none;
+  }
+  .bs-row:active { background: rgba(60,230,255,.12); border-color: rgba(60,230,255,.3); }
+  .bs-row svg { width: 20px; height: 20px; flex: 0 0 auto; color: var(--blue); }
+
+  /* ===== RIGHT SIDEBAR PANEL ===== */
+  /* mirrors the bottom sheet but slides from the right edge                  */
+  #rightPanel {
+    position: fixed; top: 0; bottom: 0; right: 0;
+    width: min(320px, 84vw);
+    z-index: 90;
+    transform: translateX(calc(100% - 24px));   /* only handle peek visible   */
+    transition: transform .38s cubic-bezier(.4,0,.2,1);
+    display: flex; flex-direction: row;
+    pointer-events: auto;
+  }
+  #rightPanel.open {
+    transform: translateX(0);
+  }
+  /* vertical grab handle on the left edge of the panel */
+  #rpHandle {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    width: 24px; flex: 0 0 24px;
+    background: rgba(4,23,28,.90);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    backdrop-filter: blur(20px) saturate(160%);
+    border-left: 1px solid rgba(60,230,255,.18);
+    border-radius: 14px 0 0 14px;
+    cursor: grab; touch-action: none; gap: 3px;
+  }
+  #rpHandle:active { cursor: grabbing; }
+  #rpHandle .rp-grip {
+    width: 4px; height: 36px; border-radius: 999px;
+    background: rgba(60,230,255,.45);
+    box-shadow: 0 0 8px rgba(60,230,255,.3);
+  }
+  #rpHandle .rp-chev {
+    width: 14px; height: 14px; color: rgba(60,230,255,.6);
+    transition: transform .35s ease;
+  }
+  #rightPanel.open #rpHandle .rp-chev { transform: rotate(180deg); }
+  /* panel body */
+  #rpBody {
+    flex: 1; overflow-y: auto;
+    background: rgba(4,23,28,.94);
+    -webkit-backdrop-filter: blur(28px) saturate(160%);
+    backdrop-filter: blur(28px) saturate(160%);
+    border-left: 1px solid rgba(60,230,255,.10);
+    padding: calc(var(--safe-t, 0px) + 56px) 16px calc(var(--safe-b, 0px) + 20px);
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .rp-section-title {
+    font-size: 10px; font-weight: 700; letter-spacing: 1.2px;
+    text-transform: uppercase; color: rgba(60,230,255,.5);
+    padding: 8px 4px 4px; margin-top: 6px;
+  }
+  .rp-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: rgba(60,230,255,.04);
+    border: 1px solid rgba(60,230,255,.10);
+    color: var(--dim); font-size: 13px; font-weight: 500; letter-spacing: .2px;
+    cursor: pointer; transition: background .18s ease, border-color .18s ease;
+    -webkit-user-select: none; user-select: none; text-decoration: none;
+  }
+  .rp-row:active { background: rgba(60,230,255,.13); border-color: rgba(60,230,255,.3); }
+  .rp-row svg { width: 18px; height: 18px; flex: 0 0 auto; color: var(--blue); opacity: .85; }
+  /* scrim — dim the rest of the app when panel is open */
+  #rpScrim, #bsScrim {
+    position: fixed; inset: 0; z-index: 75;
+    background: rgba(0,0,0,.45);
+    opacity: 0; pointer-events: none;
+    transition: opacity .35s ease;
+  }
+  #rpScrim.show, #bsScrim.show { opacity: 1; pointer-events: auto; }
+
   /* voice overlay — a centered floating popup (not a full-screen takeover) over a
      blurred, dimmed backdrop, matching the session-chooser sheet's popup language. */
   #voiceOverlay { position:fixed; inset:0; z-index:120; display:none; align-items:center; justify-content:center; padding:20px;
@@ -5515,11 +5646,203 @@ window.KokoroVoice = KokoroVoice;
   else window.addEventListener('load', showVoiceHome);
   // Returning to the foreground with no active session → restore the voice home.
   document.addEventListener('visibilitychange', ()=>{
-    if(document.visibilityState==='visible' && !window.__voiceMode && !o.classList.contains('open')) showVoiceHome();
-  });
-  window.__voiceHome=showVoiceHome;
-})();
-</script>
+      if(document.visibilityState==='visible' && !window.__voiceMode && !o.classList.contains('open')) showVoiceHome();
+    });
+    window.__voiceHome=showVoiceHome;
+  })();
+  </script>
 
-</body>
-</html>
+  <!-- ===== BOTTOM QUICK SHEET ===== -->
+  <div id="bsScrim" aria-hidden="true"></div>
+  <div id="bottomSheet" aria-label="Quick actions" role="region">
+    <div id="bsHandle" role="button" tabindex="0" aria-expanded="false" aria-controls="bsBody" aria-label="Quick actions">
+      <div class="bs-grip"></div>
+      <svg class="bs-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M6 14 L12 8 L18 14"/>
+      </svg>
+    </div>
+    <div id="bsBody">
+      <div class="rp-section-title">Quick Actions</div>
+      <div class="bs-row" data-bs-action="health">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z"/></svg>
+        Health
+      </div>
+      <div class="bs-row" data-bs-action="radar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="3.4"/><path d="M12 1.6v3M12 19.4v3M1.6 12h3M19.4 12h3"/></svg>
+        Radar
+      </div>
+      <div class="bs-row" data-bs-action="studio">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.6L19.5 10.5 13.9 12.4 12 18l-1.9-5.6L4.5 10.5 10.1 8.6 12 3Z"/><path d="M19 4v2.4M20.2 5.2h-2.4"/></svg>
+        Studio
+      </div>
+      <div class="bs-row" data-bs-action="stream">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3.4l2.4-7 4 16 2.4-9H21"/></svg>
+        Stream
+      </div>
+      <div class="bs-row" data-bs-action="learn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        Learn
+      </div>
+      <div class="bs-row" data-bs-action="settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16M4 12h16M4 17.5h16"/><circle cx="9" cy="6.5" r="2.3" fill="var(--bg-2)"/><circle cx="15" cy="12" r="2.3" fill="var(--bg-2)"/><circle cx="8" cy="17.5" r="2.3" fill="var(--bg-2)"/></svg>
+        Settings
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== RIGHT SIDEBAR PANEL ===== -->
+  <div id="rpScrim" aria-hidden="true"></div>
+  <div id="rightPanel" aria-label="Shortcuts" role="complementary">
+    <div id="rpHandle" role="button" tabindex="0" aria-expanded="false" aria-controls="rpBody" aria-label="Open shortcuts">
+      <div class="rp-grip"></div>
+      <svg class="rp-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M14 6 L8 12 L14 18"/>
+      </svg>
+    </div>
+    <div id="rpBody">
+      <div class="rp-section-title">Screens</div>
+      <div class="rp-row" data-rp-nav="screenChat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5a7.5 7.5 0 0 1-10.9 6.7L4 19.5l1.3-4.2A7.5 7.5 0 1 1 20 11.5Z"/></svg>
+        Talk
+      </div>
+      <div class="rp-row" data-rp-nav="screenHealth">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z"/></svg>
+        Health
+      </div>
+      <div class="rp-row" data-rp-nav="screenRadar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="3.4"/><path d="M12 1.6v3M12 19.4v3M1.6 12h3M19.4 12h3"/></svg>
+        Radar
+      </div>
+      <div class="rp-row" data-rp-nav="screenHome">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.6V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.6"/><path d="M9.5 21v-6h5v6"/></svg>
+        Home
+      </div>
+      <div class="rp-row" data-rp-nav="screenStudio">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.6L19.5 10.5 13.9 12.4 12 18l-1.9-5.6L4.5 10.5 10.1 8.6 12 3Z"/></svg>
+        Studio
+      </div>
+      <div class="rp-section-title">Actions</div>
+      <div class="rp-row" data-rp-action="new-chat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        New Chat
+      </div>
+      <div class="rp-row" data-rp-action="voice">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.5" width="6" height="11.5" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3.2M9 21.5h6"/></svg>
+        Voice Mode
+      </div>
+      <div class="rp-row" data-rp-action="plan">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+        Plan
+      </div>
+      <div class="rp-row" data-rp-nav="screenLearn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        Learn
+      </div>
+      <div class="rp-row" data-rp-nav="screenSettings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16M4 12h16M4 17.5h16"/><circle cx="9" cy="6.5" r="2.3" fill="var(--bg-2)"/><circle cx="15" cy="12" r="2.3" fill="var(--bg-2)"/><circle cx="8" cy="17.5" r="2.3" fill="var(--bg-2)"/></svg>
+        Settings
+      </div>
+    </div>
+  </div>
+
+  <script>
+  /* ===== BOTTOM SHEET + RIGHT PANEL GESTURE WIRING ===== */
+  (function(){
+    /* --- helpers --- */
+    function openBS(){ bs.classList.add('open'); bsScrim.classList.add('show');   bsHandle.setAttribute('aria-expanded','true');  }
+    function closeBS(){ bs.classList.remove('open'); bsScrim.classList.remove('show'); bsHandle.setAttribute('aria-expanded','false'); }
+    function openRP(){ rp.classList.add('open'); rpScrim.classList.add('show');   rpHandle.setAttribute('aria-expanded','true');  }
+    function closeRP(){ rp.classList.remove('open'); rpScrim.classList.remove('show'); rpHandle.setAttribute('aria-expanded','false'); }
+    function navigate(screen){
+      closeBS(); closeRP();
+      if(typeof activateWorldStrip==='function' && ['screenChat','screenHealth','screenRadar'].includes(screen)){
+        document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
+        document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+        const nb=document.querySelector('.nav button[data-screen="'+screen+'"]');
+        if(nb) nb.classList.add('active');
+        activateWorldStrip(screen);
+      } else if(typeof navTo==='function'){
+        navTo(screen);
+      }
+    }
+
+    const bs       = document.getElementById('bottomSheet');
+    const bsHandle = document.getElementById('bsHandle');
+    const bsScrim  = document.getElementById('bsScrim');
+    const rp       = document.getElementById('rightPanel');
+    const rpHandle = document.getElementById('rpHandle');
+    const rpScrim  = document.getElementById('rpScrim');
+
+    /* --- bottom sheet: tap handle or swipe up on handle --- */
+    let bsDragY=0, bsDragging=false, bsMoved=0;
+    bsHandle.addEventListener('pointerdown', e=>{
+      bsDragging=true; bsMoved=0; bsDragY=e.clientY;
+      try{ bsHandle.setPointerCapture(e.pointerId); }catch(_){}
+    },{passive:true});
+    bsHandle.addEventListener('pointermove', e=>{
+      if(!bsDragging) return;
+      bsMoved = Math.max(bsMoved, Math.abs(e.clientY - bsDragY));
+    },{passive:true});
+    bsHandle.addEventListener('pointerup', e=>{
+      if(!bsDragging) return; bsDragging=false;
+      const dy = bsDragY - e.clientY;  // positive = swipe up
+      if(bsMoved < 8){ bs.classList.contains('open') ? closeBS() : openBS(); }
+      else if(dy > 20) openBS();
+      else if(dy < -20) closeBS();
+    },{passive:true});
+    bsHandle.addEventListener('keydown', e=>{
+      if(e.key==='Enter'||e.key===' '){ e.preventDefault(); bs.classList.contains('open')?closeBS():openBS(); }
+    });
+    bsScrim.addEventListener('click', closeBS);
+    /* bs-row actions */
+    document.querySelectorAll('.bs-row[data-bs-action]').forEach(r=>{
+      r.addEventListener('click', ()=>{
+        const a=r.dataset.bsAction;
+        closeBS();
+        if(a==='health') navigate('screenHealth');
+        else if(a==='radar') navigate('screenRadar');
+        else if(a==='studio') navigate('screenStudio');
+        else if(a==='stream') navigate('screenStream');
+        else if(a==='learn') navigate('screenLearn');
+        else if(a==='settings') navigate('screenSettings');
+      });
+    });
+
+    /* --- right panel: tap handle or swipe left on handle --- */
+    let rpDragX=0, rpDragging=false, rpMoved=0;
+    rpHandle.addEventListener('pointerdown', e=>{
+      rpDragging=true; rpMoved=0; rpDragX=e.clientX;
+      try{ rpHandle.setPointerCapture(e.pointerId); }catch(_){}
+    },{passive:true});
+    rpHandle.addEventListener('pointermove', e=>{
+      if(!rpDragging) return;
+      rpMoved = Math.max(rpMoved, Math.abs(e.clientX - rpDragX));
+    },{passive:true});
+    rpHandle.addEventListener('pointerup', e=>{
+      if(!rpDragging) return; rpDragging=false;
+      const dx = rpDragX - e.clientX;  // positive = swipe left (open)
+      if(rpMoved < 8){ rp.classList.contains('open') ? closeRP() : openRP(); }
+      else if(dx > 20) openRP();
+      else if(dx < -20) closeRP();
+    },{passive:true});
+    rpHandle.addEventListener('keydown', e=>{
+      if(e.key==='Enter'||e.key===' '){ e.preventDefault(); rp.classList.contains('open')?closeRP():openRP(); }
+    });
+    rpScrim.addEventListener('click', closeRP);
+    /* rp-row nav + actions */
+    document.querySelectorAll('.rp-row[data-rp-nav]').forEach(r=>{
+      r.addEventListener('click', ()=>navigate(r.dataset.rpNav));
+    });
+    document.querySelectorAll('.rp-row[data-rp-action]').forEach(r=>{
+      r.addEventListener('click', ()=>{
+        const a=r.dataset.rpAction;
+        closeRP();
+        if(a==='new-chat'){ if(typeof newChat==='function') newChat(); else navigate('screenChat'); }
+        else if(a==='voice'){ if(typeof openVoiceSessChooser==='function') openVoiceSessChooser(); }
+        else if(a==='plan'){ if(typeof openPlan==='function') openPlan(); else navigate('screenPlan'); }
+      });
+    });
+  })();
+  </script>
+  </body>
+  </html>
