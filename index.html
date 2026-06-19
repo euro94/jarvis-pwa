@@ -4475,7 +4475,7 @@ setTimeout(refreshBuildInfo, 1200);
   function swipeTo(dir){ // +1 = go right (deeper), -1 = go back
     const cur=currentWorld(); if(cur<0) return;
     const nxt=cur+dir; if(nxt<0||nxt>=WORLDS.length) return;
-    document.body.dataset.swipeDir = dir>0?'left':'right';
+    document.body.dataset.swipeDir = dir>0?'right':'left';
     OPEN[nxt]();
     requestAnimationFrame(()=>requestAnimationFrame(()=>{ delete document.body.dataset.swipeDir; }));
     updateDots(nxt);
@@ -4507,7 +4507,7 @@ setTimeout(refreshBuildInfo, 1200);
   document.addEventListener('touchend',e=>{
     if(currentWorld()<0||locked!=='h') return;
     const dx=e.changedTouches[0].clientX-tx;
-    if(Math.abs(dx)>52) swipeTo(dx<0?1:-1);
+    if(Math.abs(dx)>52) swipeTo(dx>0?1:-1);  // right swipe = go deeper
     locked=null;
   },{passive:true});
   // Alt+Arrow for desktop testing
