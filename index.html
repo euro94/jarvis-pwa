@@ -128,6 +128,16 @@
   .screen { position:relative; z-index:1; flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior-y:contain; display:none; }
   .screen.active { display:block; animation:scrIn .42s var(--ease) both; }
   @keyframes scrIn { from{opacity:0; transform:translateY(10px) scale(.992); filter:blur(2px);} to{opacity:1; transform:none; filter:none;} }
+  /* swipe-world horizontal slide transitions */
+  body[data-swipe-dir="left"]  .screen.active { animation:scrSlideLeft  .34s cubic-bezier(.2,.8,.2,1) both; }
+  body[data-swipe-dir="right"] .screen.active { animation:scrSlideRight .34s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes scrSlideLeft  { from{opacity:.3;transform:translateX(52px);}  to{opacity:1;transform:none;} }
+  @keyframes scrSlideRight { from{opacity:.3;transform:translateX(-52px);} to{opacity:1;transform:none;} }
+  /* swipe-world dot indicators */
+  #swipeDots { position:fixed; bottom:calc(var(--safe-b,0px) + 62px); left:0; right:0; z-index:9;
+    display:flex; justify-content:center; gap:7px; pointer-events:none; }
+  .sw-dot { width:6px; height:6px; border-radius:50%; background:rgba(60,230,255,.22); transition:all .25s ease; flex:0 0 auto; }
+  .sw-dot.on { background:rgba(60,230,255,.8); width:18px; border-radius:3px; box-shadow:0 0 6px rgba(60,230,255,.5); }
   #screenChat.active { display:flex; flex-direction:column; overflow:hidden; }
   ::selection { background:rgba(60,210,255,.24); color:var(--fg); }
   #chatThread, #hdList, .stream-feed { overscroll-behavior-y:contain; }
@@ -1900,7 +1910,7 @@
 
   <!-- ===== NAV ===== -->
   <div class="nav">
-    <button class="active" data-screen="screenHome"><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.6V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.6"/><path d="M9.5 21v-6h5v6"/></svg></span>HOME</button>
+    <button class="" data-screen="screenHome"><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.6V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.6"/><path d="M9.5 21v-6h5v6"/></svg></span>HOME</button>
     <button data-screen="screenChat" id="talkNav"><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M20 11.5a7.5 7.5 0 0 1-10.9 6.7L4 19.5l1.3-4.2A7.5 7.5 0 1 1 20 11.5Z"/><path d="M9 11h6M9 14h4"/></svg></span>TALK</button>
     <button data-screen="screenStream" id="streamNav"><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M3 12h3.4l2.4-7 4 16 2.4-9H21"/></svg></span>STREAM</button>
     <button data-screen="screenStudio" id="studioNav"><span class="ico"><svg class="ico-svg" viewBox="0 0 24 24"><path d="M12 3l1.9 5.6L19.5 10.5 13.9 12.4 12 18l-1.9-5.6L4.5 10.5 10.1 8.6 12 3Z"/><path d="M19 4v2.4M20.2 5.2h-2.4"/></svg></span>STUDIO</button>
@@ -1911,6 +1921,12 @@
   <div class="toast" id="toast"></div>
   <div id="netPill" role="status" aria-live="polite"><span class="np-dot"></span><span class="np-txt"></span></div>
   <div id="creditBadge" title="Reload credits"><span class="cb-ic">⚡</span><span class="cb-txt">Low credits</span></div>
+  <!-- swipe-world dot indicators: Talk · Health · Radar -->
+  <div id="swipeDots" style="display:none">
+    <div class="sw-dot on" data-world="0"></div>
+    <div class="sw-dot" data-world="1"></div>
+    <div class="sw-dot" data-world="2"></div>
+  </div>
 
   <!-- ===== LOG SHEET ===== -->
   <div id="logSheet">
@@ -3727,9 +3743,8 @@ function renderRecent(){
 }
 renderRecent();
 
-/* Boot straight into Design Studio so the app can be iterated fast (e.g. from
-   the car) — reuses the nav button click so all screen/start wiring fires. */
-try{ navTo('screenStudio'); }catch(e){}
+/* Boot into Talk (the main screen — voice orb, conversational). */
+try{ goChat(); }catch(e){} 
 
 /* ===== IMAGE ATTACH + UPLOAD ===== */
 $('attachBtn').addEventListener('click', ()=>$('fileInput').click());
@@ -4432,6 +4447,78 @@ navigator.serviceWorker && navigator.serviceWorker.addEventListener('controllerc
 // populate the version line whenever Settings is opened
 (function(){ const sb=document.querySelector('.nav button[data-screen="screenSettings"]'); if(sb) sb.addEventListener('click', ()=>setTimeout(refreshBuildInfo,60)); })();
 setTimeout(refreshBuildInfo, 1200);
+
+/* ===== SWIPE NAV — Talk · Health · Radar ===========================================
+   Swiping right from Talk → Health, right again → Radar. Left swipe goes back.
+   Other screens (Home, Studio, Plan, Learn, Stream, Settings) are nav-only.
+   Three dots above the nav show position. Ignores swipes inside chip rails / sheets. */
+(function(){
+  const WORLDS = ['screenChat','screenHealth','screenRadar'];
+  const OPEN   = [
+    ()=>goChat(),
+    ()=>openHealth(),
+    ()=>navTo('screenRadar'),
+  ];
+  function currentWorld(){
+    for(let i=0;i<WORLDS.length;i++){
+      const s=document.getElementById(WORLDS[i]);
+      if(s&&s.classList.contains('active')) return i;
+    }
+    return -1;
+  }
+  const dotsEl=document.getElementById('swipeDots');
+  function updateDots(idx){
+    if(!dotsEl) return;
+    dotsEl.style.display = idx<0 ? 'none' : 'flex';
+    dotsEl.querySelectorAll('.sw-dot').forEach((d,i)=>d.classList.toggle('on',i===idx));
+  }
+  function swipeTo(dir){ // +1 = go right (deeper), -1 = go back
+    const cur=currentWorld(); if(cur<0) return;
+    const nxt=cur+dir; if(nxt<0||nxt>=WORLDS.length) return;
+    document.body.dataset.swipeDir = dir>0?'left':'right';
+    OPEN[nxt]();
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{ delete document.body.dataset.swipeDir; }));
+    updateDots(nxt);
+    haptic&&haptic();
+  }
+  // Sync dots whenever a nav button is clicked
+  document.querySelectorAll('.nav button').forEach(b=>{
+    b.addEventListener('click',()=>setTimeout(()=>updateDots(currentWorld()),60));
+  });
+  // Hook openHealth/openSleep so dots update when entered via Home card too
+  const _origOpenHealth=window.openHealth, _origOpenSleep=window.openSleep;
+  window.openHealth=function(){ if(_origOpenHealth) _origOpenHealth.apply(this,arguments); setTimeout(()=>updateDots(currentWorld()),60); };
+  window.openSleep=function(){  if(_origOpenSleep)  _origOpenSleep.apply(this,arguments);  setTimeout(()=>updateDots(-1),60); };
+  // Touch recognizer
+  let tx=0,ty=0,locked=null;
+  document.addEventListener('touchstart',e=>{
+    if(currentWorld()<0) return;
+    tx=e.touches[0].clientX; ty=e.touches[0].clientY; locked=null;
+  },{passive:true});
+  document.addEventListener('touchmove',e=>{
+    if(currentWorld()<0||locked==='v') return;
+    const dx=e.touches[0].clientX-tx, dy=e.touches[0].clientY-ty;
+    if(locked===null) locked=Math.abs(dx)>Math.abs(dy)?'h':'v';
+    if(locked!=='h') return;
+    const el=document.elementFromPoint(e.touches[0].clientX,e.touches[0].clientY);
+    if(el&&el.closest('.hx-chips,.chips,.rr-strip,.rr-cap-row,.ps-card,[id$="Sheet"]')) return;
+    if(Math.abs(dx)>8) e.preventDefault();
+  },{passive:false});
+  document.addEventListener('touchend',e=>{
+    if(currentWorld()<0||locked!=='h') return;
+    const dx=e.changedTouches[0].clientX-tx;
+    if(Math.abs(dx)>52) swipeTo(dx<0?1:-1);
+    locked=null;
+  },{passive:true});
+  // Alt+Arrow for desktop testing
+  document.addEventListener('keydown',e=>{
+    if(!e.altKey) return;
+    if(e.key==='ArrowRight') swipeTo(1);
+    if(e.key==='ArrowLeft')  swipeTo(-1);
+  });
+  // Init dots on first paint
+  setTimeout(()=>updateDots(currentWorld()),200);
+})();
 
 /* ===== MODEL SWITCHER (per agent, via /model over the gateway) ===== */
 let modelListCache = {}; // agentId -> {current, options[]}
