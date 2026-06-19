@@ -126,12 +126,38 @@
   @keyframes gridDrift { from{background-position:0 0,0 0;} to{background-position:64px 64px,64px 64px;} }
   @media (prefers-reduced-motion: reduce){ body::after{ animation:none; } }
   .screen { position:relative; z-index:1; flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior-y:contain; display:none;
-    -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
-    touch-action: pan-y; }
+    -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
   /* re-enable selection inside text inputs / editable areas */
   .screen input, .screen textarea, .screen [contenteditable] { -webkit-user-select:text; user-select:text; -webkit-touch-callout:default; }
   .screen.active { display:block; animation:scrIn .42s var(--ease) both; }
   @keyframes scrIn { from{opacity:0; transform:translateY(10px) scale(.992); filter:blur(2px);} to{opacity:1; transform:none; filter:none;} }
+  /* ---- world strip: Chat · Health · Radar live side-by-side, iOS scroll-snap drives swipe ---- */
+  #worldStrip {
+    display: none;               /* hidden when a non-world screen is active */
+    flex: 1;
+    width: 100%;
+    overflow-x: scroll;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  #worldStrip::-webkit-scrollbar { display: none; }
+  #worldStrip.active { display: flex; }
+  /* each world pane fills the viewport exactly */
+  .world-pane {
+    flex: 0 0 100%;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    scroll-snap-align: start;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  }
+  .world-pane input, .world-pane textarea, .world-pane [contenteditable] {
+    -webkit-user-select: text; user-select: text; -webkit-touch-callout: default;
+  }
   /* swipe-world horizontal slide transitions */
   body[data-swipe-dir="left"]  .screen.active { animation:scrSlideLeft  .34s cubic-bezier(.2,.8,.2,1) both; }
   body[data-swipe-dir="right"] .screen.active { animation:scrSlideRight .34s cubic-bezier(.2,.8,.2,1) both; }
@@ -1471,8 +1497,11 @@
     </div>
   </div>
 
-  <!-- ===== CHAT ===== -->
-  <div class="screen" id="screenChat">
+  <!-- ===== WORLD STRIP — Chat · Health · Radar (scroll-snap, iOS native swipe) ===== -->
+  <div id="worldStrip">
+
+  <!-- WORLD 0: CHAT -->
+  <div class="world-pane" id="screenChat">
     <div class="chat-top">
       <button class="topbtn" id="histBtn" title="Chats" aria-label="Chat history">☰</button>
       <div class="nm">AETHER</div>
@@ -1495,6 +1524,143 @@
     </div>
     <input type="file" id="fileInput" accept="image/*" multiple style="display:none;">
   </div>
+
+  <!-- WORLD 1: HEALTH -->
+  <div class="world-pane" id="screenHealth">
+    <div class="hx-scroll">
+      <header class="hx-head">
+        <button class="hx-ibtn" id="hxBack" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5 L8 12 L15 19"/></svg></button>
+        <button class="hx-ibtn ring" id="hxSleepBtn" aria-label="Sleep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14a8 8 0 1 1-9-11 7 7 0 0 0 9 11z"/></svg></button>
+      </header>
+      <section class="hx-hero">
+        <div class="hx-orb-wrap" id="hxOrbWrap"><div class="hx-orb-glow"></div><canvas id="hxOrb" aria-hidden="true"></canvas></div>
+        <h1 class="hx-title">Health</h1>
+        <p class="hx-summary" id="hxSummary">A steady day — good energy, a little room left for protein.</p>
+        <p class="hx-kcal" id="hxKcal"></p>
+        <p class="hx-nudge" id="hxNudge"></p>
+      </section>
+      <div class="hx-rings" id="hxRings">
+        <div class="hx-ring" data-key="protein"><div class="holder"><svg viewBox="0 0 84 84"><circle class="track" cx="42" cy="42" r="34"/><circle class="arc" id="hxarc-protein" cx="42" cy="42" r="34"/></svg><span class="val" id="hxval-protein">—</span></div><span class="lab">protein</span><span class="ctx" id="hxctx-protein"></span></div>
+        <div class="hx-ring" data-key="carbs"><div class="holder"><svg viewBox="0 0 84 84"><circle class="track" cx="42" cy="42" r="34"/><circle class="arc" id="hxarc-carbs" cx="42" cy="42" r="34"/></svg><span class="val" id="hxval-carbs">—</span></div><span class="lab">carbs</span><span class="ctx" id="hxctx-carbs"></span></div>
+        <div class="hx-ring" data-key="fat"><div class="holder"><svg viewBox="0 0 84 84"><circle class="track" cx="42" cy="42" r="34"/><circle class="arc" id="hxarc-fat" cx="42" cy="42" r="34"/></svg><span class="val" id="hxval-fat">—</span></div><span class="lab">fat</span><span class="ctx" id="hxctx-fat"></span></div>
+      </div>
+      <div class="hx-ambient hx-glass">
+        <div class="hx-amb" data-q="water"><span class="av" id="hxA-water">0.0L</span><span class="al">hydration</span></div>
+        <div class="hx-amb" data-q="move"><span class="av" id="hxA-move">—</span><span class="al">movement</span></div>
+        <div class="hx-amb" id="hxA-sleepBtn"><span class="av" id="hxA-sleep">—</span><span class="al">sleep · last night</span></div>
+      </div>
+      <p class="hx-eyebrow">Today</p>
+      <div class="hx-log hx-glass" id="hxLog"></div>
+      <div class="hx-spark hx-glass">
+        <span class="k">Hydration · this week</span>
+        <svg viewBox="0 0 300 48" preserveAspectRatio="none"><polyline class="line" id="hxSpark" points="0,30 50,22 100,18 150,26 200,14 250,20 300,10"/></svg>
+      </div>
+      <p class="hx-reflect" id="hxReflect">You move best on mornings you sleep past seven — worth protecting.</p>
+    </div>
+    <div class="hx-dock">
+      <div class="hx-chips">
+        <button class="hx-chip snap" id="hxSnap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.2"/></svg>Snap a meal</button>
+        <input type="file" id="hxCam" accept="image/*" capture="environment" hidden />
+        <button class="hx-chip" data-q="food"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v8a3 3 0 0 0 6 0V3M9 3v18M18 3c-1.5 1-2 3-2 6s.5 4 2 4v8"/></svg>Food</button>
+        <button class="hx-chip" data-q="water"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/></svg>Water</button>
+        <button class="hx-chip" data-q="move"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2 6 4-14 2 8h6"/></svg>Move</button>
+        <button class="hx-chip" data-q="mood"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 14c1 1.5 2.5 2 4 2s3-.5 4-2M9 9h.01M15 9h.01"/></svg>Mood</button>
+      </div>
+      <div class="hx-bar hx-glass">
+        <svg class="mic" id="hxMic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+        <input id="hxEntry" type="text" placeholder="Tell Aether what you ate or did…" aria-label="Log an entry" />
+        <svg class="send" id="hxSend" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12 L20 5 L14 12 L20 19 Z"/></svg>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- WORLD 2: RADAR -->
+  <div class="world-pane" id="screenRadar">
+    <div class="rr-pad">
+      <div class="rr-head">
+        <span class="rr-ic">⌖</span>
+        <span class="rr-ttl">Review Radar</span>
+        <span class="rr-by">Pre-review</span>
+      </div>
+      <p class="rr-lede">Photograph your workpapers. Catch the footing errors, broken tie-outs, date mismatches and flawed logic a sharp reviewer would flag — before they do.</p>
+
+      <div id="rrPrivacy" class="rr-privacy" style="display:none;">
+        <span>🔒</span><span>Privacy mode: review runs on the local Hermes VLM. No cloud, no client data leaves the host.</span>
+      </div>
+
+      <!-- COMPOSE (default) -->
+      <div id="rrCompose">
+        <div class="rr-eng">
+          <input id="rrEng" type="text" placeholder="Client / engagement (e.g. ACM, UTG)" autocomplete="off" spellcheck="false" aria-label="Client or engagement code">
+        </div>
+        <div class="rr-drop" id="rrDrop" role="button" tabindex="0" aria-label="Add workpaper photos">
+          <div class="rr-drop-ic">📄</div>
+          <div class="rr-drop-t">Add workpaper photos</div>
+          <div class="rr-drop-s">Drag &amp; drop, or use the buttons below · resized on-device before upload</div>
+        </div>
+        <div class="rr-cap-row">
+          <button class="btn rr-soft" id="rrCamBtn">📷 Take photo</button>
+          <button class="btn rr-soft" id="rrPickBtn">🖼️ Choose files</button>
+        </div>
+        <div class="rr-strip" id="rrStrip"></div>
+        <div class="rr-cta">
+          <button class="btn btn-primary" id="rrReviewBtn" disabled>Review workpapers</button>
+        </div>
+        <input type="file" id="rrCam" accept="image/*" capture="environment" multiple style="display:none;">
+        <input type="file" id="rrPick" accept="image/*" multiple style="display:none;">
+
+        <!-- saved reviews -->
+        <div class="rr-saved" id="rrSaved"></div>
+      </div>
+
+      <!-- LOADING -->
+      <div id="rrLoading" style="display:none;">
+        <div class="rr-loading">
+          <div class="rr-spin"></div>
+          <div class="rr-load-msg" id="rrLoadMsg">Reading the workpapers</div>
+          <div class="rr-load-bar"><i></i></div>
+          <div class="rr-load-sub" id="rrLoadSub">Sent as one connected set so tie-outs across workpapers get caught.</div>
+          <button class="btn rr-soft" id="rrCancelBtn" style="margin-top:18px;">Cancel</button>
+        </div>
+      </div>
+
+      <!-- ERROR -->
+      <div id="rrError" style="display:none;">
+        <div class="rr-state">
+          <div class="rr-state-ic">⚠️</div>
+          <h3 id="rrErrTitle">Review didn't come back clean</h3>
+          <p id="rrErrMsg"></p>
+          <button class="btn btn-primary" id="rrRetryBtn">Try the review again</button>
+          <button class="btn rr-soft" id="rrErrBackBtn">Back to photos</button>
+          <details class="rr-raw" id="rrRawWrap" style="display:none;">
+            <summary>Show what the reviewer returned</summary>
+            <pre id="rrRaw"></pre>
+          </details>
+        </div>
+      </div>
+
+      <!-- RESULTS -->
+      <div id="rrResults" style="display:none;">
+        <div class="rr-summary">
+          <div class="rr-counts" id="rrCounts"></div>
+          <div class="rr-sum-text" id="rrSumText"></div>
+          <div class="rr-sum-meta">
+            <span class="rr-eng-tag" id="rrEngTag"></span>
+            <button class="rr-newbtn" id="rrCopyAllBtn">⧉ Copy all to Excel</button>
+            <button class="rr-newbtn" id="rrNewBtn">＋ New review</button>
+          </div>
+        </div>
+        <div class="rr-filters" id="rrFilters"></div>
+        <div class="rr-list" id="rrList"></div>
+        <button class="rr-collapse-toggle" id="rrToggleResolved" style="display:none;"></button>
+      </div>
+    </div>
+  </div>
+
+
+  </div><!-- #worldStrip -->
+
 
   <!-- ===== HISTORY DRAWER ===== -->
   <div id="histScrim"></div>
@@ -1697,89 +1863,6 @@
     </div>
   </div>
 
-  <!-- ===== REVIEW RADAR ===== -->
-  <div class="screen" id="screenRadar">
-    <div class="rr-pad">
-      <div class="rr-head">
-        <span class="rr-ic">⌖</span>
-        <span class="rr-ttl">Review Radar</span>
-        <span class="rr-by">Pre-review</span>
-      </div>
-      <p class="rr-lede">Photograph your workpapers. Catch the footing errors, broken tie-outs, date mismatches and flawed logic a sharp reviewer would flag — before they do.</p>
-
-      <div id="rrPrivacy" class="rr-privacy" style="display:none;">
-        <span>🔒</span><span>Privacy mode: review runs on the local Hermes VLM. No cloud, no client data leaves the host.</span>
-      </div>
-
-      <!-- COMPOSE (default) -->
-      <div id="rrCompose">
-        <div class="rr-eng">
-          <input id="rrEng" type="text" placeholder="Client / engagement (e.g. ACM, UTG)" autocomplete="off" spellcheck="false" aria-label="Client or engagement code">
-        </div>
-        <div class="rr-drop" id="rrDrop" role="button" tabindex="0" aria-label="Add workpaper photos">
-          <div class="rr-drop-ic">📄</div>
-          <div class="rr-drop-t">Add workpaper photos</div>
-          <div class="rr-drop-s">Drag &amp; drop, or use the buttons below · resized on-device before upload</div>
-        </div>
-        <div class="rr-cap-row">
-          <button class="btn rr-soft" id="rrCamBtn">📷 Take photo</button>
-          <button class="btn rr-soft" id="rrPickBtn">🖼️ Choose files</button>
-        </div>
-        <div class="rr-strip" id="rrStrip"></div>
-        <div class="rr-cta">
-          <button class="btn btn-primary" id="rrReviewBtn" disabled>Review workpapers</button>
-        </div>
-        <input type="file" id="rrCam" accept="image/*" capture="environment" multiple style="display:none;">
-        <input type="file" id="rrPick" accept="image/*" multiple style="display:none;">
-
-        <!-- saved reviews -->
-        <div class="rr-saved" id="rrSaved"></div>
-      </div>
-
-      <!-- LOADING -->
-      <div id="rrLoading" style="display:none;">
-        <div class="rr-loading">
-          <div class="rr-spin"></div>
-          <div class="rr-load-msg" id="rrLoadMsg">Reading the workpapers</div>
-          <div class="rr-load-bar"><i></i></div>
-          <div class="rr-load-sub" id="rrLoadSub">Sent as one connected set so tie-outs across workpapers get caught.</div>
-          <button class="btn rr-soft" id="rrCancelBtn" style="margin-top:18px;">Cancel</button>
-        </div>
-      </div>
-
-      <!-- ERROR -->
-      <div id="rrError" style="display:none;">
-        <div class="rr-state">
-          <div class="rr-state-ic">⚠️</div>
-          <h3 id="rrErrTitle">Review didn't come back clean</h3>
-          <p id="rrErrMsg"></p>
-          <button class="btn btn-primary" id="rrRetryBtn">Try the review again</button>
-          <button class="btn rr-soft" id="rrErrBackBtn">Back to photos</button>
-          <details class="rr-raw" id="rrRawWrap" style="display:none;">
-            <summary>Show what the reviewer returned</summary>
-            <pre id="rrRaw"></pre>
-          </details>
-        </div>
-      </div>
-
-      <!-- RESULTS -->
-      <div id="rrResults" style="display:none;">
-        <div class="rr-summary">
-          <div class="rr-counts" id="rrCounts"></div>
-          <div class="rr-sum-text" id="rrSumText"></div>
-          <div class="rr-sum-meta">
-            <span class="rr-eng-tag" id="rrEngTag"></span>
-            <button class="rr-newbtn" id="rrCopyAllBtn">⧉ Copy all to Excel</button>
-            <button class="rr-newbtn" id="rrNewBtn">＋ New review</button>
-          </div>
-        </div>
-        <div class="rr-filters" id="rrFilters"></div>
-        <div class="rr-list" id="rrList"></div>
-        <button class="rr-collapse-toggle" id="rrToggleResolved" style="display:none;"></button>
-      </div>
-    </div>
-  </div>
-
   <!-- ===== RADAR DETAIL DRAWER ===== -->
   <div id="rrScrim"></div>
   <div id="rrDrawer" role="dialog" aria-modal="true" aria-label="Finding detail">
@@ -1831,55 +1914,6 @@
         Prioritize with my calendar
       </button>
       <div id="planBody"></div>
-    </div>
-  </div>
-
-  <!-- ===== HEALTH (Aether wellbeing — food, hydration, movement) ===== -->
-  <div class="screen" id="screenHealth">
-    <div class="hx-scroll">
-      <header class="hx-head">
-        <button class="hx-ibtn" id="hxBack" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5 L8 12 L15 19"/></svg></button>
-        <button class="hx-ibtn ring" id="hxSleepBtn" aria-label="Sleep"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14a8 8 0 1 1-9-11 7 7 0 0 0 9 11z"/></svg></button>
-      </header>
-      <section class="hx-hero">
-        <div class="hx-orb-wrap" id="hxOrbWrap"><div class="hx-orb-glow"></div><canvas id="hxOrb" aria-hidden="true"></canvas></div>
-        <h1 class="hx-title">Health</h1>
-        <p class="hx-summary" id="hxSummary">A steady day — good energy, a little room left for protein.</p>
-        <p class="hx-kcal" id="hxKcal"></p>
-        <p class="hx-nudge" id="hxNudge"></p>
-      </section>
-      <div class="hx-rings" id="hxRings">
-        <div class="hx-ring" data-key="protein"><div class="holder"><svg viewBox="0 0 84 84"><circle class="track" cx="42" cy="42" r="34"/><circle class="arc" id="hxarc-protein" cx="42" cy="42" r="34"/></svg><span class="val" id="hxval-protein">—</span></div><span class="lab">protein</span><span class="ctx" id="hxctx-protein"></span></div>
-        <div class="hx-ring" data-key="carbs"><div class="holder"><svg viewBox="0 0 84 84"><circle class="track" cx="42" cy="42" r="34"/><circle class="arc" id="hxarc-carbs" cx="42" cy="42" r="34"/></svg><span class="val" id="hxval-carbs">—</span></div><span class="lab">carbs</span><span class="ctx" id="hxctx-carbs"></span></div>
-        <div class="hx-ring" data-key="fat"><div class="holder"><svg viewBox="0 0 84 84"><circle class="track" cx="42" cy="42" r="34"/><circle class="arc" id="hxarc-fat" cx="42" cy="42" r="34"/></svg><span class="val" id="hxval-fat">—</span></div><span class="lab">fat</span><span class="ctx" id="hxctx-fat"></span></div>
-      </div>
-      <div class="hx-ambient hx-glass">
-        <div class="hx-amb" data-q="water"><span class="av" id="hxA-water">0.0L</span><span class="al">hydration</span></div>
-        <div class="hx-amb" data-q="move"><span class="av" id="hxA-move">—</span><span class="al">movement</span></div>
-        <div class="hx-amb" id="hxA-sleepBtn"><span class="av" id="hxA-sleep">—</span><span class="al">sleep · last night</span></div>
-      </div>
-      <p class="hx-eyebrow">Today</p>
-      <div class="hx-log hx-glass" id="hxLog"></div>
-      <div class="hx-spark hx-glass">
-        <span class="k">Hydration · this week</span>
-        <svg viewBox="0 0 300 48" preserveAspectRatio="none"><polyline class="line" id="hxSpark" points="0,30 50,22 100,18 150,26 200,14 250,20 300,10"/></svg>
-      </div>
-      <p class="hx-reflect" id="hxReflect">You move best on mornings you sleep past seven — worth protecting.</p>
-    </div>
-    <div class="hx-dock">
-      <div class="hx-chips">
-        <button class="hx-chip snap" id="hxSnap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.2"/></svg>Snap a meal</button>
-        <input type="file" id="hxCam" accept="image/*" capture="environment" hidden />
-        <button class="hx-chip" data-q="food"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v8a3 3 0 0 0 6 0V3M9 3v18M18 3c-1.5 1-2 3-2 6s.5 4 2 4v8"/></svg>Food</button>
-        <button class="hx-chip" data-q="water"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/></svg>Water</button>
-        <button class="hx-chip" data-q="move"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2 6 4-14 2 8h6"/></svg>Move</button>
-        <button class="hx-chip" data-q="mood"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 14c1 1.5 2.5 2 4 2s3-.5 4-2M9 9h.01M15 9h.01"/></svg>Mood</button>
-      </div>
-      <div class="hx-bar hx-glass">
-        <svg class="mic" id="hxMic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
-        <input id="hxEntry" type="text" placeholder="Tell Aether what you ate or did…" aria-label="Log an entry" />
-        <svg class="send" id="hxSend" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12 L20 5 L14 12 L20 19 Z"/></svg>
-      </div>
     </div>
   </div>
 
@@ -1987,8 +2021,16 @@ function urlB64ToUint8(b64){ const pad='='.repeat((4-b64.length%4)%4); const b=(
 document.querySelectorAll('.nav button').forEach(b=>{
   b.addEventListener('click', ()=>{
     document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
-    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-    b.classList.add('active'); $(b.dataset.screen).classList.add('active'); haptic();
+        document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+        b.classList.add('active');
+        const targetScr = b.dataset.screen;
+        if(targetScr && ['screenChat','screenHealth','screenRadar'].includes(targetScr)){
+          activateWorldStrip(targetScr);
+        } else {
+          hideWorldStrip();
+          $(targetScr) && $(targetScr).classList.add('active');
+        }
+        haptic();
     stopPlan(); if(typeof stopLearn==='function') stopLearn();
     if(typeof stopHealthOrbs==='function') stopHealthOrbs();
     if(b.dataset.screen==='screenChat'){ scrollChat(); startAmbient(); } else { stopAmbient(); }
@@ -1998,7 +2040,7 @@ document.querySelectorAll('.nav button').forEach(b=>{
     if(b.dataset.screen==='screenSettings'){ renderCredits(); }
   });
 });
-function goChat(){ document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active')); document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.querySelector('.nav button[data-screen="screenChat"]').classList.add('active'); $('screenChat').classList.add('active'); scrollChat(); if(typeof startAmbient==='function') startAmbient(); }
+function goChat(){ document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active')); document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.querySelector('.nav button[data-screen="screenChat"]').classList.add('active'); activateWorldStrip('screenChat'); scrollChat(); if(typeof startAmbient==='function') startAmbient(); }
 
 /* ===== STREAM + CREDITS button wiring ===== */
 $('streamClear') && $('streamClear').addEventListener('click', clearStream);
@@ -3327,7 +3369,7 @@ function stopHealthOrbs(){ if(__hxOrb)__hxOrb.stop(); if(__hxsOrb)__hxsOrb.stop(
 function openHealth(){
   document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  $('screenHealth').classList.add('active');
+  activateWorldStrip('screenHealth');
   stopStream&&stopStream(); stopAmbient&&stopAmbient(); stopStudio&&stopStudio();
   if(typeof stopPlan==='function') stopPlan(); if(typeof stopLearn==='function') stopLearn();
   if(__hxsOrb) __hxsOrb.stop();
@@ -3714,7 +3756,57 @@ document.querySelectorAll('.fcard').forEach(c=>{
 });
 
 /* ===== HOME QUICK ACTIONS ===== */
-function navTo(screen){ const b=document.querySelector('.nav button[data-screen="'+screen+'"]'); if(b) b.click(); }
+/* ===== WORLD STRIP HELPER =====
+   Shows #worldStrip and instantly scrolls to the target pane.
+   When any NON-world nav button is clicked, the existing nav handler calls
+   .screen.active removal which hides worldStrip automatically (it's not a .screen).
+   We hide it explicitly below too. */
+var WORLD_IDS = ['screenChat','screenHealth','screenRadar'];
+function updateDots(idx){
+  const dotsEl=$('swipeDots');
+  if(!dotsEl) return;
+  dotsEl.style.display = idx<0 ? 'none' : 'flex';
+  dotsEl.querySelectorAll('.sw-dot').forEach((d,i)=>d.classList.toggle('on',i===idx));
+}
+function activateWorldStrip(targetId){
+  const strip = $('worldStrip');
+  if(!strip) return;
+  strip.classList.add('active');
+  const pane = $(targetId);
+  if(pane){
+    // instant jump (no animation) so scroll-snap owns the feel
+    pane.scrollIntoView({behavior:'instant', block:'nearest', inline:'start'});
+  }
+  // Sync dots
+  const idx = WORLD_IDS.indexOf(targetId);
+  if(typeof updateDots === 'function') setTimeout(()=>updateDots(idx), 50);
+}
+function hideWorldStrip(){
+  const strip = $('worldStrip');
+  if(strip) strip.classList.remove('active');
+}
+// Hide strip when any non-world nav button is tapped
+document.querySelectorAll('.nav button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    const scr = b.dataset.screen;
+    if(scr && !WORLD_IDS.includes(scr)) hideWorldStrip();
+  });
+});
+// Sync dots as user free-scrolls the strip
+(function(){
+  const strip = $('worldStrip');
+  if(!strip) return;
+  let scrollTimer;
+  strip.addEventListener('scroll', ()=>{
+    clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(()=>{
+      const idx = Math.round(strip.scrollLeft / strip.clientWidth);
+      if(typeof updateDots === 'function') updateDots(idx);
+    }, 80);
+  }, {passive:true});
+})();
+
+function navTo(screen){ const b=document.querySelector('.nav button[data-screen="'+screen+'"]'); if(b) b.click(); if(WORLD_IDS.includes(screen)) activateWorldStrip(screen); }
 document.querySelectorAll('.qa').forEach(b=>{
   b.addEventListener('click', ()=>{
     haptic();
@@ -4452,94 +4544,6 @@ navigator.serviceWorker && navigator.serviceWorker.addEventListener('controllerc
 // populate the version line whenever Settings is opened
 (function(){ const sb=document.querySelector('.nav button[data-screen="screenSettings"]'); if(sb) sb.addEventListener('click', ()=>setTimeout(refreshBuildInfo,60)); })();
 setTimeout(refreshBuildInfo, 1200);
-
-/* ===== SWIPE NAV — Talk · Health · Radar ===========================================
-   Plain horizontal swipe: drag left/right ≥40px to move between worlds.
-   Direction is locked within the first 12px of movement — if it's more vertical
-   than horizontal we hand back to native scroll immediately.
-   touchmove is passive:false so we can preventDefault once locked horizontal,
-   which stops iOS from also scrolling the page under the swipe.
-   Excludes chip rails / bottom sheets where horizontal scroll is intentional.
-   Three dots above the nav show current position. */
-(function(){
-  const WORLDS = ['screenChat','screenHealth','screenRadar'];
-  const OPEN   = [
-    ()=>goChat(),
-    ()=>openHealth(),
-    ()=>navTo('screenRadar'),
-  ];
-  function currentWorld(){
-    for(let i=0;i<WORLDS.length;i++){
-      const s=document.getElementById(WORLDS[i]);
-      if(s&&s.classList.contains('active')) return i;
-    }
-    return -1;
-  }
-  const dotsEl=document.getElementById('swipeDots');
-  function updateDots(idx){
-    if(!dotsEl) return;
-    dotsEl.style.display = idx<0 ? 'none' : 'flex';
-    dotsEl.querySelectorAll('.sw-dot').forEach((d,i)=>d.classList.toggle('on',i===idx));
-  }
-  function swipeTo(dir){ // +1 = right (deeper), -1 = left (back)
-    const cur=currentWorld(); if(cur<0) return;
-    const nxt=cur+dir; if(nxt<0||nxt>=WORLDS.length) return;
-    document.body.dataset.swipeDir = dir>0?'right':'left';
-    OPEN[nxt]();
-    requestAnimationFrame(()=>requestAnimationFrame(()=>{ delete document.body.dataset.swipeDir; }));
-    updateDots(nxt);
-    haptic&&haptic();
-  }
-  // Sync dots whenever a nav button is clicked
-  document.querySelectorAll('.nav button').forEach(b=>{
-    b.addEventListener('click',()=>setTimeout(()=>updateDots(currentWorld()),60));
-  });
-  // Hook openHealth/openSleep so dots update when entered via Home card too
-  const _origOpenHealth=window.openHealth, _origOpenSleep=window.openSleep;
-  window.openHealth=function(){ if(_origOpenHealth) _origOpenHealth.apply(this,arguments); setTimeout(()=>updateDots(currentWorld()),60); };
-  window.openSleep=function(){  if(_origOpenSleep)  _origOpenSleep.apply(this,arguments);  setTimeout(()=>updateDots(-1),60); };
-
-  /* ---- plain swipe recognizer ---- */
-  // CSS touch-action:pan-y on .screen tells iOS to give us horizontal gestures.
-  // No preventDefault needed — the browser hands us horizontal touches directly.
-  let tx=0, ty=0, tracking=false;
-
-  document.addEventListener('touchstart', e=>{
-    if(currentWorld()<0) return;
-    tx=e.touches[0].clientX;
-    ty=e.touches[0].clientY;
-    tracking=true;
-  }, {passive:true});
-
-  document.addEventListener('touchmove', e=>{
-    if(!tracking || currentWorld()<0) return;
-    const dy=e.touches[0].clientY - ty;
-    // If mostly vertical, stop tracking — let native scroll handle it
-    if(Math.abs(dy) > Math.abs(e.touches[0].clientX - tx) + 10) tracking=false;
-  }, {passive:true});
-
-  document.addEventListener('touchend', e=>{
-    if(!tracking || currentWorld()<0){ tracking=false; return; }
-    const dx=e.changedTouches[0].clientX - tx;
-    const dy=e.changedTouches[0].clientY - ty;
-    tracking=false;
-    // Only fire if horizontal movement dominates and exceeds threshold
-    if(Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5){
-      swipeTo(dx > 0 ? 1 : -1);
-    }
-  }, {passive:true});
-
-  document.addEventListener('touchcancel', ()=>{ tracking=false; }, {passive:true});
-
-  // Alt+Arrow for desktop testing
-  document.addEventListener('keydown', e=>{
-    if(!e.altKey) return;
-    if(e.key==='ArrowRight') swipeTo(1);
-    if(e.key==='ArrowLeft')  swipeTo(-1);
-  });
-  // Init dots on first paint
-  setTimeout(()=>updateDots(currentWorld()), 200);
-})();
 
 /* ===== MODEL SWITCHER (per agent, via /model over the gateway) ===== */
 let modelListCache = {}; // agentId -> {current, options[]}
