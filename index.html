@@ -126,7 +126,8 @@
   @keyframes gridDrift { from{background-position:0 0,0 0;} to{background-position:64px 64px,64px 64px;} }
   @media (prefers-reduced-motion: reduce){ body::after{ animation:none; } }
   .screen { position:relative; z-index:1; flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior-y:contain; display:none;
-    -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
+    -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
+    touch-action: pan-y; }
   /* re-enable selection inside text inputs / editable areas */
   .screen input, .screen textarea, .screen [contenteditable] { -webkit-user-select:text; user-select:text; -webkit-touch-callout:default; }
   .screen.active { display:block; animation:scrIn .42s var(--ease) both; }
@@ -4499,43 +4500,36 @@ setTimeout(refreshBuildInfo, 1200);
   window.openSleep=function(){  if(_origOpenSleep)  _origOpenSleep.apply(this,arguments);  setTimeout(()=>updateDots(-1),60); };
 
   /* ---- plain swipe recognizer ---- */
-  // 'h' = locked horizontal (we own it), 'v' = locked vertical (native scroll), null = undecided
-  let tx=0, ty=0, axis=null;
+  // CSS touch-action:pan-y on .screen tells iOS to give us horizontal gestures.
+  // No preventDefault needed — the browser hands us horizontal touches directly.
+  let tx=0, ty=0, tracking=false;
 
   document.addEventListener('touchstart', e=>{
     if(currentWorld()<0) return;
     tx=e.touches[0].clientX;
     ty=e.touches[0].clientY;
-    axis=null;
+    tracking=true;
   }, {passive:true});
 
   document.addEventListener('touchmove', e=>{
-    if(currentWorld()<0 || axis==='v') return;
-    const dx=e.touches[0].clientX - tx;
+    if(!tracking || currentWorld()<0) return;
     const dy=e.touches[0].clientY - ty;
-    // Wait until we have enough movement to decide axis
-    if(axis===null){
-      if(Math.abs(dx)<8 && Math.abs(dy)<8) return;    // undecided — too small
-      // Skip if touch is inside a horizontally-scrollable widget
-      const el=document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY);
-      if(el && el.closest('.hx-chips,.chips,.rr-strip,.rr-cap-row,.ps-card,[id$="Sheet"]')){
-        axis='v'; return;
-      }
-      axis = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
-      if(axis==='v') return;
-    }
-    // Locked horizontal — prevent the page from scrolling vertically under the swipe
-    e.preventDefault();
-  }, {passive:false});
-
-  document.addEventListener('touchend', e=>{
-    if(currentWorld()<0 || axis!=='h'){ axis=null; return; }
-    const dx=e.changedTouches[0].clientX - tx;
-    if(Math.abs(dx) > 40) swipeTo(dx > 0 ? 1 : -1);
-    axis=null;
+    // If mostly vertical, stop tracking — let native scroll handle it
+    if(Math.abs(dy) > Math.abs(e.touches[0].clientX - tx) + 10) tracking=false;
   }, {passive:true});
 
-  document.addEventListener('touchcancel', ()=>{ axis=null; }, {passive:true});
+  document.addEventListener('touchend', e=>{
+    if(!tracking || currentWorld()<0){ tracking=false; return; }
+    const dx=e.changedTouches[0].clientX - tx;
+    const dy=e.changedTouches[0].clientY - ty;
+    tracking=false;
+    // Only fire if horizontal movement dominates and exceeds threshold
+    if(Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5){
+      swipeTo(dx > 0 ? 1 : -1);
+    }
+  }, {passive:true});
+
+  document.addEventListener('touchcancel', ()=>{ tracking=false; }, {passive:true});
 
   // Alt+Arrow for desktop testing
   document.addEventListener('keydown', e=>{
