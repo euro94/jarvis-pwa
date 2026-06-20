@@ -4018,7 +4018,7 @@ const VOICE_OK = !!(SR || __useStt);
 
 function makeSttRecognizer(){
   let stream=null, rec=null, chunks=[], ac=null, an=null, data=null;
-  let raf=0, hbTimer=0, active=false, stopping=false, done=false;
+  let raf=0, hbTimer=0, vadTimer=0, active=false, stopping=false, done=false;
   let speechSeen=false, lastLoud=0, startedAt=0;
   const SILENCE_MS=850, MIN_MS=350, MAX_MS=15000, THRESH=0.020;
   const api={ lang:'en-US', interimResults:true, continuous:false,
@@ -4033,7 +4033,7 @@ function makeSttRecognizer(){
     stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
     return stream;
   }
-  function teardownMeter(){ if(raf)cancelAnimationFrame(raf); raf=0; if(hbTimer)clearInterval(hbTimer); hbTimer=0; try{ if(an)an.disconnect(); }catch(e){} an=null; }
+  function teardownMeter(){ if(raf)cancelAnimationFrame(raf); raf=0; if(hbTimer)clearInterval(hbTimer); hbTimer=0; if(vadTimer)clearInterval(vadTimer); vadTimer=0; try{ if(an)an.disconnect(); }catch(e){} an=null; }
   function meterLoop(){
     if(!an||!active) return;
     an.getByteTimeDomainData(data);
@@ -4081,6 +4081,23 @@ function makeSttRecognizer(){
       // keep the zombie-watchdog satisfied during a long utterance
       hbTimer=setInterval(()=>{ if(active) __recogAlive=Date.now(); }, 1500);
       raf=requestAnimationFrame(meterLoop);
+      // SAFETY-NET endpointer (setInterval, NOT requestAnimationFrame): iOS pauses
+      // rAF when the screen dims / audio session hiccups, which stalls meterLoop —
+      // then finish() never fires, the recorder stays open, nothing is ever sent,
+      // and the orb is stuck on "Listening" forever. This timer runs independently
+      // and force-finishes on the same silence rule, plus a hard max-duration cap.
+      vadTimer=setInterval(()=>{
+        if(!active||stopping) return;
+        // Read the analyser DIRECTLY here so endpointing does not depend on
+        // meterLoop (rAF) running — that's the whole point of the safety net.
+        let rms=0;
+        try{ if(an&&data){ an.getByteTimeDomainData(data); let s=0; for(let i=0;i<data.length;i++){ const x=(data[i]-128)/128; s+=x*x; } rms=Math.sqrt(s/data.length); } }catch(e){}
+        const now=Date.now();
+        if(rms>THRESH){ speechSeen=true; lastLoud=now; }
+        const dur=now-startedAt;
+        if(dur>MAX_MS){ finish(); return; }
+        if(speechSeen && (now-lastLoud)>SILENCE_MS && dur>MIN_MS){ finish(); return; }
+      }, 200);
     }catch(err){
       active=false; teardownMeter();
       const code=(err&&err.name==='NotAllowedError')?'not-allowed':'audio-capture';

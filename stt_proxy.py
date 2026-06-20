@@ -168,6 +168,9 @@ class Handler(BaseHTTPRequestHandler):
         if self.path.rstrip("/") not in ("/transcribe", ""):
             self._json(404, {"error": "not found"})
             return
+        _t0 = __import__("time").time()
+        _origin = self.headers.get("Origin", "-")
+        _clen = self.headers.get("Content-Length", "0")
         try:
             raw = _read_upload(self)
         except ValueError as e:
@@ -177,12 +180,16 @@ class Handler(BaseHTTPRequestHandler):
             self._json(400, {"error": f"bad upload: {e}"})
             return
         if not raw:
+            print(f"[stt] POST EMPTY audio (clen={_clen} origin={_origin})", flush=True)
             self._json(400, {"error": "empty audio"})
             return
         try:
             text = transcribe_bytes(raw)
+            dt = __import__("time").time() - _t0
+            print(f"[stt] POST {_clen}B -> {dt:.2f}s -> {text!r}", flush=True)
             self._json(200, {"text": text})
         except Exception as e:
+            print(f"[stt] POST FAILED ({_clen}B): {e}", flush=True)
             self._json(500, {"error": f"transcription failed: {e}"})
 
     def log_message(self, *a):  # quieter console
