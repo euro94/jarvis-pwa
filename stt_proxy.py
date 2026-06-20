@@ -40,12 +40,14 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 # ---- config ----
 PORT = int(os.environ.get("STT_PROXY_PORT", "8847"))
 MODEL_SIZE = os.environ.get("STT_MODEL", "base")          # base is cached; tiny/small also fine
-# Default to GPU (this host has an RTX 5070). float16 on CUDA is ~4x faster than
-# int8 on CPU and frees the CPU for the rest of the stack. If CUDA init fails
-# (driver/cuDNN missing) get_model() automatically falls back to cpu/int8 so
-# voice never breaks. Override with STT_DEVICE / STT_COMPUTE env vars.
-DEVICE = os.environ.get("STT_DEVICE", "cuda")
-COMPUTE = os.environ.get("STT_COMPUTE", "float16")
+# CPU/int8 is the reliable default: real-speech transcription is ~0.1-0.2s for
+# short utterances, and it has no CUDA library dependency. GPU (cuda/float16) is
+# only marginally faster on this clip length AND this host is missing
+# cublas64_12.dll, so CUDA encode fails on real audio (it only "works" on silence
+# that VAD filters out before the GPU is touched). Stay on CPU unless the CUDA
+# runtime is fully installed; override with STT_DEVICE=cuda STT_COMPUTE=float16.
+DEVICE = os.environ.get("STT_DEVICE", "cpu")
+COMPUTE = os.environ.get("STT_COMPUTE", "int8")
 LANG = os.environ.get("STT_LANG", "en")                   # force English; set "" to auto-detect
 ALLOW_ORIGIN = os.environ.get("STT_ALLOW_ORIGIN", "https://euro94.github.io")
 MAX_BYTES = int(os.environ.get("STT_MAX_BYTES", str(25 * 1024 * 1024)))  # 25 MB cap
@@ -54,19 +56,31 @@ _model = None
 
 
 def get_model():
-    """Lazy-load faster-whisper. Try GPU first; on any CUDA/cuDNN failure fall
-    back to cpu/int8 so voice keeps working on a host without a usable GPU."""
+    """Lazy-load faster-whisper. If GPU is requested, run a tiny TEST ENCODE to
+    prove CUDA actually works end-to-end (init can succeed while encode later
+    fails on a missing cublas/cudnn DLL — that would hang every real request).
+    On any GPU failure, fall back to cpu/int8 so voice never breaks."""
     global _model, DEVICE, COMPUTE
     if _model is None:
+        import numpy as np
         from faster_whisper import WhisperModel  # imported lazily
+
+        def _load(dev, comp):
+            print(f"[stt] loading faster-whisper '{MODEL_SIZE}' ({dev}/{comp})...", flush=True)
+            m = WhisperModel(MODEL_SIZE, device=dev, compute_type=comp)
+            # Real encode test: 1s of low-level noise so VAD doesn't drop it before
+            # the encoder runs. This is what surfaces a missing cublas64_12.dll.
+            sig = (np.random.randn(16000) * 0.05).astype("float32")
+            list(m.transcribe(sig, beam_size=1, vad_filter=False, language="en")[0])
+            return m
+
         try:
-            print(f"[stt] loading faster-whisper '{MODEL_SIZE}' ({DEVICE}/{COMPUTE})...", flush=True)
-            _model = WhisperModel(MODEL_SIZE, device=DEVICE, compute_type=COMPUTE)
+            _model = _load(DEVICE, COMPUTE)
         except Exception as e:
             if DEVICE != "cpu":
-                print(f"[stt] GPU init failed ({e}); falling back to cpu/int8", flush=True)
+                print(f"[stt] GPU unusable ({str(e)[:120]}); falling back to cpu/int8", flush=True)
                 DEVICE, COMPUTE = "cpu", "int8"
-                _model = WhisperModel(MODEL_SIZE, device=DEVICE, compute_type=COMPUTE)
+                _model = _load(DEVICE, COMPUTE)
             else:
                 raise
         print(f"[stt] model ready ({DEVICE}/{COMPUTE}).", flush=True)
