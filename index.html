@@ -3760,7 +3760,7 @@ async function liveAsk(text, silent){
     // body) with 200 — detect that and bail to the ntfy-agent fallback.
     const ct=(r.headers.get('content-type')||'');
     if(!/event-stream/i.test(ct) && /json/i.test(ct)) throw new Error('proxy not streaming ('+ct+')');
-    const reader=r.body.getReader(), dec=new TextDecoder(); let buf='';
+    const reader=r.body.getReader(), dec=new TextDecoder(); let buf='', sawDone=false;
     for(;;){
       const {value,done}=await reader.read(); if(done) break;
       buf+=dec.decode(value,{stream:true});
@@ -3775,8 +3775,13 @@ async function liveAsk(text, silent){
         }
         else if(ev.type==='action'){ toast('⚡ '+(ev.result||ev.tool)); }
         else if(ev.type==='error'){ throw new Error(ev.error||'proxy error'); }
-        else if(ev.type==='done'){ acc=ev.text||acc; }
+        else if(ev.type==='done'){ acc=ev.text||acc; sawDone=true; }
       }
+      // The reply is complete the instant we see the done event — stop reading
+      // immediately instead of blocking on the next read() until the connection
+      // drops. A keep-alive/proxied connection can stay open after the final
+      // event, which would otherwise leave the orb stuck on "thinking".
+      if(sawDone){ try{ reader.cancel(); }catch(e){} break; }
     }
     hideTyping();
     const reply=acc.trim();

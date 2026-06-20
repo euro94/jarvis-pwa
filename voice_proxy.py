@@ -168,13 +168,17 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(400); self._cors(); self.end_headers()
             self.wfile.write(b'{"error":"bad request"}'); return
 
-        # Open the SSE stream to the phone.
+        # Open the SSE stream to the phone. Connection: close so the client's
+        # reader gets a clean end-of-stream (done=true) the moment we finish —
+        # otherwise a keep-alive connection stays open after the final event and
+        # the phone waits forever, stuck on "thinking".
         self.send_response(200)
         self._cors()
         self.send_header("Content-Type", "text/event-stream")
         self.send_header("Cache-Control", "no-cache")
-        self.send_header("Connection", "keep-alive")
+        self.send_header("Connection", "close")
         self.end_headers()
+        self.close_connection = True
 
         def emit(obj):
             try:
