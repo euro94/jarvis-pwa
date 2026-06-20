@@ -40,8 +40,12 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 # ---- config ----
 PORT = int(os.environ.get("STT_PROXY_PORT", "8847"))
 MODEL_SIZE = os.environ.get("STT_MODEL", "base")          # base is cached; tiny/small also fine
-DEVICE = os.environ.get("STT_DEVICE", "cpu")              # "cuda" if a GPU is available
-COMPUTE = os.environ.get("STT_COMPUTE", "int8")           # int8 = fast on CPU, low memory
+# Default to GPU (this host has an RTX 5070). float16 on CUDA is ~4x faster than
+# int8 on CPU and frees the CPU for the rest of the stack. If CUDA init fails
+# (driver/cuDNN missing) get_model() automatically falls back to cpu/int8 so
+# voice never breaks. Override with STT_DEVICE / STT_COMPUTE env vars.
+DEVICE = os.environ.get("STT_DEVICE", "cuda")
+COMPUTE = os.environ.get("STT_COMPUTE", "float16")
 LANG = os.environ.get("STT_LANG", "en")                   # force English; set "" to auto-detect
 ALLOW_ORIGIN = os.environ.get("STT_ALLOW_ORIGIN", "https://euro94.github.io")
 MAX_BYTES = int(os.environ.get("STT_MAX_BYTES", str(25 * 1024 * 1024)))  # 25 MB cap
@@ -50,13 +54,22 @@ _model = None
 
 
 def get_model():
-    """Lazy-load faster-whisper so process start is instant."""
-    global _model
+    """Lazy-load faster-whisper. Try GPU first; on any CUDA/cuDNN failure fall
+    back to cpu/int8 so voice keeps working on a host without a usable GPU."""
+    global _model, DEVICE, COMPUTE
     if _model is None:
         from faster_whisper import WhisperModel  # imported lazily
-        print(f"[stt] loading faster-whisper '{MODEL_SIZE}' ({DEVICE}/{COMPUTE})...", flush=True)
-        _model = WhisperModel(MODEL_SIZE, device=DEVICE, compute_type=COMPUTE)
-        print("[stt] model ready.", flush=True)
+        try:
+            print(f"[stt] loading faster-whisper '{MODEL_SIZE}' ({DEVICE}/{COMPUTE})...", flush=True)
+            _model = WhisperModel(MODEL_SIZE, device=DEVICE, compute_type=COMPUTE)
+        except Exception as e:
+            if DEVICE != "cpu":
+                print(f"[stt] GPU init failed ({e}); falling back to cpu/int8", flush=True)
+                DEVICE, COMPUTE = "cpu", "int8"
+                _model = WhisperModel(MODEL_SIZE, device=DEVICE, compute_type=COMPUTE)
+            else:
+                raise
+        print(f"[stt] model ready ({DEVICE}/{COMPUTE}).", flush=True)
     return _model
 
 
@@ -166,6 +179,12 @@ def main():
     print(f"AETHER STT proxy on http://127.0.0.1:{PORT}  (model={MODEL_SIZE} {DEVICE}/{COMPUTE})")
     print(f"  expose:  tailscale serve --bg --set-path /aether-stt http://127.0.0.1:{PORT}")
     print(f"  then the app POSTs audio to  https://<tailnet-host>/aether-stt/transcribe")
+    # Warm the model now so the FIRST utterance isn't a cold ~1-2s load on top of
+    # transcription. Non-fatal if it fails — get_model() will retry on request.
+    try:
+        get_model()
+    except Exception as e:
+        print(f"[stt] warm-up skipped: {e}", flush=True)
     ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
 
 

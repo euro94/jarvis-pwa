@@ -3057,7 +3057,7 @@ async function pollReply(sinceTs, silent, agent){
         pollStop=Date.now()+QUIET_GAP;                      // text mode: keep listening for more
       }
     }catch(e){}
-    await new Promise(r=>setTimeout(r, voice||agent.id==='builder'?1500:2500));
+    await new Promise(r=>setTimeout(r, voice||agent.id==='builder'?600:2500));
   }
   if(myGen!==__pollGen) return;
   __turnActive=false;          // turn over — ambient poller may resume
@@ -4015,7 +4015,7 @@ function makeSttRecognizer(){
   let stream=null, rec=null, chunks=[], ac=null, an=null, data=null;
   let raf=0, hbTimer=0, active=false, stopping=false, done=false;
   let speechSeen=false, lastLoud=0, startedAt=0;
-  const SILENCE_MS=1100, MIN_MS=350, MAX_MS=15000, THRESH=0.020;
+  const SILENCE_MS=850, MIN_MS=350, MAX_MS=15000, THRESH=0.020;
   const api={ lang:'en-US', interimResults:true, continuous:false,
               onstart:null, onresult:null, onend:null, onerror:null, __isStt:true };
   function pickMime(){
